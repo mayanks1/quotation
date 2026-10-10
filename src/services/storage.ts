@@ -40,41 +40,11 @@ export const createBlankQuotation = (companyProfile: CompanyProfile): Quotation 
   const initialItems: LineItem[] = [
     {
       id: `item-${Date.now()}-1`,
-      description: 'P3.91 Indoor/Outdoor LED Video Wall (Size: 12ft x 8ft = 96 Sq.Ft)',
+      description: '',
       quantity: 1,
-      rate: 12000,
-      unit: 'Day',
+      rate: 0,
+      unit: '',
       hsnSac: '9973',
-      dimensions: {
-        widthFt: 12,
-        heightFt: 8,
-        sqFt: 96,
-        days: 1,
-      },
-    },
-    {
-      id: `item-${Date.now()}-2`,
-      description: 'Novastar Video Processor & Switcher with HDMI/VGA/SDI Input',
-      quantity: 1,
-      rate: 3500,
-      unit: 'Day',
-      hsnSac: '9973',
-    },
-    {
-      id: `item-${Date.now()}-3`,
-      description: 'Aluminum Truss Setup with Base Plates & Rigging',
-      quantity: 1,
-      rate: 4000,
-      unit: 'Set',
-      hsnSac: '9973',
-    },
-    {
-      id: `item-${Date.now()}-4`,
-      description: 'On-site Certified LED Technician & Video Operator',
-      quantity: 1,
-      rate: 2000,
-      unit: 'Day',
-      hsnSac: '9987',
     },
   ];
 
@@ -98,7 +68,7 @@ export const createBlankQuotation = (companyProfile: CompanyProfile): Quotation 
     discountAmount: 0,
     taxScheme: 'cgst_sgst',
     taxRate: 18,
-    shippingCharges: 2500,
+    shippingCharges: 0,
     notes: DEFAULT_TERMS_AND_CONDITIONS,
     paymentTerms: DEFAULT_PAYMENT_TERMS,
     createdAt: new Date().toISOString(),
@@ -166,38 +136,24 @@ export const storage = {
       memoryCompany = idbCompany || DEFAULT_COMPANY;
       memoryCustomCatalog = idbCatalog || [];
 
-      // If IndexedDB is completely empty, seed initial quote
-      if (memoryQuotations.length === 0) {
-        const initial = createBlankQuotation(memoryCompany);
-        await idb.saveQuotation(initial);
-        memoryQuotations = [initial];
-      }
-
-      // 3. Background cloud sync (non-blocking)
+      // 3. Cloud sync: pull from cloud if available
       if (cloudSync.isEnabled()) {
-        for (const q of memoryQuotations) {
-          cloudSync.syncQuotation(q);
-        }
-        for (const c of memoryClients) {
-          cloudSync.syncClient(c);
-        }
-        cloudSync.syncCompanyProfile(memoryCompany);
-
-        cloudSync.pullAllFromCloud().then((cloudData) => {
+        try {
+          const cloudData = await cloudSync.pullAllFromCloud();
           if (cloudData && cloudData.quotations.length > 0) {
             memoryQuotations = cloudData.quotations;
+          }
+          if (cloudData && cloudData.clients.length > 0) {
             memoryClients = cloudData.clients;
           }
-        });
+        } catch (e) {
+          console.warn('Cloud sync pull notice:', e);
+        }
       }
 
       isInitialized = true;
     } catch (err) {
       console.error('IndexedDB initialization failed, falling back:', err);
-      // Fallback
-      if (memoryQuotations.length === 0) {
-        memoryQuotations = [createBlankQuotation(DEFAULT_COMPANY)];
-      }
     }
 
     return {

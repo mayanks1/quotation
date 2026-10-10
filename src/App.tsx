@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react';
+import { Plus } from 'lucide-react';
 import { Quotation, CompanyProfile, ClientProfile } from './types/quotation';
 import { storage, createBlankQuotation } from './services/storage';
 import { HeaderNav } from './components/HeaderNav';
@@ -11,27 +12,14 @@ import { useToast } from './context/ToastContext';
 export function App() {
   const toast = useToast();
   const [company, setCompany] = useState<CompanyProfile>(() => storage.getCompanyProfile());
-  const [quotations, setQuotations] = useState<Quotation[]>(() => {
-    const list = storage.getAllQuotations();
-    if (list.length > 0) return list;
-    // Initialize first quotation if brand new
-    const initial = createBlankQuotation(storage.getCompanyProfile());
-    storage.saveQuotation(initial);
-    return [initial];
-  });
-
-  const [activeQuoteId, setActiveQuoteId] = useState<string>(() => {
-    const stored = storage.getActiveQuotationId();
-    if (stored) return stored;
-    return quotations[0]?.id || '';
-  });
-
+  const [quotations, setQuotations] = useState<Quotation[]>(() => storage.getAllQuotations());
+  const [activeQuoteId, setActiveQuoteId] = useState<string>(() => storage.getActiveQuotationId() || '');
   const [clients, setClients] = useState<ClientProfile[]>(() => storage.getAllClients());
-  const [activeTab, setActiveTab] = useState<'editor' | 'list' | 'clients'>('editor');
+  const [activeTab, setActiveTab] = useState<'editor' | 'list' | 'clients'>('list');
   const [isSettingsOpen, setIsSettingsOpen] = useState(false);
 
   // Active quotation reference
-  const currentQuote = quotations.find((q) => q.id === activeQuoteId) || quotations[0];
+  const currentQuote = quotations.find((q) => q.id === activeQuoteId) || (quotations.length > 0 ? quotations[0] : null);
 
   useEffect(() => {
     storage.initialize().then(({ quotations: qList, clients: cList, company: comp }) => {
@@ -43,6 +31,8 @@ export function App() {
         setActiveQuoteId(activeId);
       } else if (qList.length > 0) {
         setActiveQuoteId(qList[0].id);
+      } else {
+        setActiveQuoteId('');
       }
     });
   }, []);
@@ -58,7 +48,12 @@ export function App() {
     setClients(storage.getAllClients());
     setCompany(storage.getCompanyProfile());
     const first = storage.getAllQuotations()[0];
-    if (first) setActiveQuoteId(first.id);
+    if (first) {
+      setActiveQuoteId(first.id);
+    } else {
+      setActiveQuoteId('');
+      setActiveTab('list');
+    }
   };
 
   // Handlers
@@ -99,10 +94,8 @@ export function App() {
       if (remaining.length > 0) {
         setActiveQuoteId(remaining[0].id);
       } else {
-        const fresh = createBlankQuotation(company);
-        storage.saveQuotation(fresh);
-        setQuotations([fresh]);
-        setActiveQuoteId(fresh.id);
+        setActiveQuoteId('');
+        setActiveTab('list');
       }
     }
   };
@@ -180,6 +173,34 @@ export function App() {
             onDuplicate={handleDuplicate}
             onOpenSettings={() => setIsSettingsOpen(true)}
           />
+        )}
+
+        {activeTab === 'editor' && !currentQuote && (
+          <div className="max-w-md mx-auto my-16 bg-white p-8 rounded-2xl border border-slate-200/80 shadow-sm text-center space-y-4">
+            <div className="w-12 h-12 bg-blue-50 text-blue-600 rounded-2xl flex items-center justify-center mx-auto">
+              <Plus size={24} />
+            </div>
+            <div>
+              <h3 className="font-bold text-slate-800 text-base">No Quotation Selected</h3>
+              <p className="text-xs text-slate-500 mt-1">
+                You can create a new blank quotation or view your quotations list.
+              </p>
+            </div>
+            <div className="flex gap-2 justify-center pt-2">
+              <button
+                onClick={() => setActiveTab('list')}
+                className="px-4 py-2 border border-slate-200 text-xs font-semibold rounded-xl text-slate-600 hover:bg-slate-50 transition-colors"
+              >
+                View All Quotes
+              </button>
+              <button
+                onClick={handleCreateNew}
+                className="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white text-xs font-bold rounded-xl shadow-sm transition-all"
+              >
+                + New Quotation
+              </button>
+            </div>
+          </div>
         )}
 
         {activeTab === 'clients' && (
