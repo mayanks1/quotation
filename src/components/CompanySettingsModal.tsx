@@ -4,6 +4,7 @@ import { CompanyProfile } from '../types/quotation';
 import { storage } from '../services/storage';
 import { isSupabaseConfigured } from '../services/supabaseClient';
 import { cloudSync } from '../services/cloudSync';
+import { useToast, useConfirm } from '../context/ToastContext';
 
 interface Props {
   isOpen: boolean;
@@ -20,6 +21,8 @@ export const CompanySettingsModal: React.FC<Props> = ({
   onSave, 
   onRestoreBackup 
 }) => {
+  const toast = useToast();
+  const { confirm } = useConfirm();
   const [profile, setProfile] = useState<CompanyProfile>({ ...company });
   const [testingConn, setTestingConn] = useState(false);
   const [testResult, setTestResult] = useState<{ success: boolean; message: string; tableReady?: boolean } | null>(null);
@@ -55,6 +58,7 @@ export const CompanySettingsModal: React.FC<Props> = ({
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     onSave(profile);
+    toast.success('Company profile & bank settings updated successfully');
     onClose();
   };
 
@@ -317,8 +321,9 @@ export const CompanySettingsModal: React.FC<Props> = ({
                 onClick={async () => {
                   try {
                     await storage.exportBackup();
+                    toast.success('Full database backup (.json) exported successfully');
                   } catch (err) {
-                    alert('Export failed: ' + err);
+                    toast.error('Export failed: ' + err);
                   }
                 }}
                 className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-white hover:bg-slate-100 text-slate-700 rounded-lg border border-slate-200 text-xs font-semibold shadow-2xs transition-colors"
@@ -337,14 +342,21 @@ export const CompanySettingsModal: React.FC<Props> = ({
                   onChange={async (e) => {
                     const file = e.target.files?.[0];
                     if (!file) return;
-                    if (confirm('Restoring will merge quotations from the backup file into your database. Continue?')) {
+                    const confirmed = await confirm({
+                      title: 'Restore Database Backup',
+                      message: 'Restoring will merge quotations, clients, and catalog items from the backup file into your database. Continue?',
+                      confirmText: 'Restore Backup',
+                      cancelText: 'Cancel',
+                      variant: 'warning',
+                    });
+                    if (confirmed) {
                       try {
                         const res = await storage.importBackup(file);
-                        alert(`Restored successfully! Loaded ${res.quotationsCount} quotations.`);
+                        toast.success(`Restored successfully! Loaded ${res.quotationsCount} quotations.`);
                         if (onRestoreBackup) onRestoreBackup();
                         onClose();
                       } catch (err) {
-                        alert('Restore failed: ' + err);
+                        toast.error('Restore failed: ' + err);
                       }
                     }
                   }}

@@ -9,6 +9,7 @@ import { generateWhatsAppShareUrl } from '../services/whatsapp';
 import { exportQuotationPDF } from '../services/pdfGenerator';
 import { LedCalculatorModal } from './LedCalculatorModal';
 import { CatalogPickerModal } from './CatalogPickerModal';
+import { useToast } from '../context/ToastContext';
 
 interface Props {
   quotation: Quotation;
@@ -27,6 +28,7 @@ export const QuotationEditor: React.FC<Props> = ({
   onDuplicate,
   onOpenSettings,
 }) => {
+  const toast = useToast();
   const [exporting, setExporting] = useState(false);
   const [isLedCalcOpen, setIsLedCalcOpen] = useState(false);
   const [isCatalogOpen, setIsCatalogOpen] = useState(false);
@@ -55,6 +57,7 @@ export const QuotationEditor: React.FC<Props> = ({
       hsnSac: '',
     };
     onChange({ ...quotation, lineItems: [...quotation.lineItems, newItem] });
+    toast.info('New custom line item added');
   };
 
   const handleRemoveItem = (id: string) => {
@@ -63,6 +66,7 @@ export const QuotationEditor: React.FC<Props> = ({
       ...quotation,
       lineItems: quotation.lineItems.filter((i) => i.id !== id),
     });
+    toast.info('Line item removed');
   };
 
   const handleLogoUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -74,17 +78,20 @@ export const QuotationEditor: React.FC<Props> = ({
         ...quotation,
         company: { ...quotation.company, logo: reader.result as string },
       });
+      toast.success('Company logo updated');
     };
     reader.readAsDataURL(file);
   };
 
   const handleExportPDF = async () => {
     setExporting(true);
+    toast.info(`Preparing PDF for ${quotation.quotationNumber}...`);
     try {
       await exportQuotationPDF(quotation);
+      toast.success(`PDF downloaded for ${quotation.quotationNumber}`);
     } catch (err) {
       console.error('PDF export failed:', err);
-      alert('PDF generation encountered an error. Please try again.');
+      toast.error('PDF generation encountered an error. Please try again.');
     } finally {
       setExporting(false);
     }
@@ -97,6 +104,7 @@ export const QuotationEditor: React.FC<Props> = ({
   const handleWhatsApp = () => {
     const url = generateWhatsAppShareUrl(quotation);
     window.open(url, '_blank');
+    toast.info('Opening WhatsApp with quotation summary...');
   };
 
   const handleSelectSavedClient = (clientIdOrName: string) => {
@@ -114,6 +122,7 @@ export const QuotationEditor: React.FC<Props> = ({
           gstin: found.gstin || '',
         },
       });
+      toast.success(`Client details autofilled for ${found.name}`);
     }
   };
 
@@ -162,7 +171,10 @@ export const QuotationEditor: React.FC<Props> = ({
         {/* Action CTAs */}
         <div className="flex items-center gap-2 w-full md:w-auto flex-wrap justify-end">
           <button
-            onClick={() => onDuplicate(quotation)}
+            onClick={() => {
+              onDuplicate(quotation);
+              toast.success(`Quotation ${quotation.quotationNumber} duplicated as new draft`);
+            }}
             title="Duplicate as new quote"
             className="flex items-center gap-1.5 px-3 py-2 text-xs font-semibold text-slate-700 bg-slate-100 hover:bg-slate-200 rounded-lg transition-colors"
           >
@@ -719,6 +731,7 @@ export const QuotationEditor: React.FC<Props> = ({
         onClose={() => setIsLedCalcOpen(false)}
         onAddLineItem={(item) => {
           onChange({ ...quotation, lineItems: [...quotation.lineItems, item] });
+          toast.success('LED screen calculation added to quotation');
         }}
       />
 

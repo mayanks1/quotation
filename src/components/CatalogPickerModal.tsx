@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { X, Search, Plus, Check, Trash2, Tag, Layers, ChevronDown, ChevronUp } from 'lucide-react';
 import { CatalogItem, LineItem } from '../types/quotation';
 import { storage } from '../services/storage';
+import { useToast, useConfirm } from '../context/ToastContext';
 
 interface Props {
   isOpen: boolean;
@@ -10,6 +11,8 @@ interface Props {
 }
 
 export const CatalogPickerModal: React.FC<Props> = ({ isOpen, onClose, onAddItems }) => {
+  const toast = useToast();
+  const { confirm } = useConfirm();
   const [catalogItems, setCatalogItems] = useState<CatalogItem[]>([]);
   const [search, setSearch] = useState('');
   const [selectedCategory, setSelectedCategory] = useState<string>('All');
@@ -87,14 +90,23 @@ export const CatalogPickerModal: React.FC<Props> = ({ isOpen, onClose, onAddItem
     setNewRate('');
     setNewCustomCategory('');
     setIsAddingNew(false);
+    toast.success(`"${item.title}" added to equipment catalog`);
   };
 
-  const handleDeleteCustomItem = (e: React.MouseEvent, id: string) => {
+  const handleDeleteCustomItem = async (e: React.MouseEvent, id: string, title?: string) => {
     e.stopPropagation();
-    if (confirm('Delete this item from your equipment catalog?')) {
+    const confirmed = await confirm({
+      title: 'Delete Equipment',
+      message: `Are you sure you want to delete ${title ? `"${title}"` : 'this item'} from your catalog?`,
+      confirmText: 'Delete Item',
+      cancelText: 'Cancel',
+      variant: 'danger',
+    });
+    if (confirmed) {
       storage.deleteCatalogItem(id);
       setCatalogItems(storage.getAllCatalogItems());
       setSelectedIds((prev) => prev.filter((i) => i !== id));
+      toast.success(`${title ? `"${title}"` : 'Item'} removed from catalog`);
     }
   };
 
@@ -112,6 +124,7 @@ export const CatalogPickerModal: React.FC<Props> = ({ isOpen, onClose, onAddItem
 
     if (itemsToAdd.length > 0) {
       onAddItems(itemsToAdd);
+      toast.success(`Added ${itemsToAdd.length} ${itemsToAdd.length === 1 ? 'item' : 'items'} to quotation`);
     }
     setSelectedIds([]);
     onClose();
@@ -354,7 +367,7 @@ export const CatalogPickerModal: React.FC<Props> = ({ isOpen, onClose, onAddItem
                     {item.isCustom && (
                       <button
                         title="Delete custom item"
-                        onClick={(e) => handleDeleteCustomItem(e, item.id)}
+                        onClick={(e) => handleDeleteCustomItem(e, item.id, item.title)}
                         className="p-1 text-slate-300 hover:text-rose-500 rounded transition-colors"
                       >
                         <Trash2 size={15} />

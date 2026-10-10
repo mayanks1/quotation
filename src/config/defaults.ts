@@ -12,12 +12,12 @@ export const DEFAULT_COMPANY: CompanyProfile = {
   gstin: '',
   pan: '',
   bankDetails: {
-    accountName: 'Tisha LED Walls',
-    bankName: 'HDFC Bank',
-    accountNumber: '50200012345678',
-    ifscCode: 'HDFC0001234',
-    branch: 'Sector 39, Gurugram',
-    upiId: '7703948857@upi',
+    accountName: 'Ankush Saini',
+    bankName: 'State Bank Of India',
+    accountNumber: '42410969250',
+    ifscCode: 'SBIN0061222',
+    branch: 'Sector 46, Gurugram',
+    upiId: '9716681122@sbi',
   },
 };
 

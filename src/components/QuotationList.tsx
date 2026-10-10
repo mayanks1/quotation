@@ -7,6 +7,7 @@ import {
 import { Quotation, QuotationStatus } from '../types/quotation';
 import { generateWhatsAppShareUrl } from '../services/whatsapp';
 import { exportQuotationPDF } from '../services/pdfGenerator';
+import { useToast, useConfirm } from '../context/ToastContext';
 
 interface Props {
   quotations: Quotation[];
@@ -23,6 +24,8 @@ export const QuotationList: React.FC<Props> = ({
   onDuplicate,
   onDelete,
 }) => {
+  const toast = useToast();
+  const { confirm } = useConfirm();
   const [search, setSearch] = useState('');
   const [statusFilter, setStatusFilter] = useState<string>('all');
   const [exportingId, setExportingId] = useState<string | null>(null);
@@ -74,9 +77,10 @@ export const QuotationList: React.FC<Props> = ({
     setExportingId(q.id);
     try {
       await exportQuotationPDF(q);
+      toast.success(`PDF downloaded for ${q.quotationNumber}`);
     } catch (err) {
       console.error('Download error:', err);
-      alert('Failed to generate PDF. Please try again.');
+      toast.error('Failed to generate PDF. Please try again.');
     } finally {
       setExportingId(null);
     }
@@ -86,6 +90,28 @@ export const QuotationList: React.FC<Props> = ({
     e.stopPropagation();
     const url = generateWhatsAppShareUrl(q);
     window.open(url, '_blank');
+    toast.info('Opening WhatsApp with quotation summary...');
+  };
+
+  const handleDuplicateQuote = (e: React.MouseEvent, quote: Quotation) => {
+    e.stopPropagation();
+    onDuplicate(quote);
+    toast.success(`Quotation ${quote.quotationNumber} duplicated as new draft`);
+  };
+
+  const handleDeleteQuote = async (e: React.MouseEvent, quote: Quotation) => {
+    e.stopPropagation();
+    const confirmed = await confirm({
+      title: 'Delete Quotation',
+      message: `Are you sure you want to delete quotation "${quote.quotationNumber}"? This will permanently remove it from your records.`,
+      confirmText: 'Delete Quotation',
+      cancelText: 'Keep Quote',
+      variant: 'danger',
+    });
+    if (confirmed) {
+      onDelete(quote.id);
+      toast.success(`Quotation ${quote.quotationNumber} deleted successfully`);
+    }
   };
 
   return (
@@ -250,10 +276,7 @@ export const QuotationList: React.FC<Props> = ({
 
                       <button
                         title="Duplicate Quotation"
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          onDuplicate(quote);
-                        }}
+                        onClick={(e) => handleDuplicateQuote(e, quote)}
                         className="p-2 text-slate-600 hover:bg-slate-100 rounded-lg transition-colors"
                       >
                         <Copy size={16} />
@@ -261,12 +284,7 @@ export const QuotationList: React.FC<Props> = ({
 
                       <button
                         title="Delete Quotation"
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          if (confirm(`Are you sure you want to delete quote ${quote.quotationNumber}?`)) {
-                            onDelete(quote.id);
-                          }
-                        }}
+                        onClick={(e) => handleDeleteQuote(e, quote)}
                         className="p-2 text-rose-500 hover:bg-rose-50 rounded-lg transition-colors"
                       >
                         <Trash2 size={16} />

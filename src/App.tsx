@@ -6,8 +6,10 @@ import { QuotationEditor } from './components/QuotationEditor';
 import { QuotationList } from './components/QuotationList';
 import { ClientDirectory } from './components/ClientDirectory';
 import { CompanySettingsModal } from './components/CompanySettingsModal';
+import { useToast } from './context/ToastContext';
 
 export function App() {
+  const toast = useToast();
   const [company, setCompany] = useState<CompanyProfile>(() => storage.getCompanyProfile());
   const [quotations, setQuotations] = useState<Quotation[]>(() => {
     const list = storage.getAllQuotations();
@@ -66,6 +68,7 @@ export function App() {
     setQuotations((prev) => [newQuote, ...prev]);
     setActiveQuoteId(newQuote.id);
     setActiveTab('editor');
+    toast.success(`Created new quotation ${newQuote.quotationNumber}`);
   };
 
   const handleSelectQuotation = (id: string) => {

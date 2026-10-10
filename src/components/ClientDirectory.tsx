@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { Users, Search, Plus, Phone, Mail, Building, FileText, Trash2 } from 'lucide-react';
 import { ClientProfile } from '../types/quotation';
+import { useToast, useConfirm } from '../context/ToastContext';
 
 interface Props {
   clients: ClientProfile[];
@@ -15,6 +16,8 @@ export const ClientDirectory: React.FC<Props> = ({
   onSaveClient,
   onDeleteClient,
 }) => {
+  const toast = useToast();
+  const { confirm } = useConfirm();
   const [search, setSearch] = useState('');
   const [isAdding, setIsAdding] = useState(false);
   const [newClient, setNewClient] = useState<ClientProfile>({
@@ -39,6 +42,7 @@ export const ClientDirectory: React.FC<Props> = ({
     e.preventDefault();
     if (!newClient.name.trim()) return;
     onSaveClient(newClient);
+    toast.success(`Client "${newClient.name}" saved to directory`);
     setNewClient({
       name: '',
       company: '',
@@ -48,6 +52,25 @@ export const ClientDirectory: React.FC<Props> = ({
       gstin: '',
     });
     setIsAdding(false);
+  };
+
+  const handleDeleteClientContact = async (client: ClientProfile) => {
+    const confirmed = await confirm({
+      title: 'Delete Client Contact',
+      message: `Are you sure you want to remove "${client.name}"${client.company ? ` (${client.company})` : ''} from your contacts directory?`,
+      confirmText: 'Delete Contact',
+      cancelText: 'Cancel',
+      variant: 'danger',
+    });
+    if (confirmed) {
+      onDeleteClient(client.id || client.name);
+      toast.success(`Contact "${client.name}" deleted`);
+    }
+  };
+
+  const handleCreateQuote = (client: ClientProfile) => {
+    toast.info(`Preparing new quote for ${client.name}...`);
+    onSelectClientForQuote(client);
   };
 
   return (
@@ -192,8 +215,8 @@ export const ClientDirectory: React.FC<Props> = ({
                     )}
                   </div>
                   <button
-                    onClick={() => onDeleteClient(client.id || client.name)}
-                    className="text-slate-300 hover:text-rose-500 p-1 rounded"
+                    onClick={() => handleDeleteClientContact(client)}
+                    className="text-slate-300 hover:text-rose-500 p-1.5 rounded-lg hover:bg-rose-50 transition-colors"
                     title="Delete contact"
                   >
                     <Trash2 size={14} />
@@ -223,7 +246,7 @@ export const ClientDirectory: React.FC<Props> = ({
 
               <button
                 type="button"
-                onClick={() => onSelectClientForQuote(client)}
+                onClick={() => handleCreateQuote(client)}
                 className="w-full flex items-center justify-center gap-1.5 bg-blue-50 hover:bg-blue-100 text-blue-700 text-xs font-bold py-2 rounded-lg transition-colors border border-blue-200"
               >
                 <FileText size={14} />
