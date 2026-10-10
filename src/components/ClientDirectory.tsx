@@ -1,0 +1,239 @@
+import React, { useState } from 'react';
+import { Users, Search, Plus, Phone, Mail, Building, FileText, Trash2 } from 'lucide-react';
+import { ClientProfile } from '../types/quotation';
+
+interface Props {
+  clients: ClientProfile[];
+  onSelectClientForQuote: (client: ClientProfile) => void;
+  onSaveClient: (client: ClientProfile) => void;
+  onDeleteClient: (idOrName: string) => void;
+}
+
+export const ClientDirectory: React.FC<Props> = ({
+  clients,
+  onSelectClientForQuote,
+  onSaveClient,
+  onDeleteClient,
+}) => {
+  const [search, setSearch] = useState('');
+  const [isAdding, setIsAdding] = useState(false);
+  const [newClient, setNewClient] = useState<ClientProfile>({
+    name: '',
+    company: '',
+    address: '',
+    phone: '',
+    email: '',
+    gstin: '',
+  });
+
+  const filtered = clients.filter((c) => {
+    const term = search.toLowerCase();
+    return (
+      c.name.toLowerCase().includes(term) ||
+      (c.company || '').toLowerCase().includes(term) ||
+      (c.phone || '').toLowerCase().includes(term)
+    );
+  });
+
+  const handleAddSubmit = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!newClient.name.trim()) return;
+    onSaveClient(newClient);
+    setNewClient({
+      name: '',
+      company: '',
+      address: '',
+      phone: '',
+      email: '',
+      gstin: '',
+    });
+    setIsAdding(false);
+  };
+
+  return (
+    <div className="max-w-5xl mx-auto space-y-6">
+      
+      {/* Header & Search */}
+      <div className="bg-white p-5 rounded-2xl border border-slate-200/80 shadow-sm flex flex-col sm:flex-row items-center justify-between gap-4">
+        <div>
+          <h2 className="text-lg font-bold text-slate-900 flex items-center gap-2">
+            <Users className="text-blue-600" size={20} />
+            Client Directory &amp; Contacts
+          </h2>
+          <p className="text-xs text-slate-500">
+            Contacts saved here can be auto-filled into any quotation with 1 click
+          </p>
+        </div>
+
+        <div className="flex items-center gap-3 w-full sm:w-auto">
+          <div className="relative flex-1 sm:w-64">
+            <Search className="absolute left-3 top-2.5 text-slate-400" size={16} />
+            <input
+              type="text"
+              placeholder="Search clients..."
+              value={search}
+              onChange={(e) => setSearch(e.target.value)}
+              className="w-full pl-9 pr-4 py-2 text-xs rounded-lg bg-slate-50 border border-slate-200 focus:outline-blue-500 focus:bg-white"
+            />
+          </div>
+
+          <button
+            onClick={() => setIsAdding(!isAdding)}
+            className="flex items-center gap-1.5 bg-blue-600 hover:bg-blue-700 text-white px-3.5 py-2 rounded-lg text-xs font-bold transition-all shadow-sm shrink-0"
+          >
+            <Plus size={15} />
+            <span>Add Client</span>
+          </button>
+        </div>
+      </div>
+
+      {/* Add Client Form */}
+      {isAdding && (
+        <form onSubmit={handleAddSubmit} className="bg-white p-5 rounded-2xl border border-blue-200 shadow-md space-y-4 animate-in fade-in duration-150">
+          <div className="flex items-center justify-between">
+            <h3 className="text-sm font-bold text-slate-900">New Client Details</h3>
+            <button type="button" onClick={() => setIsAdding(false)} className="text-xs text-slate-400 hover:text-slate-600">Cancel</button>
+          </div>
+
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 text-xs">
+            <div>
+              <label className="text-slate-600 font-medium block mb-1">Contact Name *</label>
+              <input
+                required
+                value={newClient.name}
+                onChange={(e) => setNewClient({ ...newClient, name: e.target.value })}
+                className="w-full bg-slate-50 border border-slate-200 rounded-lg p-2 font-semibold focus:outline-blue-500"
+                placeholder="e.g. Rahul Sharma"
+              />
+            </div>
+            <div>
+              <label className="text-slate-600 font-medium block mb-1">Company / Agency Name</label>
+              <input
+                value={newClient.company}
+                onChange={(e) => setNewClient({ ...newClient, company: e.target.value })}
+                className="w-full bg-slate-50 border border-slate-200 rounded-lg p-2 focus:outline-blue-500"
+                placeholder="e.g. Apex Event Solutions"
+              />
+            </div>
+            <div>
+              <label className="text-slate-600 font-medium block mb-1">Phone Number (for WhatsApp)</label>
+              <input
+                value={newClient.phone}
+                onChange={(e) => setNewClient({ ...newClient, phone: e.target.value })}
+                className="w-full bg-slate-50 border border-slate-200 rounded-lg p-2 focus:outline-blue-500"
+                placeholder="+91 9876543210"
+              />
+            </div>
+            <div>
+              <label className="text-slate-600 font-medium block mb-1">Email</label>
+              <input
+                type="email"
+                value={newClient.email}
+                onChange={(e) => setNewClient({ ...newClient, email: e.target.value })}
+                className="w-full bg-slate-50 border border-slate-200 rounded-lg p-2 focus:outline-blue-500"
+                placeholder="client@apexevents.com"
+              />
+            </div>
+            <div className="sm:col-span-2">
+              <label className="text-slate-600 font-medium block mb-1">Billing Address</label>
+              <textarea
+                rows={2}
+                value={newClient.address}
+                onChange={(e) => setNewClient({ ...newClient, address: e.target.value })}
+                className="w-full bg-slate-50 border border-slate-200 rounded-lg p-2 focus:outline-blue-500"
+                placeholder="Street address, City, State, PIN"
+              />
+            </div>
+          </div>
+
+          <div className="flex justify-end gap-2 pt-2">
+            <button
+              type="button"
+              onClick={() => setIsAdding(false)}
+              className="px-3.5 py-1.5 rounded-lg border border-slate-200 text-xs font-semibold text-slate-600 hover:bg-slate-50"
+            >
+              Cancel
+            </button>
+            <button
+              type="submit"
+              className="bg-blue-600 hover:bg-blue-700 text-white px-4 py-1.5 rounded-lg text-xs font-bold shadow-sm"
+            >
+              Save Client
+            </button>
+          </div>
+        </form>
+      )}
+
+      {/* Clients Grid */}
+      {filtered.length === 0 ? (
+        <div className="bg-white p-12 rounded-2xl border border-slate-200 text-center">
+          <Users size={40} className="mx-auto text-slate-300 mb-2" />
+          <h4 className="text-sm font-bold text-slate-700">No Clients Found</h4>
+          <p className="text-xs text-slate-400 mt-0.5">
+            Clients you enter in quotations are automatically saved here for quick selection
+          </p>
+        </div>
+      ) : (
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+          {filtered.map((client) => (
+            <div
+              key={client.id || client.name}
+              className="bg-white p-5 rounded-2xl border border-slate-200/80 shadow-sm hover:shadow-md transition-shadow flex flex-col justify-between space-y-4"
+            >
+              <div className="space-y-2">
+                <div className="flex items-start justify-between">
+                  <div>
+                    <h3 className="font-bold text-sm text-slate-900">{client.name}</h3>
+                    {client.company && (
+                      <div className="text-xs font-medium text-slate-500 flex items-center gap-1 mt-0.5">
+                        <Building size={12} />
+                        <span>{client.company}</span>
+                      </div>
+                    )}
+                  </div>
+                  <button
+                    onClick={() => onDeleteClient(client.id || client.name)}
+                    className="text-slate-300 hover:text-rose-500 p-1 rounded"
+                    title="Delete contact"
+                  >
+                    <Trash2 size={14} />
+                  </button>
+                </div>
+
+                <div className="space-y-1 text-xs text-slate-600 pt-1">
+                  {client.phone && (
+                    <div className="flex items-center gap-1.5">
+                      <Phone size={12} className="text-slate-400" />
+                      <span>{client.phone}</span>
+                    </div>
+                  )}
+                  {client.email && (
+                    <div className="flex items-center gap-1.5">
+                      <Mail size={12} className="text-slate-400" />
+                      <span className="truncate">{client.email}</span>
+                    </div>
+                  )}
+                  {client.address && (
+                    <p className="text-[11px] text-slate-400 line-clamp-2 pt-1 border-t border-slate-100">
+                      {client.address}
+                    </p>
+                  )}
+                </div>
+              </div>
+
+              <button
+                type="button"
+                onClick={() => onSelectClientForQuote(client)}
+                className="w-full flex items-center justify-center gap-1.5 bg-blue-50 hover:bg-blue-100 text-blue-700 text-xs font-bold py-2 rounded-lg transition-colors border border-blue-200"
+              >
+                <FileText size={14} />
+                <span>Create Quote for Client</span>
+              </button>
+            </div>
+          ))}
+        </div>
+      )}
+
+    </div>
+  );
+};
