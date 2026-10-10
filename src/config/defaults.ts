@@ -6,10 +6,10 @@ export const DEFAULT_COMPANY: CompanyProfile = {
   logo: '',
   address: 'Plot No 183, near Parshuram Bhavan\nJharsa, Sector 39, Gurugram, Haryana 122001',
   phone: '+91 7703948857',
-  phoneAlt: '+91 9810000000',
+  phoneAlt: '+91 9716681122',
   email: 'tishaledwalls@gmail.com',
-  website: 'www.tishaledwalls.com',
-  gstin: '06XXXXX0000X1Z5',
+  website: 'https://tishaledwalls.pages.dev/',
+  gstin: '',
   pan: '',
   bankDetails: {
     accountName: 'Tisha LED Walls',

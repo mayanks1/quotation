@@ -32,10 +32,32 @@ export function App() {
   const currentQuote = quotations.find((q) => q.id === activeQuoteId) || quotations[0];
 
   useEffect(() => {
+    storage.initialize().then(({ quotations: qList, clients: cList, company: comp }) => {
+      setQuotations(qList);
+      setClients(cList);
+      setCompany(comp);
+      const activeId = storage.getActiveQuotationId();
+      if (activeId && qList.some((q) => q.id === activeId)) {
+        setActiveQuoteId(activeId);
+      } else if (qList.length > 0) {
+        setActiveQuoteId(qList[0].id);
+      }
+    });
+  }, []);
+
+  useEffect(() => {
     if (currentQuote && currentQuote.id !== activeQuoteId) {
       setActiveQuoteId(currentQuote.id);
     }
   }, [currentQuote, activeQuoteId]);
+
+  const handleRestoreBackup = () => {
+    setQuotations(storage.getAllQuotations());
+    setClients(storage.getAllClients());
+    setCompany(storage.getCompanyProfile());
+    const first = storage.getAllQuotations()[0];
+    if (first) setActiveQuoteId(first.id);
+  };
 
   // Handlers
   const handleCreateNew = () => {
@@ -173,6 +195,7 @@ export function App() {
         onClose={() => setIsSettingsOpen(false)}
         company={company}
         onSave={handleSaveCompany}
+        onRestoreBackup={handleRestoreBackup}
       />
 
     </div>

@@ -1,18 +1,46 @@
 import React, { useState } from 'react';
-import { X, Building2, Save, Image as ImageIcon, CreditCard } from 'lucide-react';
+import { X, Building2, Save, Image as ImageIcon, CreditCard, Download, Upload, Cloud, HardDrive, CheckCircle2, RefreshCw, AlertCircle } from 'lucide-react';
 import { CompanyProfile } from '../types/quotation';
+import { storage } from '../services/storage';
+import { isSupabaseConfigured } from '../services/supabaseClient';
+import { cloudSync } from '../services/cloudSync';
 
 interface Props {
   isOpen: boolean;
   onClose: () => void;
   company: CompanyProfile;
   onSave: (updated: CompanyProfile) => void;
+  onRestoreBackup?: () => void;
 }
 
-export const CompanySettingsModal: React.FC<Props> = ({ isOpen, onClose, company, onSave }) => {
+export const CompanySettingsModal: React.FC<Props> = ({ 
+  isOpen, 
+  onClose, 
+  company, 
+  onSave, 
+  onRestoreBackup 
+}) => {
   const [profile, setProfile] = useState<CompanyProfile>({ ...company });
+  const [testingConn, setTestingConn] = useState(false);
+  const [testResult, setTestResult] = useState<{ success: boolean; message: string; tableReady?: boolean } | null>(null);
 
   if (!isOpen) return null;
+
+  const handleTestConnection = async () => {
+    setTestingConn(true);
+    setTestResult(null);
+    try {
+      const res = await cloudSync.testConnection();
+      setTestResult(res);
+    } catch (err: any) {
+      setTestResult({
+        success: false,
+        message: err?.message || 'Connection test failed',
+      });
+    } finally {
+      setTestingConn(false);
+    }
+  };
 
   const handleLogoUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
@@ -243,6 +271,115 @@ export const CompanySettingsModal: React.FC<Props> = ({ isOpen, onClose, company
                 />
               </div>
             </div>
+          </div>
+
+          {/* Database & Cloud Sync Section */}
+          <div className="bg-slate-50/80 p-4 rounded-xl border border-slate-200/80 space-y-3">
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-2 text-xs font-bold text-slate-700 uppercase tracking-wider">
+                <HardDrive size={16} className="text-blue-600" />
+                <span>Storage &amp; Cloud Database</span>
+              </div>
+
+              {isSupabaseConfigured() ? (
+                <span className="inline-flex items-center gap-1 text-[11px] font-bold text-emerald-700 bg-emerald-50 px-2 py-0.5 rounded-full border border-emerald-200">
+                  <Cloud size={12} /> Supabase Cloud Synced
+                </span>
+              ) : (
+                <span className="inline-flex items-center gap-1 text-[11px] font-bold text-blue-700 bg-blue-50 px-2 py-0.5 rounded-full border border-blue-200">
+                  <CheckCircle2 size={12} /> IndexedDB (Unlimited Local Storage)
+                </span>
+              )}
+            </div>
+
+            <p className="text-[11px] text-slate-500 leading-relaxed">
+              Your quotations and clients are safely stored in high-performance browser <strong>IndexedDB</strong>. 
+              {isSupabaseConfigured() 
+                ? ' Real-time cloud sync is enabled across devices.' 
+                : ' To enable sync across devices, paste your Supabase URL & Key into the .env file.'}
+            </p>
+
+            <div className="flex flex-wrap gap-2 pt-1">
+              {isSupabaseConfigured() && (
+                <button
+                  type="button"
+                  disabled={testingConn}
+                  onClick={handleTestConnection}
+                  className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-blue-50 hover:bg-blue-100 text-blue-700 rounded-lg border border-blue-200 text-xs font-bold shadow-2xs transition-colors disabled:opacity-50"
+                >
+                  <RefreshCw size={13} className={testingConn ? 'animate-spin' : ''} />
+                  <span>{testingConn ? 'Testing Connection...' : 'Test DB Connection'}</span>
+                </button>
+              )}
+
+              <button
+                type="button"
+                onClick={async () => {
+                  try {
+                    await storage.exportBackup();
+                  } catch (err) {
+                    alert('Export failed: ' + err);
+                  }
+                }}
+                className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-white hover:bg-slate-100 text-slate-700 rounded-lg border border-slate-200 text-xs font-semibold shadow-2xs transition-colors"
+              >
+                <Download size={14} className="text-blue-600" />
+                <span>Export Full Backup (.json)</span>
+              </button>
+
+              <label className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-white hover:bg-slate-100 text-slate-700 rounded-lg border border-slate-200 text-xs font-semibold shadow-2xs cursor-pointer transition-colors">
+                <Upload size={14} className="text-emerald-600" />
+                <span>Restore from Backup (.json)</span>
+                <input
+                  type="file"
+                  accept=".json,application/json"
+                  className="hidden"
+                  onChange={async (e) => {
+                    const file = e.target.files?.[0];
+                    if (!file) return;
+                    if (confirm('Restoring will merge quotations from the backup file into your database. Continue?')) {
+                      try {
+                        const res = await storage.importBackup(file);
+                        alert(`Restored successfully! Loaded ${res.quotationsCount} quotations.`);
+                        if (onRestoreBackup) onRestoreBackup();
+                        onClose();
+                      } catch (err) {
+                        alert('Restore failed: ' + err);
+                      }
+                    }
+                  }}
+                />
+              </label>
+            </div>
+
+            {/* Test Connection Result Alert */}
+            {testResult && (
+              <div className={`p-3 rounded-lg text-xs border flex items-start gap-2.5 transition-all ${
+                testResult.success
+                  ? testResult.tableReady !== false
+                    ? 'bg-emerald-50 text-emerald-800 border-emerald-200'
+                    : 'bg-amber-50 text-amber-800 border-amber-200'
+                  : 'bg-rose-50 text-rose-800 border-rose-200'
+              }`}>
+                {testResult.success ? (
+                  testResult.tableReady !== false ? (
+                    <CheckCircle2 size={16} className="text-emerald-600 shrink-0 mt-0.5" />
+                  ) : (
+                    <AlertCircle size={16} className="text-amber-600 shrink-0 mt-0.5" />
+                  )
+                ) : (
+                  <AlertCircle size={16} className="text-rose-600 shrink-0 mt-0.5" />
+                )}
+                <div className="leading-relaxed">
+                  <div className="font-bold">
+                    {testResult.success 
+                      ? (testResult.tableReady !== false ? 'Database Connection Successful!' : 'Connected, But Setup Needed')
+                      : 'Database Connection Failed'}
+                  </div>
+                  <div>{testResult.message}</div>
+                </div>
+              </div>
+            )}
           </div>
 
           {/* Action Footer */}

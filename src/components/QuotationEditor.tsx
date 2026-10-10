@@ -48,11 +48,11 @@ export const QuotationEditor: React.FC<Props> = ({
   const handleAddItem = () => {
     const newItem: LineItem = {
       id: `item-${Date.now()}`,
-      description: 'Setup Equipment / Service description',
+      description: '',
       quantity: 1,
       rate: 0,
-      unit: 'Day',
-      hsnSac: '9973',
+      unit: '',
+      hsnSac: '',
     };
     onChange({ ...quotation, lineItems: [...quotation.lineItems, newItem] });
   };
@@ -478,20 +478,24 @@ export const QuotationEditor: React.FC<Props> = ({
                 <tbody className="divide-y divide-slate-100 text-xs">
                   {quotation.lineItems.map((item, index) => {
                     const lineTotal = (item.quantity || 0) * (item.rate || 0);
+                    const isLegacyDummy = item.description === 'Setup Equipment / Service description';
+                    const displayDesc = isLegacyDummy ? '' : item.description;
+
                     return (
                       <tr key={item.id} className={index % 2 === 1 ? 'bg-slate-50/50' : 'bg-white'}>
                         <td className="py-3 px-3 text-center text-slate-400 font-mono">{index + 1}</td>
                         <td className="py-3 px-4">
                           <textarea
                             rows={1}
-                            value={item.description}
+                            value={displayDesc}
+                            placeholder="Setup Equipment / Service description"
                             onChange={(e) => handleUpdateItem(item.id, 'description', e.target.value)}
                             onInput={(e: React.FormEvent<HTMLTextAreaElement>) => {
                               const t = e.currentTarget;
                               t.style.height = 'auto';
                               t.style.height = t.scrollHeight + 'px';
                             }}
-                            className="w-full resize-none font-medium text-slate-800 bg-transparent border-0 border-b border-transparent hover:border-slate-300 focus:border-blue-500 focus:outline-none"
+                            className="w-full resize-none font-medium text-slate-800 bg-transparent border-0 border-b border-transparent hover:border-slate-300 focus:border-blue-500 focus:outline-none placeholder:text-slate-400 placeholder:font-normal"
                           />
                           <div className="flex items-center gap-2 mt-1">
                             <span className="text-[10px] text-slate-400">SAC:</span>
@@ -499,7 +503,7 @@ export const QuotationEditor: React.FC<Props> = ({
                               value={item.hsnSac || ''}
                               placeholder="9973"
                               onChange={(e) => handleUpdateItem(item.id, 'hsnSac', e.target.value)}
-                              className="text-[10px] font-mono w-16 text-slate-500 bg-transparent border-0 border-b border-transparent hover:border-slate-200 focus:outline-none"
+                              className="text-[10px] font-mono w-16 text-slate-500 bg-transparent border-0 border-b border-transparent hover:border-slate-200 focus:outline-none placeholder:text-slate-400"
                             />
                           </div>
                         </td>
@@ -513,18 +517,19 @@ export const QuotationEditor: React.FC<Props> = ({
                           />
                           <input
                             value={item.unit || ''}
-                            placeholder="Unit"
+                            placeholder="Day"
                             onChange={(e) => handleUpdateItem(item.id, 'unit', e.target.value)}
-                            className="text-[10px] text-center text-slate-400 w-16 bg-transparent border-0 hover:border-slate-200 focus:outline-none mx-auto block mt-0.5"
+                            className="text-[10px] text-center text-slate-400 w-16 bg-transparent border-0 hover:border-slate-200 focus:outline-none mx-auto block mt-0.5 placeholder:text-slate-300"
                           />
                         </td>
                         <td className="py-3 px-4 text-right">
                           <input
                             type="number"
                             min={0}
-                            value={item.rate}
-                            onChange={(e) => handleUpdateItem(item.id, 'rate', parseFloat(e.target.value) || 0)}
-                            className="w-24 text-right font-medium text-slate-800 bg-transparent border-0 border-b border-transparent hover:border-slate-300 focus:border-blue-500 focus:outline-none ml-auto block"
+                            value={item.rate === 0 && !displayDesc ? '' : item.rate}
+                            placeholder="0"
+                            onChange={(e) => handleUpdateItem(item.id, 'rate', e.target.value === '' ? 0 : parseFloat(e.target.value) || 0)}
+                            className="w-24 text-right font-medium text-slate-800 bg-transparent border-0 border-b border-transparent hover:border-slate-300 focus:border-blue-500 focus:outline-none ml-auto block placeholder:text-slate-400"
                           />
                         </td>
                         <td className="py-3 px-4 text-right font-bold text-slate-900">
