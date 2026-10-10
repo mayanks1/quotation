@@ -1,5 +1,6 @@
-import { Quotation, CompanyProfile, ClientProfile, LineItem } from '../types/quotation';
+import { Quotation, CompanyProfile, ClientProfile, LineItem, CatalogItem } from '../types/quotation';
 import { DEFAULT_COMPANY, DEFAULT_TERMS_AND_CONDITIONS, DEFAULT_PAYMENT_TERMS } from '../config/defaults';
+import { CATALOG_PRESETS } from '../config/catalog';
 import { idb } from './indexedDb';
 import { cloudSync } from './cloudSync';
 
@@ -15,6 +16,7 @@ const STORAGE_KEYS = {
 let memoryQuotations: Quotation[] = [];
 let memoryClients: ClientProfile[] = [];
 let memoryCompany: CompanyProfile = DEFAULT_COMPANY;
+let memoryCustomCatalog: CatalogItem[] = [];
 let isInitialized = false;
 
 export const formatDateDMY = (date: Date = new Date()): string => {
@@ -152,15 +154,17 @@ export const storage = {
       }
 
       // 2. Load from IndexedDB
-      const [idbQuotes, idbClients, idbCompany] = await Promise.all([
+      const [idbQuotes, idbClients, idbCompany, idbCatalog] = await Promise.all([
         idb.getAllQuotations(),
         idb.getAllClients(),
         idb.getSetting<CompanyProfile>('company_profile'),
+        idb.getSetting<CatalogItem[]>('custom_catalog_items'),
       ]);
 
       memoryQuotations = idbQuotes;
       memoryClients = idbClients;
       memoryCompany = idbCompany || DEFAULT_COMPANY;
+      memoryCustomCatalog = idbCatalog || [];
 
       // If IndexedDB is completely empty, seed initial quote
       if (memoryQuotations.length === 0) {
@@ -311,6 +315,32 @@ export const storage = {
     if (found && found.id) {
       idb.deleteClient(found.id).catch(console.error);
     }
+  },
+
+  getAllCatalogItems(): CatalogItem[] {
+    return [...memoryCustomCatalog, ...CATALOG_PRESETS];
+  },
+
+  saveCatalogItem(item: CatalogItem): void {
+    const itemWithId: CatalogItem = {
+      ...item,
+      id: item.id || `custom-cat-${Date.now()}`,
+      isCustom: true,
+    };
+
+    const existingIdx = memoryCustomCatalog.findIndex((c) => c.id === itemWithId.id);
+    if (existingIdx >= 0) {
+      memoryCustomCatalog[existingIdx] = itemWithId;
+    } else {
+      memoryCustomCatalog = [itemWithId, ...memoryCustomCatalog];
+    }
+
+    idb.saveSetting('custom_catalog_items', memoryCustomCatalog).catch(console.error);
+  },
+
+  deleteCatalogItem(id: string): void {
+    memoryCustomCatalog = memoryCustomCatalog.filter((c) => c.id !== id);
+    idb.saveSetting('custom_catalog_items', memoryCustomCatalog).catch(console.error);
   },
 
   // 1-Click Backup Export

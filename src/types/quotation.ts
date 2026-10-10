@@ -83,9 +83,10 @@ export interface Quotation {
 export interface CatalogItem {
   id: string;
   title: string;
-  category: 'Screen' | 'Processor' | 'Truss & Rigging' | 'Crew & Logistics' | 'Sound & Lights';
+  category: string;
   description: string;
   defaultRate: number;
   unit: string;
   hsnSac: string;
+  isCustom?: boolean;
 }
