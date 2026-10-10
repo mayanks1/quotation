@@ -523,8 +523,12 @@ export const QuotationEditor: React.FC<Props> = ({
                           <input
                             type="number"
                             min={1}
-                            value={item.quantity}
-                            onChange={(e) => handleUpdateItem(item.id, 'quantity', parseFloat(e.target.value) || 0)}
+                            value={item.quantity === 0 ? '' : item.quantity}
+                            placeholder="1"
+                            onChange={(e) => handleUpdateItem(item.id, 'quantity', e.target.value === '' ? 0 : parseFloat(e.target.value) || 0)}
+                            onBlur={() => {
+                              if (!item.quantity || item.quantity <= 0) handleUpdateItem(item.id, 'quantity', 1);
+                            }}
                             className="w-16 text-center font-bold text-slate-800 bg-transparent border-0 border-b border-transparent hover:border-slate-300 focus:border-blue-500 focus:outline-none mx-auto block"
                           />
                           <input
@@ -538,7 +542,7 @@ export const QuotationEditor: React.FC<Props> = ({
                           <input
                             type="number"
                             min={0}
-                            value={item.rate === 0 && !displayDesc ? '' : item.rate}
+                            value={item.rate === 0 ? '' : item.rate}
                             placeholder="0"
                             onChange={(e) => handleUpdateItem(item.id, 'rate', e.target.value === '' ? 0 : parseFloat(e.target.value) || 0)}
                             className="w-24 text-right font-medium text-slate-800 bg-transparent border-0 border-b border-transparent hover:border-slate-300 focus:border-blue-500 focus:outline-none ml-auto block placeholder:text-slate-400"
@@ -636,11 +640,12 @@ export const QuotationEditor: React.FC<Props> = ({
                   <input
                     type="number"
                     min={0}
-                    value={quotation.discountAmount || 0}
+                    value={quotation.discountAmount === 0 ? '' : quotation.discountAmount}
+                    placeholder="0"
                     onChange={(e) =>
-                      onChange({ ...quotation, discountAmount: parseFloat(e.target.value) || 0 })
+                      onChange({ ...quotation, discountAmount: e.target.value === '' ? 0 : parseFloat(e.target.value) || 0 })
                     }
-                    className="w-24 text-right font-medium text-emerald-600 bg-white border border-slate-200 rounded px-2 py-1 focus:outline-blue-500"
+                    className="w-24 text-right font-medium text-emerald-600 bg-white border border-slate-200 rounded px-2 py-1 focus:outline-blue-500 placeholder:text-slate-400"
                   />
                 </div>
 
@@ -673,9 +678,10 @@ export const QuotationEditor: React.FC<Props> = ({
                       <input
                         type="number"
                         min={0}
-                        value={quotation.taxRate}
+                        value={quotation.taxRate === 0 ? '' : quotation.taxRate}
+                        placeholder="18"
                         onChange={(e) =>
-                          onChange({ ...quotation, taxRate: parseFloat(e.target.value) || 0 })
+                          onChange({ ...quotation, taxRate: e.target.value === '' ? 0 : parseFloat(e.target.value) || 0 })
                         }
                         className="w-12 text-right border border-slate-200 rounded px-1 text-xs"
                       />
@@ -690,11 +696,12 @@ export const QuotationEditor: React.FC<Props> = ({
                   <input
                     type="number"
                     min={0}
-                    value={quotation.shippingCharges || 0}
+                    value={quotation.shippingCharges === 0 ? '' : quotation.shippingCharges}
+                    placeholder="0"
                     onChange={(e) =>
-                      onChange({ ...quotation, shippingCharges: parseFloat(e.target.value) || 0 })
+                      onChange({ ...quotation, shippingCharges: e.target.value === '' ? 0 : parseFloat(e.target.value) || 0 })
                     }
-                    className="w-24 text-right font-medium text-slate-800 bg-white border border-slate-200 rounded px-2 py-1 focus:outline-blue-500"
+                    className="w-24 text-right font-medium text-slate-800 bg-white border border-slate-200 rounded px-2 py-1 focus:outline-blue-500 placeholder:text-slate-400"
                   />
                 </div>
 

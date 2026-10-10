@@ -2,28 +2,28 @@ import { CatalogItem } from '../types/quotation';
 
 export const CATALOG_PRESETS: CatalogItem[] = [
   {
-    id: 'cat-p25-indoor',
-    title: 'P2.5 Indoor Ultra HD LED Video Wall',
+    id: 'cat-p2-indoor',
+    title: 'P2 Indoor Ultra HD LED Video Wall',
     category: 'Screen',
-    description: 'P2.5 High Refresh Rate Indoor LED Video Wall (Cabinet size 500x500mm / Die-cast Aluminum) for Corporate, Conferences & Indoor Galas',
+    description: 'P2 High Refresh Rate Indoor LED Video Wall (Cabinet size 500x500mm / Die-cast Aluminum) for Corporate, Conferences & Indoor Galas',
     defaultRate: 140, // per sq ft / day approx
     unit: 'Sq.Ft',
     hsnSac: '9973',
   },
   {
-    id: 'cat-p391-indoor',
-    title: 'P3.91 Indoor/Outdoor LED Video Wall',
+    id: 'cat-p39-indoor',
+    title: 'P3.9 Indoor/Outdoor LED Video Wall',
     category: 'Screen',
-    description: 'P3.91 High Brightness LED Display screen with vivid color gamut, seamless locking mechanism, ideal for Weddings, Concerts & Exhibitions',
+    description: 'P3.9 High Brightness LED Display screen with vivid color gamut, seamless locking mechanism, ideal for Weddings, Concerts & Exhibitions',
     defaultRate: 110,
     unit: 'Sq.Ft',
     hsnSac: '9973',
   },
   {
-    id: 'cat-p481-outdoor',
-    title: 'P4.81 Outdoor Waterproof LED Wall',
+    id: 'cat-p48-outdoor',
+    title: 'P4.8 Outdoor Waterproof LED Wall',
     category: 'Screen',
-    description: 'P4.81 Outdoor IP65 Weatherproof LED Display with 5500+ nits daylight brightness for Day & Night Outdoor Events',
+    description: 'P4.8 Outdoor IP65 Weatherproof LED Display with 5500+ nits daylight brightness for Day & Night Outdoor Events',
     defaultRate: 95,
     unit: 'Sq.Ft',
     hsnSac: '9973',

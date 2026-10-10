@@ -104,14 +104,26 @@ export const idb = {
     });
   },
 
-  async deleteClient(id: string): Promise<void> {
+  async deleteClient(idOrName: string): Promise<void> {
     const db = await openDB();
     return new Promise((resolve, reject) => {
       const tx = db.transaction(STORES.CLIENTS, 'readwrite');
       const store = tx.objectStore(STORES.CLIENTS);
-      const request = store.delete(id);
-      request.onsuccess = () => resolve();
-      request.onerror = () => reject(request.error);
+      store.delete(idOrName);
+
+      const req = store.openCursor();
+      req.onsuccess = (e) => {
+        const cursor = (e.target as IDBRequest<IDBCursorWithValue>).result;
+        if (cursor) {
+          if (cursor.value.id === idOrName || cursor.value.name === idOrName) {
+            cursor.delete();
+          }
+          cursor.continue();
+        } else {
+          resolve();
+        }
+      };
+      req.onerror = () => reject(req.error);
     });
   },
 

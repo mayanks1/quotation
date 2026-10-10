@@ -115,10 +115,10 @@ export function App() {
   };
 
   const handleDeleteClient = (idOrName: string) => {
-    const updated = clients.filter((c) => c.id !== idOrName && c.name !== idOrName);
-    setClients(updated);
+    storage.deleteClient(idOrName);
+    setClients(storage.getAllClients());
     try {
-      localStorage.setItem('tisha_clients_v2', JSON.stringify(updated));
+      localStorage.setItem('tisha_clients_v2', JSON.stringify(storage.getAllClients()));
     } catch (e) {
       console.error(e);
     }

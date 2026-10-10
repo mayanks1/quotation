@@ -265,11 +265,29 @@ export const storage = {
   },
 
   deleteClient(idOrName: string): void {
-    const found = memoryClients.find((c) => c.id === idOrName || c.name === idOrName);
-    memoryClients = memoryClients.filter((c) => c.id !== idOrName && c.name !== idOrName);
+    const found = memoryClients.find(
+      (c) => c.id === idOrName || c.name.toLowerCase() === idOrName.toLowerCase()
+    );
+    memoryClients = memoryClients.filter(
+      (c) => c.id !== idOrName && c.name.toLowerCase() !== idOrName.toLowerCase()
+    );
 
-    if (found && found.id) {
+    // 1. Delete from IndexedDB
+    idb.deleteClient(idOrName).catch(console.error);
+    if (found?.id && found.id !== idOrName) {
       idb.deleteClient(found.id).catch(console.error);
+    }
+    if (found?.name && found.name !== idOrName) {
+      idb.deleteClient(found.name).catch(console.error);
+    }
+
+    // 2. Delete from Cloud Supabase
+    cloudSync.deleteClient(idOrName).catch(console.error);
+    if (found?.id && found.id !== idOrName) {
+      cloudSync.deleteClient(found.id).catch(console.error);
+    }
+    if (found?.name && found.name !== idOrName) {
+      cloudSync.deleteClient(found.name).catch(console.error);
     }
   },
 

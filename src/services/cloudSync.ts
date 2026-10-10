@@ -111,6 +111,20 @@ export const cloudSync = {
     }
   },
 
+  async deleteClient(idOrName: string): Promise<void> {
+    if (!cloudSync.isEnabled() || !supabase) return;
+
+    try {
+      if (idOrName.startsWith('client-')) {
+        await supabase.from('clients').delete().eq('id', idOrName);
+      } else {
+        await supabase.from('clients').delete().or(`id.eq.${idOrName},name.eq.${idOrName}`);
+      }
+    } catch (err) {
+      console.warn('Cloud delete client error:', err);
+    }
+  },
+
   async syncCompanyProfile(profile: CompanyProfile): Promise<void> {
     if (!cloudSync.isEnabled() || !supabase) return;
 
