@@ -176,7 +176,20 @@ export const cloudSync = {
       }
 
       if (clientsRes.data) {
+        const seenNames = new Set<string>();
         for (const c of clientsRes.data) {
+          const norm = (c.name || '').toLowerCase().trim();
+          if (!norm || norm === 'event organizer / client name') {
+            // Prune invalid / placeholder row from cloud
+            if (supabase && c.id) supabase.from('clients').delete().eq('id', c.id).then();
+            continue;
+          }
+          if (seenNames.has(norm)) {
+            // Duplicate client found in cloud, prune this duplicate ID from Supabase
+            if (supabase && c.id) supabase.from('clients').delete().eq('id', c.id).then();
+            continue;
+          }
+          seenNames.add(norm);
           await idb.saveClient({
             id: c.id,
             name: c.name,

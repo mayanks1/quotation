@@ -194,11 +194,6 @@ export const storage = {
 
     // Background cloud sync
     cloudSync.syncQuotation(updated).catch(console.error);
-
-    // Auto-save client
-    if (quotation.client?.name?.trim()) {
-      storage.saveClient(quotation.client);
-    }
   },
 
   deleteQuotation(id: string): void {
@@ -239,19 +234,58 @@ export const storage = {
     localStorage.setItem(STORAGE_KEYS.ACTIVE_QUOTATION_ID, id);
   },
 
+  deduplicateClients(): ClientProfile[] {
+    const seen = new Map<string, ClientProfile>();
+    const duplicateIds: string[] = [];
+
+    for (const c of memoryClients) {
+      const norm = (c.name || '').toLowerCase().trim();
+      // Filter out empty or default placeholder
+      if (!norm || norm === 'event organizer / client name') {
+        if (c.id) duplicateIds.push(c.id);
+        continue;
+      }
+
+      if (!seen.has(norm)) {
+        seen.set(norm, c);
+      } else {
+        const existing = seen.get(norm)!;
+        if (c.id && c.id !== existing.id) {
+          duplicateIds.push(c.id);
+        }
+      }
+    }
+
+    const deduplicated = Array.from(seen.values());
+    memoryClients = deduplicated;
+
+    // Prune redundant duplicate IDs from IndexedDB and Supabase in background
+    if (duplicateIds.length > 0) {
+      for (const id of duplicateIds) {
+        idb.deleteClient(id).catch(console.error);
+        cloudSync.deleteClient(id).catch(console.error);
+      }
+    }
+
+    return deduplicated;
+  },
+
   getAllClients(): ClientProfile[] {
-    return memoryClients;
+    return storage.deduplicateClients();
   },
 
   saveClient(client: ClientProfile): void {
     if (!client.name || !client.name.trim()) return;
+    const norm = client.name.toLowerCase().trim();
+    if (norm === 'event organizer / client name') return;
+
     const existingIdx = memoryClients.findIndex(
-      (c) => c.name.toLowerCase().trim() === client.name.toLowerCase().trim()
+      (c) => (client.id && c.id === client.id) || c.name.toLowerCase().trim() === norm
     );
 
     const clientWithId: ClientProfile = {
       ...client,
-      id: client.id || `client-${Date.now()}`,
+      id: client.id || (existingIdx >= 0 && memoryClients[existingIdx].id ? memoryClients[existingIdx].id : `client-${Date.now()}`),
     };
 
     if (existingIdx >= 0) {
@@ -260,6 +294,7 @@ export const storage = {
       memoryClients = [clientWithId, ...memoryClients];
     }
 
+    storage.deduplicateClients();
     idb.saveClient(clientWithId).catch(console.error);
     cloudSync.syncClient(clientWithId).catch(console.error);
   },

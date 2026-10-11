@@ -115,7 +115,7 @@ export const idb = {
       req.onsuccess = (e) => {
         const cursor = (e.target as IDBRequest<IDBCursorWithValue>).result;
         if (cursor) {
-          if (cursor.value.id === idOrName || cursor.value.name === idOrName) {
+          if (cursor.value.id === idOrName || (cursor.value.name && cursor.value.name.toLowerCase() === idOrName.toLowerCase())) {
             cursor.delete();
           }
           cursor.continue();
