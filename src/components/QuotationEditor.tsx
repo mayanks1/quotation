@@ -721,12 +721,133 @@ export const QuotationEditor: React.FC<Props> = ({
               </div>
             </div>
 
-            <div className="overflow-x-auto border border-slate-200 rounded-xl">
+            {/* Mobile View: Responsive Line Item Cards (md:hidden) */}
+            <div className="md:hidden space-y-3">
+              {quotation.lineItems.map((item, index) => {
+                const lineTotal = (item.quantity || 0) * (item.rate || 0);
+                const isLegacyDummy = item.description === 'Setup Equipment / Service description';
+                const displayDesc = isLegacyDummy ? '' : item.description;
+
+                return (
+                  <div 
+                    key={item.id} 
+                    className="bg-slate-50/70 border border-slate-200 rounded-xl p-3.5 space-y-3 shadow-xs"
+                  >
+                    {/* Header: Item Number, SAC and Delete */}
+                    <div className="flex items-center justify-between">
+                      <div className="flex items-center gap-2">
+                        <span className="w-6 h-6 rounded-md bg-slate-900 text-white text-xs font-mono font-bold flex items-center justify-center">
+                          {index + 1}
+                        </span>
+                        <div className="flex items-center gap-1 bg-white px-2 py-0.5 rounded border border-slate-200 text-[11px] text-slate-500 font-mono">
+                          <span>SAC:</span>
+                          <input
+                            value={item.hsnSac || ''}
+                            placeholder="9973"
+                            onChange={(e) => handleUpdateItem(item.id, 'hsnSac', e.target.value)}
+                            className="w-12 bg-transparent text-slate-700 font-bold focus:outline-none"
+                          />
+                        </div>
+                      </div>
+
+                      {quotation.lineItems.length > 1 && (
+                        <button
+                          type="button"
+                          onClick={() => handleRemoveItem(item.id)}
+                          className="p-1.5 text-slate-400 hover:text-rose-600 hover:bg-rose-50 rounded-lg transition-colors"
+                          title="Remove Item"
+                        >
+                          <Trash2 size={16} />
+                        </button>
+                      )}
+                    </div>
+
+                    {/* Description Textarea */}
+                    <div>
+                      <label className="text-[10px] uppercase font-bold text-slate-400 block mb-1">
+                        Description &amp; Specifications
+                      </label>
+                      <textarea
+                        rows={2}
+                        value={displayDesc}
+                        placeholder="Setup Equipment / Service description"
+                        onChange={(e) => handleUpdateItem(item.id, 'description', e.target.value)}
+                        className="w-full text-xs font-semibold text-slate-800 bg-white p-2.5 rounded-lg border border-slate-200 focus:border-blue-500 focus:ring-1 focus:ring-blue-500 focus:outline-none placeholder:text-slate-400 placeholder:font-normal leading-relaxed"
+                      />
+                    </div>
+
+                    {/* Qty, Unit, Rate, Amount Grid */}
+                    <div className="grid grid-cols-3 gap-2 pt-1 border-t border-slate-200/80">
+                      
+                      {/* Qty & Unit */}
+                      <div>
+                        <label className="text-[10px] uppercase font-bold text-slate-400 block mb-1">
+                          Qty
+                        </label>
+                        <div className="flex items-center bg-white rounded-lg border border-slate-200 px-2 py-1.5 focus-within:border-blue-500">
+                          <input
+                            type="number"
+                            min={1}
+                            value={item.quantity === 0 ? '' : item.quantity}
+                            placeholder="1"
+                            onChange={(e) => handleUpdateItem(item.id, 'quantity', e.target.value === '' ? 0 : parseFloat(e.target.value) || 0)}
+                            onBlur={() => {
+                              if (!item.quantity || item.quantity <= 0) handleUpdateItem(item.id, 'quantity', 1);
+                            }}
+                            className="w-full text-xs font-bold text-slate-800 bg-transparent focus:outline-none"
+                          />
+                          <input
+                            value={item.unit || ''}
+                            placeholder="Day"
+                            onChange={(e) => handleUpdateItem(item.id, 'unit', e.target.value)}
+                            className="w-8 text-[10px] text-right text-slate-400 bg-transparent focus:outline-none placeholder:text-slate-300"
+                          />
+                        </div>
+                      </div>
+
+                      {/* Rate */}
+                      <div>
+                        <label className="text-[10px] uppercase font-bold text-slate-400 block mb-1">
+                          Rate (₹)
+                        </label>
+                        <div className="bg-white rounded-lg border border-slate-200 px-2 py-1.5 focus-within:border-blue-500">
+                          <input
+                            type="number"
+                            min={0}
+                            value={item.rate === 0 ? '' : item.rate}
+                            placeholder="0"
+                            onChange={(e) => handleUpdateItem(item.id, 'rate', e.target.value === '' ? 0 : parseFloat(e.target.value) || 0)}
+                            className="w-full text-xs font-bold text-slate-800 bg-transparent focus:outline-none"
+                          />
+                        </div>
+                      </div>
+
+                      {/* Total Amount */}
+                      <div>
+                        <label className="text-[10px] uppercase font-bold text-slate-400 block mb-1">
+                          Total
+                        </label>
+                        <div className="bg-blue-50/70 border border-blue-200/80 rounded-lg px-2 py-1.5 flex items-center justify-end h-[34px]">
+                          <span className="text-xs font-black text-blue-900 truncate">
+                            ₹{lineTotal.toLocaleString('en-IN', { minimumFractionDigits: 0, maximumFractionDigits: 2 })}
+                          </span>
+                        </div>
+                      </div>
+
+                    </div>
+
+                  </div>
+                );
+              })}
+            </div>
+
+            {/* Desktop View: Full Table (hidden md:block) */}
+            <div className="hidden md:block overflow-x-auto border border-slate-200 rounded-xl">
               <table className="w-full text-left border-collapse min-w-[700px]">
                 <thead>
                   <tr className="bg-slate-900 text-white text-xs uppercase tracking-wider">
                     <th className="py-3 px-3 text-center w-10 font-bold">#</th>
-                    <th className="py-3 px-4 font-bold">Item Description & Specifications</th>
+                    <th className="py-3 px-4 font-bold">Item Description &amp; Specifications</th>
                     <th className="py-3 px-3 text-center w-24 font-bold">Qty / Unit</th>
                     <th className="py-3 px-4 text-right w-32 font-bold">Rate (₹)</th>
                     <th className="py-3 px-4 text-right w-32 font-bold">Amount (₹)</th>

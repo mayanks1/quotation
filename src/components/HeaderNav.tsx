@@ -1,5 +1,5 @@
 import React from 'react';
-import { Layers, FileText, Settings, Check, Plus, Users, Edit3 } from 'lucide-react';
+import { FileText, Settings, Check, Plus, Users, Edit3 } from 'lucide-react';
 
 interface Props {
   activeTab: 'list' | 'editor' | 'clients';
@@ -19,16 +19,17 @@ export const HeaderNav: React.FC<Props> = ({
   return (
     <header className="no-print bg-slate-900 text-white border-b border-slate-800 sticky top-0 z-50">
       <div className="max-w-6xl mx-auto px-3 sm:px-4">
-        
+
         {/* Main Header Bar */}
         <div className="h-14 sm:h-16 flex items-center justify-between gap-2">
-          
+
           {/* Brand / Logo */}
           <div className="flex items-center gap-2.5 sm:gap-3 min-w-0">
-            <div className="w-8 h-8 sm:w-9 sm:h-9 rounded-xl bg-blue-600 flex-shrink-0 flex items-center justify-center font-black text-white shadow-md shadow-blue-500/30">
-              <Layers size={18} className="sm:hidden" />
-              <Layers size={20} className="hidden sm:block" />
-            </div>
+            <img
+              src="https://res.cloudinary.com/dcfouzaii/image/upload/f_auto,q_auto,w_160/v1763444919/logo_a6xmsh.png"
+              alt="Tisha LED Walls"
+              className="h-14 sm:h-18 w-auto max-w-[120px] object-contain flex-shrink-0 rounded-lg drop-shadow-sm"
+            />
             <div className="min-w-0">
               <div className="font-black text-xs sm:text-base tracking-tight flex items-center gap-1.5 whitespace-nowrap">
                 <span className="truncate">TISHA LED WALLS</span>
@@ -46,11 +47,10 @@ export const HeaderNav: React.FC<Props> = ({
           <nav className="hidden md:flex items-center gap-1 bg-slate-950/60 p-1 rounded-xl border border-slate-800/80">
             <button
               onClick={() => onTabChange('list')}
-              className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold transition-all ${
-                activeTab === 'list'
-                  ? 'bg-blue-600 text-white shadow-md shadow-blue-500/25 font-bold'
-                  : 'text-slate-300 hover:text-white hover:bg-slate-800/70'
-              }`}
+              className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold transition-all ${activeTab === 'list'
+                ? 'bg-blue-600 text-white shadow-md shadow-blue-500/25 font-bold'
+                : 'text-slate-300 hover:text-white hover:bg-slate-800/70'
+                }`}
             >
               <FileText size={14} />
               <span>All Quotes</span>
@@ -59,11 +59,10 @@ export const HeaderNav: React.FC<Props> = ({
             {hasActiveQuote && (
               <button
                 onClick={() => onTabChange('editor')}
-                className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold transition-all ${
-                  activeTab === 'editor'
-                    ? 'bg-blue-600 text-white shadow-md shadow-blue-500/25 font-bold'
-                    : 'text-slate-300 hover:text-white hover:bg-slate-800/70'
-                }`}
+                className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold transition-all ${activeTab === 'editor'
+                  ? 'bg-blue-600 text-white shadow-md shadow-blue-500/25 font-bold'
+                  : 'text-slate-300 hover:text-white hover:bg-slate-800/70'
+                  }`}
               >
                 <Edit3 size={14} />
                 <span>Editor</span>
@@ -72,11 +71,10 @@ export const HeaderNav: React.FC<Props> = ({
 
             <button
               onClick={() => onTabChange('clients')}
-              className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold transition-all ${
-                activeTab === 'clients'
-                  ? 'bg-blue-600 text-white shadow-md shadow-blue-500/25 font-bold'
-                  : 'text-slate-300 hover:text-white hover:bg-slate-800/70'
-              }`}
+              className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold transition-all ${activeTab === 'clients'
+                ? 'bg-blue-600 text-white shadow-md shadow-blue-500/25 font-bold'
+                : 'text-slate-300 hover:text-white hover:bg-slate-800/70'
+                }`}
             >
               <Users size={14} />
               <span>Clients</span>
@@ -116,11 +114,10 @@ export const HeaderNav: React.FC<Props> = ({
           <nav className="flex items-center gap-1.5 bg-slate-950/70 p-1 rounded-xl border border-slate-800/90">
             <button
               onClick={() => onTabChange('list')}
-              className={`flex-1 flex items-center justify-center gap-1.5 py-1.5 px-2 rounded-lg text-xs font-bold transition-all ${
-                activeTab === 'list'
-                  ? 'bg-blue-600 text-white shadow-sm shadow-blue-500/30'
-                  : 'text-slate-400 hover:text-white hover:bg-slate-800/50'
-              }`}
+              className={`flex-1 flex items-center justify-center gap-1.5 py-1.5 px-2 rounded-lg text-xs font-bold transition-all ${activeTab === 'list'
+                ? 'bg-blue-600 text-white shadow-sm shadow-blue-500/30'
+                : 'text-slate-400 hover:text-white hover:bg-slate-800/50'
+                }`}
             >
               <FileText size={14} />
               <span>All Quotes</span>
@@ -129,11 +126,10 @@ export const HeaderNav: React.FC<Props> = ({
             {hasActiveQuote && (
               <button
                 onClick={() => onTabChange('editor')}
-                className={`flex-1 flex items-center justify-center gap-1.5 py-1.5 px-2 rounded-lg text-xs font-bold transition-all ${
-                  activeTab === 'editor'
-                    ? 'bg-blue-600 text-white shadow-sm shadow-blue-500/30'
-                    : 'text-slate-400 hover:text-white hover:bg-slate-800/50'
-                }`}
+                className={`flex-1 flex items-center justify-center gap-1.5 py-1.5 px-2 rounded-lg text-xs font-bold transition-all ${activeTab === 'editor'
+                  ? 'bg-blue-600 text-white shadow-sm shadow-blue-500/30'
+                  : 'text-slate-400 hover:text-white hover:bg-slate-800/50'
+                  }`}
               >
                 <Edit3 size={14} />
                 <span>Editor</span>
@@ -142,11 +138,10 @@ export const HeaderNav: React.FC<Props> = ({
 
             <button
               onClick={() => onTabChange('clients')}
-              className={`flex-1 flex items-center justify-center gap-1.5 py-1.5 px-2 rounded-lg text-xs font-bold transition-all ${
-                activeTab === 'clients'
-                  ? 'bg-blue-600 text-white shadow-sm shadow-blue-500/30'
-                  : 'text-slate-400 hover:text-white hover:bg-slate-800/50'
-              }`}
+              className={`flex-1 flex items-center justify-center gap-1.5 py-1.5 px-2 rounded-lg text-xs font-bold transition-all ${activeTab === 'clients'
+                ? 'bg-blue-600 text-white shadow-sm shadow-blue-500/30'
+                : 'text-slate-400 hover:text-white hover:bg-slate-800/50'
+                }`}
             >
               <Users size={14} />
               <span>Clients</span>
