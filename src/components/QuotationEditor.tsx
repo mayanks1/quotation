@@ -261,24 +261,24 @@ export const QuotationEditor: React.FC<Props> = ({
     <div className="max-w-5xl mx-auto space-y-6 pb-16">
       
       {/* Top Controller Bar */}
-      <div className="no-print bg-white p-4 rounded-2xl border border-slate-200/80 shadow-sm flex flex-col md:flex-row items-center justify-between gap-4 sticky top-4 z-40">
+      <div className="no-print bg-white p-3.5 sm:p-4 rounded-xl sm:rounded-2xl border border-slate-200/80 shadow-sm flex flex-col md:flex-row items-stretch md:items-center justify-between gap-3 sm:gap-4 relative md:sticky md:top-4 z-40">
         
         {/* Back and Status */}
-        <div className="flex items-center gap-3 w-full md:w-auto justify-between md:justify-start">
+        <div className="flex items-center gap-2 sm:gap-3 w-full md:w-auto justify-between md:justify-start">
           <button
             onClick={onBack}
-            className="flex items-center gap-1.5 text-xs font-bold text-slate-600 hover:text-slate-900 bg-slate-100 hover:bg-slate-200 px-3 py-2 rounded-lg transition-colors"
+            className="flex items-center gap-1.5 text-xs font-bold text-slate-700 hover:text-slate-900 bg-slate-100 hover:bg-slate-200 px-3 py-2 rounded-lg transition-colors active:scale-95"
           >
             <ArrowLeft size={16} />
             <span>All Quotes</span>
           </button>
 
-          <div className="flex items-center gap-2">
+          <div className="flex items-center gap-1.5 sm:gap-2">
             <span className="text-xs font-semibold text-slate-400">Status:</span>
             <select
               value={quotation.status}
               onChange={(e) => onChange({ ...quotation, status: e.target.value as QuotationStatus })}
-              className={`text-xs font-bold px-3 py-1.5 rounded-lg border focus:outline-none transition-colors ${
+              className={`text-xs font-bold px-2.5 sm:px-3 py-1.5 rounded-lg border focus:outline-none transition-colors ${
                 quotation.status === 'approved'
                   ? 'bg-emerald-50 text-emerald-700 border-emerald-300'
                   : quotation.status === 'sent'
@@ -292,52 +292,52 @@ export const QuotationEditor: React.FC<Props> = ({
             >
               <option value="draft">Draft</option>
               <option value="sent">Sent to Client</option>
-              <option value="approved">Approved / Confirmed</option>
+              <option value="approved">Approved</option>
               <option value="invoiced">Invoiced</option>
-              <option value="rejected">Rejected / Cancelled</option>
+              <option value="rejected">Rejected</option>
             </select>
           </div>
         </div>
 
-        {/* Action CTAs */}
-        <div className="flex items-center gap-2 w-full md:w-auto flex-wrap justify-end">
+        {/* Action CTAs: Responsive Grid on Mobile, Flex on Desktop */}
+        <div className="grid grid-cols-2 sm:flex sm:items-center gap-2 w-full md:w-auto">
           <button
             onClick={() => {
               onDuplicate(quotation);
               toast.success(`Quotation ${quotation.quotationNumber} duplicated as new draft`);
             }}
             title="Duplicate as new quote"
-            className="flex items-center gap-1.5 px-3 py-2 text-xs font-semibold text-slate-700 bg-slate-100 hover:bg-slate-200 rounded-lg transition-colors"
+            className="flex items-center justify-center gap-1.5 px-3 py-2 text-xs font-semibold text-slate-700 bg-slate-100 hover:bg-slate-200 active:scale-95 rounded-lg transition-colors"
           >
-            <Copy size={15} />
-            <span className="hidden sm:inline">Duplicate</span>
+            <Copy size={14} />
+            <span>Duplicate</span>
           </button>
 
           <button
             onClick={handleNativePrint}
             title="Print or Save as Vector PDF"
-            className="flex items-center gap-1.5 px-3 py-2 text-xs font-semibold text-slate-700 bg-slate-100 hover:bg-slate-200 rounded-lg transition-colors"
+            className="flex items-center justify-center gap-1.5 px-3 py-2 text-xs font-semibold text-slate-700 bg-slate-100 hover:bg-slate-200 active:scale-95 rounded-lg transition-colors"
           >
-            <Printer size={15} />
-            <span className="hidden sm:inline">Print</span>
+            <Printer size={14} />
+            <span>Print</span>
           </button>
 
           <button
             onClick={handleWhatsApp}
             title="Send formatted breakdown directly to client on WhatsApp"
-            className="flex items-center gap-1.5 px-3.5 py-2 text-xs font-bold text-white bg-emerald-600 hover:bg-emerald-700 rounded-lg transition-colors shadow-sm"
+            className="flex items-center justify-center gap-1.5 px-3 py-2 text-xs font-bold text-white bg-emerald-600 hover:bg-emerald-700 active:scale-95 rounded-lg transition-colors shadow-sm"
           >
-            <Share2 size={15} />
+            <Share2 size={14} />
             <span>WhatsApp</span>
           </button>
 
           <button
             onClick={handleExportPDF}
             disabled={exporting}
-            className="flex items-center gap-2 bg-blue-600 hover:bg-blue-700 disabled:opacity-50 text-white px-4 py-2 rounded-lg text-xs font-bold transition-all shadow-md shadow-blue-500/20"
+            className="flex items-center justify-center gap-1.5 bg-blue-600 hover:bg-blue-700 active:scale-95 disabled:opacity-50 text-white px-3.5 py-2 rounded-lg text-xs font-bold transition-all shadow-md shadow-blue-500/20"
           >
-            <Download size={16} />
-            <span>{exporting ? 'Generating PDF…' : 'Download PDF'}</span>
+            <Download size={14} />
+            <span className="truncate">{exporting ? 'Generating…' : 'PDF'}</span>
           </button>
         </div>
 
