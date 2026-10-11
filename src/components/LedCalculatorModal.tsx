@@ -18,9 +18,9 @@ const COMMON_PRESETS = [
 ];
 
 export const LedCalculatorModal: React.FC<Props> = ({ isOpen, onClose, onAddLineItem }) => {
-  const [pitch, setPitch] = useState<'P2.5' | 'P3.91' | 'P4.81'>('P3.91');
+  const [pitch, setPitch] = useState<'P2' | 'P3' | 'P4'>('P3');
   const [type, setType] = useState<'Indoor' | 'Outdoor'>('Indoor');
-  
+
   // Use number | '' to allow clean backspacing without sticking to '0' or '1'
   const [widthFt, setWidthFt] = useState<number | ''>(12);
   const [heightFt, setHeightFt] = useState<number | ''>(8);
@@ -69,7 +69,7 @@ export const LedCalculatorModal: React.FC<Props> = ({ isOpen, onClose, onAddLine
     const finalTotal = Math.round(finalSqFt * finalRate * finalDays);
 
     const desc = `${pitch} ${type} LED Video Wall (${finalWidth}ft × ${finalHeight}ft = ${finalSqFt} Sq.Ft, ${totalCabinets} Panels)${finalDays > 1 ? ` for ${finalDays} Days` : ''}${includeTruss ? ' including Ground Support Truss Setup' : ''}`;
-    
+
     const newItem: LineItem = {
       id: `item-led-${Date.now()}`,
       description: desc,
@@ -92,7 +92,7 @@ export const LedCalculatorModal: React.FC<Props> = ({ isOpen, onClose, onAddLine
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm p-4 animate-in fade-in duration-150">
       <div className="bg-white rounded-2xl shadow-2xl max-w-xl w-full overflow-hidden border border-slate-100 animate-modal-in">
-        
+
         {/* Header */}
         <div className="flex items-center justify-between px-6 py-4 bg-slate-900 text-white">
           <div className="flex items-center gap-2">
@@ -108,25 +108,25 @@ export const LedCalculatorModal: React.FC<Props> = ({ isOpen, onClose, onAddLine
         </div>
 
         <div className="p-6 space-y-5">
-          
+
           {/* Pitch & Environment */}
           <div className="grid grid-cols-2 gap-4">
             <div>
               <label className="text-xs font-semibold text-slate-600 uppercase tracking-wider block mb-1.5">Pixel Pitch</label>
-              <select 
-                value={pitch} 
+              <select
+                value={pitch}
                 onChange={(e) => {
-                  const p = e.target.value as 'P2.5' | 'P3.91' | 'P4.81';
+                  const p = e.target.value as 'P2' | 'P3' | 'P4';
                   setPitch(p);
-                  if (p === 'P2.5') setRatePerSqFt(140);
-                  if (p === 'P3.91') setRatePerSqFt(110);
-                  if (p === 'P4.81') setRatePerSqFt(95);
+                  if (p === 'P2') setRatePerSqFt(140);
+                  if (p === 'P3') setRatePerSqFt(110);
+                  if (p === 'P4') setRatePerSqFt(95);
                 }}
                 className="w-full bg-slate-50 border border-slate-200 rounded-lg p-2.5 text-xs sm:text-sm font-semibold focus:ring-2 focus:ring-blue-500 focus:outline-none"
               >
-                <option value="P2.5">P2.5 (Crisp / Conferences)</option>
-                <option value="P3.91">P3.91 (Stage &amp; Concerts)</option>
-                <option value="P4.81">P4.81 (Outdoor Daylight)</option>
+                <option value="P2">P2 (Crisp / Conferences)</option>
+                <option value="P3">P3 (Stage &amp; Concerts)</option>
+                <option value="P4">P4 (Outdoor Daylight)</option>
               </select>
             </div>
             <div>
@@ -135,22 +135,20 @@ export const LedCalculatorModal: React.FC<Props> = ({ isOpen, onClose, onAddLine
                 <button
                   type="button"
                   onClick={() => setType('Indoor')}
-                  className={`flex-1 py-2 text-xs sm:text-sm font-semibold rounded-lg border transition-all ${
-                    type === 'Indoor' 
-                      ? 'bg-blue-600 text-white border-blue-600 shadow' 
-                      : 'bg-slate-50 text-slate-700 border-slate-200 hover:bg-slate-100'
-                  }`}
+                  className={`flex-1 py-2 text-xs sm:text-sm font-semibold rounded-lg border transition-all ${type === 'Indoor'
+                    ? 'bg-blue-600 text-white border-blue-600 shadow'
+                    : 'bg-slate-50 text-slate-700 border-slate-200 hover:bg-slate-100'
+                    }`}
                 >
                   Indoor
                 </button>
                 <button
                   type="button"
                   onClick={() => setType('Outdoor')}
-                  className={`flex-1 py-2 text-xs sm:text-sm font-semibold rounded-lg border transition-all ${
-                    type === 'Outdoor' 
-                      ? 'bg-blue-600 text-white border-blue-600 shadow' 
-                      : 'bg-slate-50 text-slate-700 border-slate-200 hover:bg-slate-100'
-                  }`}
+                  className={`flex-1 py-2 text-xs sm:text-sm font-semibold rounded-lg border transition-all ${type === 'Outdoor'
+                    ? 'bg-blue-600 text-white border-blue-600 shadow'
+                    : 'bg-slate-50 text-slate-700 border-slate-200 hover:bg-slate-100'
+                    }`}
                 >
                   Outdoor IP65
                 </button>
@@ -178,11 +176,10 @@ export const LedCalculatorModal: React.FC<Props> = ({ isOpen, onClose, onAddLine
                     key={preset.label}
                     type="button"
                     onClick={() => handleSelectPreset(preset.w, preset.h)}
-                    className={`text-xs px-3 py-1.5 rounded-lg border font-semibold transition-all ${
-                      isActive
-                        ? 'bg-blue-600 text-white border-blue-600 shadow-sm'
-                        : 'bg-white text-slate-600 border-slate-200 hover:bg-slate-50 hover:border-slate-300'
-                    }`}
+                    className={`text-xs px-3 py-1.5 rounded-lg border font-semibold transition-all ${isActive
+                      ? 'bg-blue-600 text-white border-blue-600 shadow-sm'
+                      : 'bg-white text-slate-600 border-slate-200 hover:bg-slate-50 hover:border-slate-300'
+                      }`}
                   >
                     {preset.label}
                   </button>
@@ -192,11 +189,10 @@ export const LedCalculatorModal: React.FC<Props> = ({ isOpen, onClose, onAddLine
               <button
                 type="button"
                 onClick={handleCustomModeClick}
-                className={`text-xs px-3 py-1.5 rounded-lg border font-bold transition-all flex items-center gap-1.5 ${
-                  isCustomMode || !matchedPreset
-                    ? 'bg-blue-50 text-blue-700 border-blue-300 ring-2 ring-blue-500/20'
-                    : 'bg-slate-50 text-slate-600 border-dashed border-slate-300 hover:bg-slate-100'
-                }`}
+                className={`text-xs px-3 py-1.5 rounded-lg border font-bold transition-all flex items-center gap-1.5 ${isCustomMode || !matchedPreset
+                  ? 'bg-blue-50 text-blue-700 border-blue-300 ring-2 ring-blue-500/20'
+                  : 'bg-slate-50 text-slate-600 border-dashed border-slate-300 hover:bg-slate-100'
+                  }`}
               >
                 <span>Custom Stage Size</span>
               </button>
@@ -209,11 +205,11 @@ export const LedCalculatorModal: React.FC<Props> = ({ isOpen, onClose, onAddLine
               <label className="text-xs font-semibold text-slate-600 block mb-1">
                 Width (ft)
               </label>
-              <input 
-                type="number" 
-                min={1} 
+              <input
+                type="number"
+                min={1}
                 step="any"
-                value={widthFt} 
+                value={widthFt}
                 placeholder="e.g. 12"
                 onChange={(e) => {
                   const val = e.target.value;
@@ -238,11 +234,11 @@ export const LedCalculatorModal: React.FC<Props> = ({ isOpen, onClose, onAddLine
               <label className="text-xs font-semibold text-slate-600 block mb-1">
                 Height (ft)
               </label>
-              <input 
-                type="number" 
-                min={1} 
+              <input
+                type="number"
+                min={1}
                 step="any"
-                value={heightFt} 
+                value={heightFt}
                 placeholder="e.g. 8"
                 onChange={(e) => {
                   const val = e.target.value;
@@ -267,11 +263,11 @@ export const LedCalculatorModal: React.FC<Props> = ({ isOpen, onClose, onAddLine
               <label className="text-xs font-semibold text-slate-600 block mb-1">
                 Rate (₹/sq.ft)
               </label>
-              <input 
-                type="number" 
-                min={0} 
+              <input
+                type="number"
+                min={0}
                 step="any"
-                value={ratePerSqFt} 
+                value={ratePerSqFt}
                 placeholder="e.g. 110"
                 onChange={(e) => {
                   const val = e.target.value;
@@ -295,11 +291,11 @@ export const LedCalculatorModal: React.FC<Props> = ({ isOpen, onClose, onAddLine
               <label className="text-xs font-semibold text-slate-600 block mb-1">
                 Event Days
               </label>
-              <input 
-                type="number" 
-                min={1} 
+              <input
+                type="number"
+                min={1}
                 step={1}
-                value={days} 
+                value={days}
                 placeholder="1"
                 onChange={(e) => {
                   const val = e.target.value;
@@ -349,11 +345,11 @@ export const LedCalculatorModal: React.FC<Props> = ({ isOpen, onClose, onAddLine
           </div>
 
           <label className="flex items-center gap-2 text-xs font-semibold text-slate-700 cursor-pointer select-none">
-            <input 
-              type="checkbox" 
-              checked={includeTruss} 
+            <input
+              type="checkbox"
+              checked={includeTruss}
               onChange={(e) => setIncludeTruss(e.target.checked)}
-              className="rounded text-blue-600 focus:ring-blue-500 h-4 w-4" 
+              className="rounded text-blue-600 focus:ring-blue-500 h-4 w-4"
             />
             <span>Mention Ground Support / Truss in line item description</span>
           </label>

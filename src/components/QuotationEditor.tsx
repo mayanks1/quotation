@@ -1,8 +1,8 @@
-import React, { useState } from 'react';
+import React, { useState, useRef } from 'react';
 import { 
   ArrowLeft, Download, Printer, Share2, Copy, Plus, 
   Trash2, Image as ImageIcon, Calculator, BookOpen, 
-  Settings, UserCheck
+  Settings, UserCheck, Calendar
 } from 'lucide-react';
 import { Quotation, LineItem, QuotationStatus, TaxScheme, ClientProfile } from '../types/quotation';
 import { generateWhatsAppShareUrl } from '../services/whatsapp';
@@ -20,6 +20,132 @@ interface Props {
   onOpenSettings: () => void;
 }
 
+// Auto-formats date strings into DD-MM-YYYY as user types
+const formatDMYInput = (val: string, prevVal: string = ''): string => {
+  if (!val) return '';
+
+  // 1. If user is backspacing/deleting
+  if (prevVal && val.length < prevVal.length) {
+    // If user hit backspace on a trailing dash (e.g. from "15-" to "15" or "15-10-" to "15-10")
+    if (prevVal.endsWith('-') && val === prevVal.slice(0, -1)) {
+      // Also drop the character before it so backspacing is seamless and doesn't get stuck
+      return val.slice(0, -1);
+    }
+    return val;
+  }
+
+  // 2. ISO paste YYYY-MM-DD or YYYY/MM/DD
+  const isoMatch = val.match(/^(\d{4})[-/.](\d{1,2})[-/.](\d{1,2})$/);
+  if (isoMatch) {
+    const [, y, m, d] = isoMatch;
+    return `${d.padStart(2, '0')}-${m.padStart(2, '0')}-${y}`;
+  }
+
+  // 3. User pressed separator (/ - . space) after a 1-digit day or 1-digit month
+  // e.g. "5/" or "5-" -> "05-"
+  // e.g. "15-8/" or "15-8-" -> "15-08-"
+  if (/^(\d{1,2})[-/. ]$/.test(val)) {
+    const d = parseInt(val.replace(/\D/g, ''), 10);
+    return `${String(Math.min(31, Math.max(1, d))).padStart(2, '0')}-`;
+  }
+  if (/^(\d{2})-(\d{1,2})[-/. ]$/.test(val)) {
+    const parts = val.split('-');
+    const d = parts[0];
+    const m = parseInt(parts[1].replace(/\D/g, ''), 10);
+    return `${d}-${String(Math.min(12, Math.max(1, m))).padStart(2, '0')}-`;
+  }
+
+  // 4. Pure digit stream processing
+  const digits = val.replace(/\D/g, '').slice(0, 8);
+  if (!digits) return '';
+
+  // Single digit day: if > 3 (4-9), day can only be 04-09
+  if (digits.length === 1) {
+    const d1 = parseInt(digits, 10);
+    if (d1 > 3) {
+      return `0${d1}-`;
+    }
+    return digits;
+  }
+
+  // 2 digits: DD -> auto-append dash DD-
+  if (digits.length === 2) {
+    let d = parseInt(digits, 10);
+    if (d > 31) d = 31;
+    if (d === 0) d = 1;
+    return `${String(d).padStart(2, '0')}-`;
+  }
+
+  // 3 digits: DD-M
+  if (digits.length === 3) {
+    let d = parseInt(digits.slice(0, 2), 10);
+    if (d > 31) d = 31;
+    if (d === 0) d = 1;
+    const m1 = parseInt(digits[2], 10);
+    // If month first digit is > 1 (2-9), month can only be 02-09
+    if (m1 > 1) {
+      return `${String(d).padStart(2, '0')}-0${m1}-`;
+    }
+    return `${String(d).padStart(2, '0')}-${m1}`;
+  }
+
+  // 4 digits: DD-MM -> auto-append dash DD-MM-
+  if (digits.length === 4) {
+    let d = parseInt(digits.slice(0, 2), 10);
+    if (d > 31) d = 31;
+    if (d === 0) d = 1;
+    let m = parseInt(digits.slice(2, 4), 10);
+    if (m > 12) m = 12;
+    if (m === 0) m = 1;
+    return `${String(d).padStart(2, '0')}-${String(m).padStart(2, '0')}-`;
+  }
+
+  // 5 to 8 digits: DD-MM-YYYY
+  let d = parseInt(digits.slice(0, 2), 10);
+  if (d > 31) d = 31;
+  if (d === 0) d = 1;
+  let m = parseInt(digits.slice(2, 4), 10);
+  if (m > 12) m = 12;
+  if (m === 0) m = 1;
+  const y = digits.slice(4, 8);
+  return `${String(d).padStart(2, '0')}-${String(m).padStart(2, '0')}-${y}`;
+};
+
+const validateDMY = (val: string): string => {
+  if (!val) return val;
+  const clean = val.trim();
+  
+  const parts = clean.split(/[-/. ]+/);
+  if (parts.length >= 3) {
+    let d = parseInt(parts[0], 10);
+    let m = parseInt(parts[1], 10);
+    let y = parts[2];
+    if (isNaN(d) || isNaN(m)) return val;
+    if (d > 31) d = 31;
+    if (d < 1) d = 1;
+    if (m > 12) m = 12;
+    if (m < 1) m = 1;
+    const dd = String(d).padStart(2, '0');
+    const mm = String(m).padStart(2, '0');
+    if (y.length === 2) {
+      y = `20${y}`;
+    }
+    return `${dd}-${mm}-${y}`;
+  } else if (parts.length === 2) {
+    let d = parseInt(parts[0], 10);
+    let m = parseInt(parts[1], 10);
+    if (!isNaN(d) && !isNaN(m)) {
+      if (d > 31) d = 31;
+      if (d < 1) d = 1;
+      if (m > 12) m = 12;
+      if (m < 1) m = 1;
+      const currentYear = new Date().getFullYear();
+      return `${String(d).padStart(2, '0')}-${String(m).padStart(2, '0')}-${currentYear}`;
+    }
+  }
+  return val;
+};
+
 export const QuotationEditor: React.FC<Props> = ({
   quotation,
   savedClients,
@@ -32,6 +158,11 @@ export const QuotationEditor: React.FC<Props> = ({
   const [exporting, setExporting] = useState(false);
   const [isLedCalcOpen, setIsLedCalcOpen] = useState(false);
   const [isCatalogOpen, setIsCatalogOpen] = useState(false);
+
+  // Date picker refs
+  const eventDatePickerRef = useRef<HTMLInputElement>(null);
+  const quoteDatePickerRef = useRef<HTMLInputElement>(null);
+  const validDatePickerRef = useRef<HTMLInputElement>(null);
 
   // Math
   const subtotal = quotation.lineItems.reduce((acc, i) => acc + (i.quantity || 0) * (i.rate || 0), 0);
@@ -317,28 +448,143 @@ export const QuotationEditor: React.FC<Props> = ({
                 </div>
                 <div className="flex items-center justify-between md:justify-end gap-2">
                   <span className="text-slate-500 font-semibold">Date:</span>
-                  <input
-                    value={quotation.quotationDate}
-                    onChange={(e) => onChange({ ...quotation, quotationDate: e.target.value })}
-                    className="font-medium text-slate-800 w-36 text-right border-0 border-b border-transparent hover:border-slate-300 focus:border-blue-500 focus:outline-none"
-                  />
+                  <div className="relative flex items-center">
+                    <input
+                      value={quotation.quotationDate}
+                      placeholder="DD-MM-YYYY"
+                      maxLength={10}
+                      onChange={(e) => {
+                        const formatted = formatDMYInput(e.target.value, quotation.quotationDate);
+                        onChange({ ...quotation, quotationDate: formatted });
+                      }}
+                      onBlur={(e) => {
+                        const validated = validateDMY(e.target.value);
+                        if (validated !== e.target.value) {
+                          onChange({ ...quotation, quotationDate: validated });
+                        }
+                      }}
+                      className="font-medium text-slate-800 w-36 text-right pr-5 border-0 border-b border-transparent hover:border-slate-300 focus:border-blue-500 focus:outline-none"
+                    />
+                    <button
+                      type="button"
+                      title="Select date"
+                      onClick={() => {
+                        if (quoteDatePickerRef.current?.showPicker) {
+                          quoteDatePickerRef.current.showPicker();
+                        } else {
+                          quoteDatePickerRef.current?.click();
+                        }
+                      }}
+                      className="absolute right-0 text-slate-400 hover:text-blue-600 p-0.5 transition-colors no-print"
+                    >
+                      <Calendar size={13} />
+                    </button>
+                    <input
+                      ref={quoteDatePickerRef}
+                      type="date"
+                      className="sr-only"
+                      onChange={(e) => {
+                        if (e.target.value) {
+                          const [y, m, d] = e.target.value.split('-');
+                          onChange({ ...quotation, quotationDate: `${d}-${m}-${y}` });
+                        }
+                      }}
+                    />
+                  </div>
                 </div>
+
                 <div className="flex items-center justify-between md:justify-end gap-2">
                   <span className="text-slate-500 font-semibold">Valid Until:</span>
-                  <input
-                    value={quotation.validUntil}
-                    onChange={(e) => onChange({ ...quotation, validUntil: e.target.value })}
-                    className="font-medium text-slate-800 w-36 text-right border-0 border-b border-transparent hover:border-slate-300 focus:border-blue-500 focus:outline-none"
-                  />
+                  <div className="relative flex items-center">
+                    <input
+                      value={quotation.validUntil}
+                      placeholder="DD-MM-YYYY"
+                      maxLength={10}
+                      onChange={(e) => {
+                        const formatted = formatDMYInput(e.target.value, quotation.validUntil);
+                        onChange({ ...quotation, validUntil: formatted });
+                      }}
+                      onBlur={(e) => {
+                        const validated = validateDMY(e.target.value);
+                        if (validated !== e.target.value) {
+                          onChange({ ...quotation, validUntil: validated });
+                        }
+                      }}
+                      className="font-medium text-slate-800 w-36 text-right pr-5 border-0 border-b border-transparent hover:border-slate-300 focus:border-blue-500 focus:outline-none"
+                    />
+                    <button
+                      type="button"
+                      title="Select valid until date"
+                      onClick={() => {
+                        if (validDatePickerRef.current?.showPicker) {
+                          validDatePickerRef.current.showPicker();
+                        } else {
+                          validDatePickerRef.current?.click();
+                        }
+                      }}
+                      className="absolute right-0 text-slate-400 hover:text-blue-600 p-0.5 transition-colors no-print"
+                    >
+                      <Calendar size={13} />
+                    </button>
+                    <input
+                      ref={validDatePickerRef}
+                      type="date"
+                      className="sr-only"
+                      onChange={(e) => {
+                        if (e.target.value) {
+                          const [y, m, d] = e.target.value.split('-');
+                          onChange({ ...quotation, validUntil: `${d}-${m}-${y}` });
+                        }
+                      }}
+                    />
+                  </div>
                 </div>
+
                 <div className="flex items-center justify-between md:justify-end gap-2">
                   <span className="text-blue-600 font-semibold">Event Date:</span>
-                  <input
-                    value={quotation.eventDate || ''}
-                    placeholder="DD-MM-YYYY"
-                    onChange={(e) => onChange({ ...quotation, eventDate: e.target.value })}
-                    className="font-bold text-blue-600 w-36 text-right border-0 border-b border-transparent hover:border-slate-300 focus:border-blue-500 focus:outline-none"
-                  />
+                  <div className="relative flex items-center">
+                    <input
+                      value={quotation.eventDate || ''}
+                      placeholder="DD-MM-YYYY"
+                      maxLength={10}
+                      onChange={(e) => {
+                        const formatted = formatDMYInput(e.target.value, quotation.eventDate || '');
+                        onChange({ ...quotation, eventDate: formatted });
+                      }}
+                      onBlur={(e) => {
+                        const validated = validateDMY(e.target.value);
+                        if (validated !== e.target.value) {
+                          onChange({ ...quotation, eventDate: validated });
+                        }
+                      }}
+                      className="font-bold text-blue-600 w-36 text-right pr-5 border-0 border-b border-transparent hover:border-slate-300 focus:border-blue-500 focus:outline-none placeholder:text-blue-300 placeholder:font-normal"
+                    />
+                    <button
+                      type="button"
+                      title="Pick Event Date from calendar"
+                      onClick={() => {
+                        if (eventDatePickerRef.current?.showPicker) {
+                          eventDatePickerRef.current.showPicker();
+                        } else {
+                          eventDatePickerRef.current?.click();
+                        }
+                      }}
+                      className="absolute right-0 text-slate-400 hover:text-blue-600 p-0.5 transition-colors no-print"
+                    >
+                      <Calendar size={13} />
+                    </button>
+                    <input
+                      ref={eventDatePickerRef}
+                      type="date"
+                      className="sr-only"
+                      onChange={(e) => {
+                        if (e.target.value) {
+                          const [y, m, d] = e.target.value.split('-');
+                          onChange({ ...quotation, eventDate: `${d}-${m}-${y}` });
+                        }
+                      }}
+                    />
+                  </div>
                 </div>
               </div>
             </div>
