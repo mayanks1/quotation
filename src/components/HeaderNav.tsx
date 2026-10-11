@@ -17,7 +17,7 @@ export const HeaderNav: React.FC<Props> = ({
   hasActiveQuote,
 }) => {
   return (
-    <header className="no-print bg-slate-900 text-white border-b border-slate-800 sticky top-0 z-50">
+    <header className="no-print bg-black text-white border-b border-neutral-800 sticky top-0 z-50">
       <div className="max-w-6xl mx-auto px-3 sm:px-4">
 
         {/* Main Header Bar */}
@@ -37,19 +37,19 @@ export const HeaderNav: React.FC<Props> = ({
                   PRO
                 </span>
               </div>
-              <div className="text-[11px] text-slate-400 hidden lg:block leading-tight mt-0.5">
+              <div className="text-[11px] text-neutral-400 hidden lg:block leading-tight mt-0.5">
                 Quotation &amp; Rental Management System
               </div>
             </div>
           </div>
 
           {/* Desktop Navigation Tabs (Hidden on Mobile) */}
-          <nav className="hidden md:flex items-center gap-1 bg-slate-950/60 p-1 rounded-xl border border-slate-800/80">
+          <nav className="hidden md:flex items-center gap-1 bg-neutral-900/90 p-1 rounded-xl border border-neutral-800">
             <button
               onClick={() => onTabChange('list')}
               className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold transition-all ${activeTab === 'list'
                 ? 'bg-blue-600 text-white shadow-md shadow-blue-500/25 font-bold'
-                : 'text-slate-300 hover:text-white hover:bg-slate-800/70'
+                : 'text-neutral-300 hover:text-white hover:bg-neutral-800'
                 }`}
             >
               <FileText size={14} />
@@ -61,7 +61,7 @@ export const HeaderNav: React.FC<Props> = ({
                 onClick={() => onTabChange('editor')}
                 className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold transition-all ${activeTab === 'editor'
                   ? 'bg-blue-600 text-white shadow-md shadow-blue-500/25 font-bold'
-                  : 'text-slate-300 hover:text-white hover:bg-slate-800/70'
+                  : 'text-neutral-300 hover:text-white hover:bg-neutral-800'
                   }`}
               >
                 <Edit3 size={14} />
@@ -73,7 +73,7 @@ export const HeaderNav: React.FC<Props> = ({
               onClick={() => onTabChange('clients')}
               className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold transition-all ${activeTab === 'clients'
                 ? 'bg-blue-600 text-white shadow-md shadow-blue-500/25 font-bold'
-                : 'text-slate-300 hover:text-white hover:bg-slate-800/70'
+                : 'text-neutral-300 hover:text-white hover:bg-neutral-800'
                 }`}
             >
               <Users size={14} />
@@ -96,7 +96,7 @@ export const HeaderNav: React.FC<Props> = ({
             <button
               onClick={onOpenSettings}
               title="Company Settings & Bank Info"
-              className="p-1.5 sm:p-2 text-slate-400 hover:text-white hover:bg-slate-800 active:scale-95 rounded-lg transition-colors"
+              className="p-1.5 sm:p-2 text-neutral-400 hover:text-white hover:bg-neutral-800 active:scale-95 rounded-lg transition-colors"
             >
               <Settings size={18} />
             </button>
@@ -111,12 +111,12 @@ export const HeaderNav: React.FC<Props> = ({
 
         {/* Mobile Navigation Tabs (Segmented Control Bar) */}
         <div className="md:hidden pb-2.5 pt-0.5">
-          <nav className="flex items-center gap-1.5 bg-slate-950/70 p-1 rounded-xl border border-slate-800/90">
+          <nav className="flex items-center gap-1.5 bg-neutral-900/90 p-1 rounded-xl border border-neutral-800">
             <button
               onClick={() => onTabChange('list')}
               className={`flex-1 flex items-center justify-center gap-1.5 py-1.5 px-2 rounded-lg text-xs font-bold transition-all ${activeTab === 'list'
                 ? 'bg-blue-600 text-white shadow-sm shadow-blue-500/30'
-                : 'text-slate-400 hover:text-white hover:bg-slate-800/50'
+                : 'text-neutral-400 hover:text-white hover:bg-neutral-800'
                 }`}
             >
               <FileText size={14} />
@@ -128,7 +128,7 @@ export const HeaderNav: React.FC<Props> = ({
                 onClick={() => onTabChange('editor')}
                 className={`flex-1 flex items-center justify-center gap-1.5 py-1.5 px-2 rounded-lg text-xs font-bold transition-all ${activeTab === 'editor'
                   ? 'bg-blue-600 text-white shadow-sm shadow-blue-500/30'
-                  : 'text-slate-400 hover:text-white hover:bg-slate-800/50'
+                  : 'text-neutral-400 hover:text-white hover:bg-neutral-800'
                   }`}
               >
                 <Edit3 size={14} />
@@ -140,7 +140,7 @@ export const HeaderNav: React.FC<Props> = ({
               onClick={() => onTabChange('clients')}
               className={`flex-1 flex items-center justify-center gap-1.5 py-1.5 px-2 rounded-lg text-xs font-bold transition-all ${activeTab === 'clients'
                 ? 'bg-blue-600 text-white shadow-sm shadow-blue-500/30'
-                : 'text-slate-400 hover:text-white hover:bg-slate-800/50'
+                : 'text-neutral-400 hover:text-white hover:bg-neutral-800'
                 }`}
             >
               <Users size={14} />
