@@ -9,6 +9,7 @@ import { generateWhatsAppShareUrl } from '../services/whatsapp';
 import { exportQuotationPDF } from '../services/pdfGenerator';
 import { LedCalculatorModal } from './LedCalculatorModal';
 import { CatalogPickerModal } from './CatalogPickerModal';
+import { ShareQuotationModal } from './ShareQuotationModal';
 import { useToast } from '../context/ToastContext';
 
 interface Props {
@@ -158,6 +159,7 @@ export const QuotationEditor: React.FC<Props> = ({
   const [exporting, setExporting] = useState(false);
   const [isLedCalcOpen, setIsLedCalcOpen] = useState(false);
   const [isCatalogOpen, setIsCatalogOpen] = useState(false);
+  const [isShareModalOpen, setIsShareModalOpen] = useState(false);
 
   // Date picker refs
   const eventDatePickerRef = useRef<HTMLInputElement>(null);
@@ -232,10 +234,8 @@ export const QuotationEditor: React.FC<Props> = ({
     window.print();
   };
 
-  const handleWhatsApp = () => {
-    const url = generateWhatsAppShareUrl(quotation);
-    window.open(url, '_blank');
-    toast.info('Opening WhatsApp with quotation summary...');
+  const handleOpenShare = () => {
+    setIsShareModalOpen(true);
   };
 
   const handleSelectSavedClient = (clientIdOrName: string) => {
@@ -323,12 +323,12 @@ export const QuotationEditor: React.FC<Props> = ({
           </button>
 
           <button
-            onClick={handleWhatsApp}
-            title="Send formatted breakdown directly to client on WhatsApp"
+            onClick={handleOpenShare}
+            title="Share quotation as official PDF document or WhatsApp text"
             className="flex items-center justify-center gap-1.5 px-3 py-2 text-xs font-bold text-white bg-emerald-600 hover:bg-emerald-700 active:scale-95 rounded-lg transition-colors shadow-sm"
           >
             <Share2 size={14} />
-            <span>WhatsApp</span>
+            <span>Share</span>
           </button>
 
           <button
@@ -1115,6 +1115,12 @@ export const QuotationEditor: React.FC<Props> = ({
         onAddItems={(items) => {
           onChange({ ...quotation, lineItems: [...quotation.lineItems, ...items] });
         }}
+      />
+
+      <ShareQuotationModal
+        quotation={quotation}
+        isOpen={isShareModalOpen}
+        onClose={() => setIsShareModalOpen(false)}
       />
 
     </div>

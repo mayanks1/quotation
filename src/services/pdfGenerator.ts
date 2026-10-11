@@ -267,7 +267,7 @@ function getElementOffsetTop(el: HTMLElement, root: HTMLElement): number {
   return top;
 }
 
-export async function exportQuotationPDF(quotation: Quotation): Promise<void> {
+export async function generateQuotationPDFDoc(quotation: Quotation): Promise<{ pdf: jsPDF; filename: string }> {
   const html = buildQuotationHTML(quotation);
 
   const wrapper = document.createElement('div');
@@ -364,10 +364,22 @@ export async function exportQuotationPDF(quotation: Quotation): Promise<void> {
     }
 
     const filename = `${quotation.quotationNumber || 'Quotation'}_${(quotation.client?.name || 'Client').replace(/[^a-zA-Z0-9]/g, '_')}.pdf`;
-    pdf.save(filename);
+    return { pdf, filename };
   } finally {
     if (document.body.contains(wrapper)) {
       document.body.removeChild(wrapper);
     }
   }
+}
+
+export async function exportQuotationPDF(quotation: Quotation): Promise<void> {
+  const { pdf, filename } = await generateQuotationPDFDoc(quotation);
+  pdf.save(filename);
+}
+
+export async function generateQuotationPDFFile(quotation: Quotation): Promise<{ file: File; blob: Blob; filename: string }> {
+  const { pdf, filename } = await generateQuotationPDFDoc(quotation);
+  const blob = pdf.output('blob');
+  const file = new File([blob], filename, { type: 'application/pdf' });
+  return { file, blob, filename };
 }

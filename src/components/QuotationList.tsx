@@ -11,6 +11,7 @@ import { Quotation, QuotationStatus } from '../types/quotation';
 import { generateWhatsAppShareUrl } from '../services/whatsapp';
 import { exportQuotationPDF } from '../services/pdfGenerator';
 import { useToast, useConfirm } from '../context/ToastContext';
+import { ShareQuotationModal } from './ShareQuotationModal';
 
 interface Props {
   quotations: Quotation[];
@@ -83,6 +84,7 @@ export const QuotationList: React.FC<Props> = ({
   const [search, setSearch] = useState('');
   const [statusFilter, setStatusFilter] = useState<string>('all');
   const [exportingId, setExportingId] = useState<string | null>(null);
+  const [shareModalQuote, setShareModalQuote] = useState<Quotation | null>(null);
 
   // Advanced Filters State
   const [isFilterOpen, setIsFilterOpen] = useState(false);
@@ -331,11 +333,9 @@ export const QuotationList: React.FC<Props> = ({
     }
   };
 
-  const handleWhatsApp = (e: React.MouseEvent, q: Quotation) => {
+  const handleOpenShare = (e: React.MouseEvent, q: Quotation) => {
     e.stopPropagation();
-    const url = generateWhatsAppShareUrl(q);
-    window.open(url, '_blank');
-    toast.info('Opening WhatsApp with quotation summary...');
+    setShareModalQuote(q);
   };
 
   const handleDuplicateQuote = (e: React.MouseEvent, quote: Quotation) => {
@@ -813,8 +813,8 @@ export const QuotationList: React.FC<Props> = ({
 
                     <div className="flex items-center gap-1">
                       <button
-                        title="Share to WhatsApp"
-                        onClick={(e) => handleWhatsApp(e, quote)}
+                        title="Share Quotation (PDF or WhatsApp Text)"
+                        onClick={(e) => handleOpenShare(e, quote)}
                         className="p-2 text-emerald-600 hover:bg-emerald-50 rounded-lg transition-colors"
                       >
                         <Share2 size={16} />
@@ -962,6 +962,13 @@ export const QuotationList: React.FC<Props> = ({
         )}
 
       </div>
+
+      {/* Share Modal (PDF or WhatsApp Text Breakdown) */}
+      <ShareQuotationModal
+        quotation={shareModalQuote}
+        isOpen={!!shareModalQuote}
+        onClose={() => setShareModalQuote(null)}
+      />
 
     </div>
   );
