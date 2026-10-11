@@ -15,11 +15,29 @@ export function App() {
   const [quotations, setQuotations] = useState<Quotation[]>(() => storage.getAllQuotations());
   const [activeQuoteId, setActiveQuoteId] = useState<string>(() => storage.getActiveQuotationId() || '');
   const [clients, setClients] = useState<ClientProfile[]>(() => storage.getAllClients());
-  const [activeTab, setActiveTab] = useState<'editor' | 'list' | 'clients'>('list');
+  const [activeTab, setActiveTab] = useState<'editor' | 'list' | 'clients'>(() => {
+    try {
+      const saved = localStorage.getItem('tisha_active_tab');
+      if (saved === 'editor' || saved === 'list' || saved === 'clients') {
+        return saved;
+      }
+    } catch (e) {
+      console.warn('Could not read saved tab:', e);
+    }
+    return 'list';
+  });
   const [isSettingsOpen, setIsSettingsOpen] = useState(false);
 
   // Active quotation reference
   const currentQuote = quotations.find((q) => q.id === activeQuoteId) || (quotations.length > 0 ? quotations[0] : null);
+
+  useEffect(() => {
+    try {
+      localStorage.setItem('tisha_active_tab', activeTab);
+    } catch (e) {
+      console.warn('Could not save active tab:', e);
+    }
+  }, [activeTab]);
 
   useEffect(() => {
     storage.initialize().then(({ quotations: qList, clients: cList, company: comp }) => {
@@ -33,6 +51,7 @@ export function App() {
         setActiveQuoteId(qList[0].id);
       } else {
         setActiveQuoteId('');
+        setActiveTab((prev) => (prev === 'editor' ? 'list' : prev));
       }
     });
   }, []);
