@@ -2,11 +2,12 @@ import React, { useState } from 'react';
 import { 
   X, Share2, FileText, Download, Copy, Check, 
   MessageSquare, ExternalLink, Loader2, Smartphone, 
-  AlertCircle, ChevronDown, ChevronUp, IndianRupee 
+  AlertCircle, ChevronDown, ChevronUp, IndianRupee, Bell, Clock
 } from 'lucide-react';
 import { Quotation, getItemAmount } from '../types/quotation';
 import { formatQuotationWhatsAppText, generateWhatsAppShareUrl, generateWhatsAppPdfNoticeUrl } from '../services/whatsapp';
 import { generateQuotationPDFFile, exportQuotationPDF } from '../services/pdfGenerator';
+import { getQuotationExpiryStatus, formatQuotationReminderText, generateWhatsAppReminderUrl } from '../utils/quotationExpiry';
 import { useToast } from '../context/ToastContext';
 
 interface Props {
@@ -25,7 +26,9 @@ export const ShareQuotationModal: React.FC<Props> = ({
   const [isGeneratingPdf, setIsGeneratingPdf] = useState<boolean>(false);
   const [isDownloadingPdf, setIsDownloadingPdf] = useState<boolean>(false);
   const [showPreview, setShowPreview] = useState<boolean>(false);
+  const [showReminderPreview, setShowReminderPreview] = useState<boolean>(false);
   const [copied, setCopied] = useState<boolean>(false);
+  const [reminderCopied, setReminderCopied] = useState<boolean>(false);
 
   // Sync phone from quotation when opened
   React.useEffect(() => {
@@ -41,9 +44,11 @@ export const ShareQuotationModal: React.FC<Props> = ({
   const isZeroTax = quotation.taxScheme === 'none';
   const effectiveTaxRate = isZeroTax ? 0 : (quotation.taxRate || 0);
   const tax = isZeroTax ? 0 : (discounted * effectiveTaxRate) / 100;
-  const grandTotal = discounted + tax + (quotation.shippingCharges || 0);
+  const grandTotal = Math.max(0, discounted + tax + (quotation.shippingCharges || 0) + (quotation.adjustmentAmount || 0));
 
   const formattedText = formatQuotationWhatsAppText(quotation);
+  const expiry = getQuotationExpiryStatus(quotation.validUntil);
+  const reminderText = formatQuotationReminderText(quotation);
 
   // 1. Share PDF Document (Mobile Native Web Share API or Desktop Download + WhatsApp)
   const handleSharePDF = async () => {
@@ -131,6 +136,27 @@ export const ShareQuotationModal: React.FC<Props> = ({
     }
   };
 
+  // 5. Send Follow-Up Reminder via WhatsApp
+  const handleSendReminder = () => {
+    const waUrl = generateWhatsAppReminderUrl(quotation, customPhone);
+    window.open(waUrl, '_blank');
+    toast.info('Opening WhatsApp with booking follow-up reminder...');
+    onClose();
+  };
+
+  // 6. Copy Follow-Up Reminder Text
+  const handleCopyReminder = async () => {
+    try {
+      await navigator.clipboard.writeText(reminderText);
+      setReminderCopied(true);
+      toast.success('Follow-up reminder text copied to clipboard!');
+      setTimeout(() => setReminderCopied(false), 2500);
+    } catch (err) {
+      console.error('Copy failed:', err);
+      toast.error('Failed to copy reminder text.');
+    }
+  };
+
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-4 bg-slate-900/60 backdrop-blur-xs animate-in fade-in duration-200">
       <div 
@@ -164,7 +190,7 @@ export const ShareQuotationModal: React.FC<Props> = ({
         <div className="p-4 sm:p-5 space-y-4 overflow-y-auto flex-1 text-slate-700">
           
           {/* Quick Info Chip */}
-          <div className="bg-slate-50 rounded-xl p-3 border border-slate-200/80 flex items-center justify-between">
+          <div className="bg-slate-50 rounded-xl p-3 border border-slate-200/80 flex items-center justify-between flex-wrap gap-2">
             <div>
               <div className="text-[11px] font-semibold text-slate-400 uppercase tracking-wider">Total Payable</div>
               <div className="text-lg font-black text-slate-900 flex items-center mt-0.5">
@@ -172,10 +198,16 @@ export const ShareQuotationModal: React.FC<Props> = ({
                 {grandTotal.toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
               </div>
             </div>
-            <div className="text-right text-xs">
-              <span className="font-semibold text-slate-700">{quotation.lineItems.length} setup item{quotation.lineItems.length !== 1 ? 's' : ''}</span>
+            <div className="text-right text-xs space-y-0.5">
+              <div className="flex items-center gap-1.5 justify-end">
+                <span className="font-semibold text-slate-700">{quotation.lineItems.length} setup item{quotation.lineItems.length !== 1 ? 's' : ''}</span>
+                <span className={`inline-flex items-center gap-0.5 text-[10px] px-2 py-0.5 rounded-full border ${expiry.badgeClass}`}>
+                  <Clock size={10} />
+                  {expiry.label}
+                </span>
+              </div>
               {quotation.eventDate && (
-                <div className="text-blue-600 font-medium text-[11px] mt-0.5">Event: {quotation.eventDate}</div>
+                <div className="text-blue-600 font-medium text-[11px]">Event: {quotation.eventDate}</div>
               )}
             </div>
           </div>
@@ -295,6 +327,111 @@ export const ShareQuotationModal: React.FC<Props> = ({
                 {copied ? <Check size={14} className="text-emerald-600" /> : <Copy size={14} />}
                 <span>{copied ? 'Copied' : 'Copy'}</span>
               </button>
+            </div>
+          </div>
+
+          {/* Option C: Follow-Up & Booking Reminder */}
+          <div className="p-3.5 sm:p-4 rounded-xl border border-amber-200 bg-amber-50/40 hover:bg-amber-50/70 transition-all space-y-2.5">
+            <div className="flex items-start gap-3">
+              <div className="w-9 h-9 rounded-lg bg-amber-500 text-white flex items-center justify-center shrink-0 shadow-sm shadow-amber-500/30">
+                <Bell size={18} />
+              </div>
+              <div className="flex-1 min-w-0">
+                <div className="flex items-center gap-1.5 flex-wrap">
+                  <h4 className="font-extrabold text-sm text-slate-900">Follow-Up &amp; Booking Reminder</h4>
+                  <span className={`text-[9px] font-bold px-1.5 py-0.5 rounded-full border ${expiry.badgeClass}`}>
+                    {expiry.label}
+                  </span>
+                </div>
+                <p className="text-xs text-slate-600 mt-0.5 leading-relaxed">
+                  Send polite follow-up checking booking decision before quotation expiry to lock screen inventory.
+                </p>
+              </div>
+            </div>
+
+            <div className="flex items-center gap-2 pt-1">
+              <button
+                type="button"
+                onClick={handleSendReminder}
+                className="flex-1 flex items-center justify-center gap-1.5 bg-amber-600 hover:bg-amber-700 active:scale-95 text-white py-2 px-3 rounded-lg text-xs font-bold transition-all shadow-md shadow-amber-500/20"
+              >
+                <Bell size={14} />
+                <span>Send Follow-Up Reminder</span>
+              </button>
+
+              <button
+                type="button"
+                onClick={handleCopyReminder}
+                title="Copy reminder text to clipboard"
+                className="flex items-center justify-center gap-1 bg-white hover:bg-slate-100 border border-slate-200 text-slate-700 py-2 px-3 rounded-lg text-xs font-bold transition-all"
+              >
+                {reminderCopied ? <Check size={14} className="text-amber-600" /> : <Copy size={14} />}
+                <span>{reminderCopied ? 'Copied' : 'Copy'}</span>
+              </button>
+            </div>
+
+            {/* Collapsible Reminder Preview */}
+            <div className="border border-amber-200/80 rounded-lg overflow-hidden bg-white/70">
+              <button
+                type="button"
+                onClick={() => setShowReminderPreview(!showReminderPreview)}
+                className="w-full p-2 text-[11px] font-semibold text-slate-600 hover:text-slate-900 bg-amber-50/50 flex items-center justify-between"
+              >
+                <span>Preview Follow-Up Reminder Message</span>
+                {showReminderPreview ? <ChevronUp size={12} /> : <ChevronDown size={12} />}
+              </button>
+              {showReminderPreview && (
+                <div className="p-2.5 bg-white border-t border-amber-100">
+                  <pre className="text-[10.5px] leading-relaxed text-slate-700 font-sans whitespace-pre-wrap bg-slate-50 p-2 rounded border border-slate-100 max-h-36 overflow-y-auto">
+                    {reminderText}
+                  </pre>
+                </div>
+              )}
+            </div>
+          </div>
+
+          {/* Option D: Live Client Portal Link */}
+          <div className="p-3.5 sm:p-4 rounded-xl border border-indigo-200 bg-indigo-50/40 hover:bg-indigo-50/70 transition-all space-y-2.5">
+            <div className="flex items-start gap-3">
+              <div className="w-9 h-9 rounded-lg bg-indigo-600 text-white flex items-center justify-center shrink-0 shadow-sm shadow-indigo-500/30">
+                <ExternalLink size={18} />
+              </div>
+              <div className="flex-1 min-w-0">
+                <div className="flex items-center gap-1.5 flex-wrap">
+                  <h4 className="font-extrabold text-sm text-slate-900">Live Client Portal Link</h4>
+                  <span className="text-[9px] font-extrabold px-1.5 py-0.2 rounded bg-indigo-600 text-white uppercase tracking-wider">
+                    SaaS Portal
+                  </span>
+                </div>
+                <p className="text-xs text-slate-600 mt-0.5 leading-relaxed">
+                  Share direct link for clients to view quotation online, review item specs, pay via UPI, and digitally sign off.
+                </p>
+              </div>
+            </div>
+
+            <div className="flex items-center gap-2 pt-1">
+              <button
+                type="button"
+                onClick={() => {
+                  const url = `${window.location.origin}/quote/${quotation.id}/view`;
+                  navigator.clipboard.writeText(url);
+                  toast.success('Copied Client Portal URL to clipboard!');
+                }}
+                className="flex-1 flex items-center justify-center gap-1.5 bg-indigo-600 hover:bg-indigo-700 active:scale-95 text-white py-2 px-3 rounded-lg text-xs font-bold transition-all shadow-md shadow-indigo-500/20"
+              >
+                <Copy size={14} />
+                <span>Copy Client Portal Link</span>
+              </button>
+
+              <a
+                href={`/quote/${quotation.id}/view`}
+                target="_blank"
+                rel="noreferrer"
+                className="flex items-center justify-center gap-1 bg-white hover:bg-slate-100 border border-slate-200 text-slate-700 py-2 px-3 rounded-lg text-xs font-bold transition-all"
+              >
+                <ExternalLink size={14} />
+                <span>Open Portal</span>
+              </a>
             </div>
           </div>
 

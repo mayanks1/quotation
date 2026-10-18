@@ -6,12 +6,16 @@ export const formatQuotationWhatsAppText = (quotation: Quotation): string => {
   const isZeroTax = quotation.taxScheme === 'none';
   const effectiveTaxRate = isZeroTax ? 0 : (quotation.taxRate || 0);
   const tax = isZeroTax ? 0 : (discounted * effectiveTaxRate) / 100;
-  const grandTotal = discounted + tax + (quotation.shippingCharges || 0);
+  const grandTotal = Math.max(0, discounted + tax + (quotation.shippingCharges || 0) + (quotation.adjustmentAmount || 0));
 
-  let text = `*QUOTATION: ${quotation.quotationNumber}*\n`;
+  const isInvoice = quotation.documentType === 'invoice';
+  const docTitle = isInvoice ? 'TAX INVOICE' : 'QUOTATION';
+  const docNumber = isInvoice ? (quotation.invoiceNumber || quotation.quotationNumber) : quotation.quotationNumber;
+
+  let text = `*${docTitle}: ${docNumber}*\n`;
   text += `*From:* ${quotation.company.name}\n`;
   text += `*To:* ${quotation.client.name}${quotation.client.company ? ` (${quotation.client.company})` : ''}\n`;
-  text += `*Date:* ${quotation.quotationDate} (Valid until: ${quotation.validUntil})\n`;
+  text += `*Date:* ${isInvoice && quotation.invoiceDate ? quotation.invoiceDate : quotation.quotationDate} (Valid until: ${quotation.validUntil})\n`;
   if (quotation.eventDate) text += `*Event Date:* ${quotation.eventDate}\n`;
   if (quotation.venue) text += `*Venue:* ${quotation.venue}\n`;
   text += `\n*Scope of Setup / Line Items:*\n`;
@@ -27,16 +31,44 @@ export const formatQuotationWhatsAppText = (quotation: Quotation): string => {
   if (quotation.discountAmount > 0) {
     text += `\n• Discount: -₹${quotation.discountAmount.toLocaleString('en-IN')}`;
   }
-  if (quotation.taxRate > 0) {
-    text += `\n• GST (${quotation.taxRate}%): ₹${tax.toLocaleString('en-IN')}`;
+  if (effectiveTaxRate > 0) {
+    text += `\n• GST (${effectiveTaxRate}%): ₹${tax.toLocaleString('en-IN')}`;
   }
   if (quotation.shippingCharges > 0) {
     text += `\n• Logistics / Transport: ₹${quotation.shippingCharges.toLocaleString('en-IN')}`;
   }
-  text += `\n*Total Amount:* ₹${grandTotal.toLocaleString('en-IN')}\n`;
+  if (quotation.adjustmentAmount) {
+    text += `\n• Adjustment / Round-off: ${quotation.adjustmentAmount > 0 ? '+' : ''}₹${quotation.adjustmentAmount.toLocaleString('en-IN')}`;
+  }
+  text += `\n*Total Amount:* ₹${grandTotal.toLocaleString('en-IN')}`;
 
-  if (quotation.company.bankDetails?.upiId) {
-    text += `\n*Advance Payment UPI:* ${quotation.company.bankDetails.upiId}`;
+  if (quotation.enablePaymentLedger) {
+    const advancePercentage = quotation.advancePercentage ?? 70;
+    const advanceReq = quotation.advanceAmount && quotation.advanceAmount <= grandTotal && quotation.advanceAmount > 0
+      ? quotation.advanceAmount
+      : Math.round(grandTotal * (advancePercentage / 100));
+    const paid = quotation.paidAmount || 0;
+    const balance = Math.max(0, grandTotal - paid);
+
+    if (advanceReq > 0 && paid === 0) {
+      text += `\n• Advance Milestone (${advancePercentage}%): ₹${advanceReq.toLocaleString('en-IN')}`;
+      text += `\n• Balance on Setup: ₹${Math.max(0, grandTotal - advanceReq).toLocaleString('en-IN')}`;
+    } else if (paid > 0) {
+      text += `\n• Amount Paid: ₹${paid.toLocaleString('en-IN')} (${(quotation.paymentStatus || 'received').toUpperCase()})`;
+      text += `\n• Balance Due: ₹${balance.toLocaleString('en-IN')}`;
+    }
+  }
+  text += `\n`;
+
+  if (quotation.enableUpiQr && quotation.company.bankDetails?.upiId) {
+    if (quotation.allowCustomerEditQrAmount) {
+      text += `\n*Instant UPI Payment:* ${quotation.company.bankDetails.upiId} _(Open Amount - enter desired payment on scan)_`;
+    } else {
+      const qrTargetAmount = quotation.customQrAmount !== undefined && quotation.customQrAmount > 0
+        ? quotation.customQrAmount
+        : (quotation.qrAmountType === 'advance' && quotation.enablePaymentLedger && quotation.advanceAmount ? quotation.advanceAmount : grandTotal);
+      text += `\n*Instant UPI Payment:* ${quotation.company.bankDetails.upiId} (Amount: ₹${qrTargetAmount.toLocaleString('en-IN')})`;
+    }
   }
   if (quotation.company.bankDetails?.bankName) {
     text += `\n*Bank:* ${quotation.company.bankDetails.bankName} | A/C: ${quotation.company.bankDetails.accountNumber} | IFSC: ${quotation.company.bankDetails.ifscCode}\n`;
@@ -69,9 +101,13 @@ export const generateWhatsAppPdfNoticeUrl = (quotation: Quotation, filename: str
   const tax = isZeroTax ? 0 : (discounted * effectiveTaxRate) / 100;
   const grandTotal = discounted + tax + (quotation.shippingCharges || 0);
 
-  let text = `*QUOTATION: ${quotation.quotationNumber}*\n`;
+  const isInvoice = quotation.documentType === 'invoice';
+  const docTitle = isInvoice ? 'TAX INVOICE' : 'QUOTATION';
+  const docNumber = isInvoice ? (quotation.invoiceNumber || quotation.quotationNumber) : quotation.quotationNumber;
+
+  let text = `*${docTitle}: ${docNumber}*\n`;
   text += `Hello ${quotation.client?.name || 'Sir/Madam'},\n\n`;
-  text += `Please find attached the official PDF quotation document from *${quotation.company.name}*.\n`;
+  text += `Please find attached the official PDF ${isInvoice ? 'tax invoice' : 'quotation'} document from *${quotation.company.name}*.\n`;
   if (quotation.venue) text += `*Venue:* ${quotation.venue}\n`;
   if (quotation.eventDate) text += `*Event Date:* ${quotation.eventDate}\n`;
   text += `*Total Amount:* ₹${grandTotal.toLocaleString('en-IN')}\n\n`;

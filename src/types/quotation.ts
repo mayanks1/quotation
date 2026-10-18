@@ -60,6 +60,10 @@ export interface ClientProfile {
   gstin?: string;
 }
 
+export type DocumentType = 'quotation' | 'invoice';
+export type PaymentStatus = 'unpaid' | 'partial' | 'paid';
+export type PaymentMode = 'upi' | 'bank_transfer' | 'cash' | 'cheque';
+
 export interface Quotation {
   id: string;
   quotationNumber: string;
@@ -68,6 +72,13 @@ export interface Quotation {
   eventDate?: string;
   venue?: string;
   status: QuotationStatus;
+
+  // Document Type & Invoicing
+  documentType?: DocumentType;
+  invoiceNumber?: string;
+  invoiceDate?: string;
+  revisionNumber?: number; // e.g. 1, 2, 3...
+  parentQuoteNumber?: string; // original quote number if revised
   
   // Parties
   company: CompanyProfile;
@@ -80,13 +91,40 @@ export interface Quotation {
   taxRate: number; // percentage, e.g. 18
   shippingCharges: number;
   
+  // Optional Feature Toggles
+  enableUpiQr?: boolean;
+  qrAmountType?: 'total' | 'advance' | 'custom';
+  customQrAmount?: number;
+  allowCustomerEditQrAmount?: boolean; // switch based: if true, QR code allows customer to enter amount at their end
+  enablePaymentLedger?: boolean;
+  adjustmentAmount?: number; // optional manual round-off / adjustment (+/-)
+
+  // Payment Tracking Ledger
+  advancePercentage?: number;
+  advanceAmount?: number;
+  paidAmount?: number;
+  paymentStatus?: PaymentStatus;
+  paymentMode?: PaymentMode;
+  transactionRef?: string;
+  paymentDate?: string;
+
   // Terms & Payment
   notes: string;
   paymentTerms: string;
   
+  // Client Sign-off & Digital Signature
+  clientSignature?: ClientSignature;
+
   // Timestamps
   createdAt: string;
   updatedAt: string;
+}
+
+export interface ClientSignature {
+  dataUrl: string; // Base64 PNG signature data
+  signedAt: string; // ISO date timestamp or formatted string
+  signerName?: string; // Authorized client person name
+  signerPhone?: string; // Signer contact
 }
 
 export interface CatalogItem {

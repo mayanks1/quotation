@@ -5,11 +5,14 @@ import {
   XCircle, Receipt, ArrowRight, IndianRupee,
   Calendar, Filter, X, ChevronLeft, ChevronRight,
   ChevronsLeft, ChevronsRight, ArrowUpDown, SlidersHorizontal,
-  RotateCcw, Sparkles
+  RotateCcw, Sparkles, FileSpreadsheet, Upload, Database, Layers, Bell
 } from 'lucide-react';
 import { Quotation, QuotationStatus, getItemAmount } from '../types/quotation';
 import { generateWhatsAppShareUrl } from '../services/whatsapp';
 import { exportQuotationPDF } from '../services/pdfGenerator';
+import { storage } from '../services/storage';
+import { exportQuotationsToCSV } from '../utils/csvExport';
+import { getQuotationExpiryStatus, generateWhatsAppReminderUrl } from '../utils/quotationExpiry';
 import { useToast, useConfirm } from '../context/ToastContext';
 import { ShareQuotationModal } from './ShareQuotationModal';
 
@@ -19,6 +22,7 @@ interface Props {
   onCreateNew: () => void;
   onDuplicate: (quotation: Quotation) => void;
   onDelete: (id: string) => void;
+  onRestoreBackup?: () => void;
 }
 
 type DatePreset = 'all' | 'today' | 'this_week' | 'this_month' | 'last_30_days' | 'this_year' | 'custom';
@@ -76,6 +80,7 @@ export const QuotationList: React.FC<Props> = ({
   onCreateNew,
   onDuplicate,
   onDelete,
+  onRestoreBackup,
 }) => {
   const toast = useToast();
   const { confirm } = useConfirm();
@@ -107,7 +112,7 @@ export const QuotationList: React.FC<Props> = ({
     const isZeroTax = q.taxScheme === 'none';
     const effectiveTaxRate = isZeroTax ? 0 : (q.taxRate || 0);
     const tax = isZeroTax ? 0 : (discounted * effectiveTaxRate) / 100;
-    return discounted + tax + (q.shippingCharges || 0);
+    return Math.max(0, discounted + tax + (q.shippingCharges || 0) + (q.adjustmentAmount || 0));
   };
 
   // Overall Business Stats (Overall pipeline across all quotations)
@@ -361,6 +366,53 @@ export const QuotationList: React.FC<Props> = ({
     }
   };
 
+  const handleExportCSV = () => {
+    try {
+      const listToExport = filteredAndSorted.length > 0 ? filteredAndSorted : quotations;
+      if (listToExport.length === 0) {
+        toast.info('No quotations to export');
+        return;
+      }
+      exportQuotationsToCSV(listToExport);
+      toast.success(`Exported ${listToExport.length} quotation${listToExport.length > 1 ? 's' : ''} to Excel/CSV`);
+    } catch (err) {
+      console.error('CSV export failed:', err);
+      toast.error('Failed to export CSV. Please try again.');
+    }
+  };
+
+  const handleExportBackup = async () => {
+    try {
+      await storage.exportBackup();
+      toast.success('Database backup (.json) downloaded');
+    } catch (err) {
+      console.error('Backup export failed:', err);
+      toast.error('Backup failed: ' + err);
+    }
+  };
+
+  const handleRestoreBackupFile = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    const confirmed = await confirm({
+      title: 'Restore Database Backup',
+      message: 'Restoring will merge quotations, clients, and catalog items from the backup file into your database. Continue?',
+      confirmText: 'Restore Backup',
+      cancelText: 'Cancel',
+      variant: 'warning',
+    });
+    if (confirmed) {
+      try {
+        const res = await storage.importBackup(file);
+        toast.success(`Restored successfully! Loaded ${res.quotationsCount} quotations.`);
+        if (onRestoreBackup) onRestoreBackup();
+      } catch (err) {
+        toast.error('Restore failed: ' + err);
+      }
+    }
+    e.target.value = '';
+  };
+
   return (
     <div className="max-w-6xl mx-auto space-y-5">
       
@@ -460,6 +512,49 @@ export const QuotationList: React.FC<Props> = ({
                   </span>
                 )}
               </button>
+
+              {/* Export to CSV (Spreadsheet) */}
+              <button
+                type="button"
+                onClick={handleExportCSV}
+                className="flex items-center gap-1.5 px-3 py-2 rounded-xl text-xs font-bold transition-all border bg-slate-50 hover:bg-emerald-50 hover:border-emerald-200 text-slate-700 hover:text-emerald-700"
+                title={`Export ${filteredAndSorted.length} quotation(s) to Excel/CSV`}
+              >
+                <FileSpreadsheet size={14} className="text-emerald-600" />
+                <span className="hidden sm:inline">CSV Export</span>
+              </button>
+
+              {/* Backup & Restore Menu */}
+              <div className="relative group">
+                <button
+                  type="button"
+                  className="flex items-center gap-1.5 px-3 py-2 rounded-xl text-xs font-bold transition-all border bg-slate-50 hover:bg-blue-50 hover:border-blue-200 text-slate-700 hover:text-blue-700"
+                  title="Database backup & restore"
+                >
+                  <Database size={14} className="text-blue-600" />
+                  <span className="hidden sm:inline">Backup</span>
+                </button>
+                <div className="hidden group-hover:block absolute right-0 top-full mt-1 w-52 bg-white border border-slate-200 rounded-xl shadow-lg p-1.5 z-30 space-y-1 animate-in fade-in duration-150">
+                  <button
+                    type="button"
+                    onClick={handleExportBackup}
+                    className="w-full flex items-center gap-2 px-2.5 py-1.5 text-xs font-medium text-slate-700 hover:bg-slate-100 rounded-lg text-left transition-colors"
+                  >
+                    <Download size={13} className="text-blue-600" />
+                    <span>Download JSON Backup</span>
+                  </button>
+                  <label className="w-full flex items-center gap-2 px-2.5 py-1.5 text-xs font-medium text-slate-700 hover:bg-slate-100 rounded-lg text-left cursor-pointer transition-colors">
+                    <Upload size={13} className="text-emerald-600" />
+                    <span>Restore from JSON File</span>
+                    <input
+                      type="file"
+                      accept=".json,application/json"
+                      className="hidden"
+                      onChange={handleRestoreBackupFile}
+                    />
+                  </label>
+                </div>
+              </div>
 
               {/* Create New CTA */}
               <button
@@ -780,7 +875,28 @@ export const QuotationList: React.FC<Props> = ({
                     <div className="space-y-1 min-w-0 flex-1">
                       <div className="flex items-center gap-2 flex-wrap">
                         <span className="font-bold text-slate-900 text-sm font-mono tracking-tight">{quote.quotationNumber}</span>
+                        {quote.revisionNumber && quote.revisionNumber > 1 ? (
+                          <span className="inline-flex items-center gap-0.5 text-[10px] font-bold px-2 py-0.5 rounded-full bg-indigo-50 text-indigo-700 border border-indigo-200" title={quote.parentQuoteNumber ? `Revised from ${quote.parentQuoteNumber}` : undefined}>
+                            <Layers size={10} />
+                            Rev R{quote.revisionNumber}
+                          </span>
+                        ) : null}
                         {getStatusBadge(quote.status)}
+                        {quote.clientSignature && (
+                          <span className="inline-flex items-center gap-0.5 text-[10px] font-bold px-2 py-0.5 rounded-full bg-emerald-50 text-emerald-700 border border-emerald-200" title={`Signed by ${quote.clientSignature.signerName || 'Client'}`}>
+                            <CheckCircle2 size={10} />
+                            Signed
+                          </span>
+                        )}
+                        {(() => {
+                          const exp = getQuotationExpiryStatus(quote.validUntil);
+                          return (
+                            <span className={`inline-flex items-center gap-0.5 text-[10px] font-bold px-2 py-0.5 rounded-full border ${exp.badgeClass}`}>
+                              <Clock size={10} />
+                              {exp.label}
+                            </span>
+                          );
+                        })()}
                         <span className="text-xs text-slate-400">• Date: {quote.quotationDate}</span>
                         {quote.eventDate && (
                           <span className="text-xs text-blue-600 font-medium bg-blue-50/80 px-2 py-0.5 rounded">
@@ -814,6 +930,19 @@ export const QuotationList: React.FC<Props> = ({
                     </div>
 
                     <div className="flex items-center gap-1">
+                      <button
+                        title="Send 1-Click WhatsApp Follow-up Reminder"
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          const url = generateWhatsAppReminderUrl(quote);
+                          window.open(url, '_blank');
+                          toast.info(`Opening WhatsApp follow-up reminder for ${quote.quotationNumber}`);
+                        }}
+                        className="p-2 text-amber-600 hover:bg-amber-50 rounded-lg transition-colors"
+                      >
+                        <Bell size={16} />
+                      </button>
+
                       <button
                         title="Share Quotation (PDF or WhatsApp Text)"
                         onClick={(e) => handleOpenShare(e, quote)}

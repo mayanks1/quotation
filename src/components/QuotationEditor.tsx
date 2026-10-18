@@ -1,15 +1,26 @@
-import React, { useState, useRef } from 'react';
+import React, { useState, useRef, useEffect } from 'react';
 import { 
   ArrowLeft, Download, Printer, Share2, Copy, Plus, 
   Trash2, Image as ImageIcon, Calculator, BookOpen, 
-  Settings, UserCheck, Calendar, Zap
+  Settings, UserCheck, Calendar, Zap, FileText, Receipt,
+  QrCode, CreditCard, CheckCircle2, GitBranch, ChevronDown, ChevronUp,
+  Smartphone, PenLine, PenTool, Clock
 } from 'lucide-react';
-import { Quotation, LineItem, QuotationStatus, TaxScheme, ClientProfile, getItemAmount } from '../types/quotation';
+import { 
+  Quotation, LineItem, QuotationStatus, TaxScheme, ClientProfile, 
+  getItemAmount, DocumentType, PaymentStatus, PaymentMode 
+} from '../types/quotation';
 import { generateWhatsAppShareUrl } from '../services/whatsapp';
 import { exportQuotationPDF } from '../services/pdfGenerator';
+import { generateUpiQrDataUrl } from '../services/upiQr';
+import { amountToWordsIndian } from '../utils/numberToWords';
+import { computeGstTaxBreakdown } from '../utils/gstTaxBreakdown';
+import { TERMS_PRESETS } from '../config/termsPresets';
+import { getQuotationExpiryStatus } from '../utils/quotationExpiry';
 import { LedCalculatorModal } from './LedCalculatorModal';
 import { CatalogPickerModal } from './CatalogPickerModal';
 import { ShareQuotationModal } from './ShareQuotationModal';
+import { SignatureModal } from './SignatureModal';
 import { useToast } from '../context/ToastContext';
 
 interface Props {
@@ -160,12 +171,18 @@ export const QuotationEditor: React.FC<Props> = ({
   const [isLedCalcOpen, setIsLedCalcOpen] = useState(false);
   const [isCatalogOpen, setIsCatalogOpen] = useState(false);
   const [isShareModalOpen, setIsShareModalOpen] = useState(false);
+  const [isSignatureModalOpen, setIsSignatureModalOpen] = useState(false);
   const [autoCalc, setAutoCalc] = useState<boolean>(false);
+  const [liveQrUrl, setLiveQrUrl] = useState<string>('');
 
   // Date picker refs
   const eventDatePickerRef = useRef<HTMLInputElement>(null);
   const quoteDatePickerRef = useRef<HTMLInputElement>(null);
   const validDatePickerRef = useRef<HTMLInputElement>(null);
+  const invoiceDatePickerRef = useRef<HTMLInputElement>(null);
+
+  // Document Type & Invoicing
+  const isInvoice = quotation.documentType === 'invoice';
 
   // Math
   const subtotal = quotation.lineItems.reduce((acc, i) => acc + getItemAmount(i), 0);
@@ -173,7 +190,73 @@ export const QuotationEditor: React.FC<Props> = ({
   const isZeroTax = quotation.taxScheme === 'none';
   const effectiveTaxRate = isZeroTax ? 0 : (quotation.taxRate || 0);
   const taxAmount = isZeroTax ? 0 : (discountedSubtotal * effectiveTaxRate) / 100;
-  const grandTotal = discountedSubtotal + taxAmount + (quotation.shippingCharges || 0);
+  const grandTotal = Math.max(0, discountedSubtotal + taxAmount + (quotation.shippingCharges || 0) + (quotation.adjustmentAmount || 0));
+
+  // Feature Toggles (Optional Features)
+  const isQrEnabled = quotation.enableUpiQr ?? false;
+  const isLedgerEnabled = quotation.enablePaymentLedger ?? false;
+  const allowCustomerEditQrAmount = quotation.allowCustomerEditQrAmount ?? false;
+  const qrAmountType = quotation.qrAmountType || (quotation.customQrAmount !== undefined && quotation.customQrAmount > 0 ? 'custom' : (isLedgerEnabled ? 'advance' : 'total'));
+
+  // Payment Milestone & Tracking Math
+  const advancePercentage = quotation.advancePercentage ?? 70;
+  const computedAdvanceAmount = Math.round((grandTotal * advancePercentage) / 100);
+  // Auto-sync: If stored advanceAmount exceeds grandTotal or is invalid, re-sync to computed
+  const effectiveAdvanceAmount = (quotation.advanceAmount !== undefined && quotation.advanceAmount <= grandTotal && quotation.advanceAmount > 0)
+    ? quotation.advanceAmount
+    : computedAdvanceAmount;
+
+  const paidAmount = quotation.paidAmount || 0;
+  const balanceDue = Math.max(0, grandTotal - paidAmount);
+
+  // Dynamic QR Code Target Amount:
+  // If allowCustomerEditQrAmount is true -> Open Amount QR (customer types amount in UPI app on scan)
+  // Else if customQrAmount is set -> customQrAmount typed by user
+  // Else if qrAmountType === 'advance' -> effectiveAdvanceAmount
+  // Else -> balanceDue > 0 ? balanceDue : grandTotal
+  const targetQrAmount = allowCustomerEditQrAmount
+    ? 0
+    : (quotation.customQrAmount !== undefined && quotation.customQrAmount > 0
+        ? quotation.customQrAmount
+        : (qrAmountType === 'advance' && isLedgerEnabled && effectiveAdvanceAmount > 0
+            ? effectiveAdvanceAmount
+            : (balanceDue > 0 ? balanceDue : grandTotal)));
+
+  // Live UPI QR code generator effect
+  useEffect(() => {
+    let isMounted = true;
+    const upiId = quotation.company.bankDetails?.upiId;
+    if (!isQrEnabled || !upiId) {
+      setLiveQrUrl('');
+      return;
+    }
+
+    generateUpiQrDataUrl({
+      upiId,
+      payeeName: quotation.company.bankDetails?.accountName || quotation.company.name || 'Merchant',
+      amount: allowCustomerEditQrAmount ? undefined : (targetQrAmount > 0 ? targetQrAmount : undefined),
+      transactionNote: `${isInvoice ? 'Invoice' : 'Quote'} ${isInvoice ? (quotation.invoiceNumber || quotation.quotationNumber) : quotation.quotationNumber}`,
+    }).then((url) => {
+      if (isMounted) setLiveQrUrl(url);
+    }).catch((err) => {
+      console.warn('QR generation error:', err);
+    });
+
+    return () => {
+      isMounted = false;
+    };
+  }, [
+    isQrEnabled,
+    quotation.company.bankDetails?.upiId,
+    quotation.company.bankDetails?.accountName,
+    quotation.company.name,
+    targetQrAmount,
+    allowCustomerEditQrAmount,
+    quotation.customQrAmount,
+    isInvoice,
+    quotation.invoiceNumber,
+    quotation.quotationNumber,
+  ]);
 
   // Line item handlers
   const handleUpdateItem = (id: string, field: keyof LineItem, val: string | number) => {
@@ -274,6 +357,28 @@ export const QuotationEditor: React.FC<Props> = ({
     setIsShareModalOpen(true);
   };
 
+  const handleCreateNewRevision = () => {
+    const currentNum = quotation.quotationNumber;
+    const baseNum = currentNum.replace(/-R\d+$/i, '');
+    const currentRev = quotation.revisionNumber || 1;
+    const nextRev = currentRev + 1;
+    const nextQuoteNumber = `${baseNum}-R${nextRev}`;
+
+    const revisedQuote: Quotation = {
+      ...quotation,
+      id: `quote-${Date.now()}`,
+      quotationNumber: nextQuoteNumber,
+      parentQuoteNumber: quotation.parentQuoteNumber || currentNum,
+      revisionNumber: nextRev,
+      status: 'draft',
+      createdAt: new Date().toISOString(),
+      updatedAt: new Date().toISOString(),
+    };
+
+    onDuplicate(revisedQuote);
+    toast.success(`Created Revision R${nextRev}: ${nextQuoteNumber}`);
+  };
+
   const handleSelectSavedClient = (clientIdOrName: string) => {
     const found = savedClients.find((c) => c.id === clientIdOrName || c.name === clientIdOrName);
     if (found) {
@@ -335,8 +440,61 @@ export const QuotationEditor: React.FC<Props> = ({
           </div>
         </div>
 
+        {/* Document Type Switcher: Quotation vs Tax Invoice */}
+        <div className="flex items-center bg-slate-100 p-1 rounded-xl border border-slate-200/90 self-stretch sm:self-center justify-center">
+          <button
+            type="button"
+            onClick={() => {
+              if (isInvoice) {
+                onChange({ ...quotation, documentType: 'quotation' });
+                toast.info('Switched view to Quotation mode');
+              }
+            }}
+            className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-bold transition-all ${
+              !isInvoice
+                ? 'bg-white text-slate-900 shadow-sm'
+                : 'text-slate-500 hover:text-slate-900'
+            }`}
+          >
+            <FileText size={13} className={!isInvoice ? 'text-blue-600' : ''} />
+            <span>Quotation</span>
+          </button>
+
+          <button
+            type="button"
+            onClick={() => {
+              const invoiceNum = quotation.invoiceNumber || `INV-${quotation.quotationNumber.replace(/^Q-?/, '') || Date.now()}`;
+              onChange({
+                ...quotation,
+                documentType: 'invoice',
+                invoiceNumber: invoiceNum,
+                invoiceDate: quotation.invoiceDate || quotation.quotationDate,
+                status: quotation.status === 'draft' ? 'invoiced' : quotation.status,
+              });
+              toast.success(`Converted to Tax Invoice #${invoiceNum}`);
+            }}
+            className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-bold transition-all ${
+              isInvoice
+                ? 'bg-blue-600 text-white shadow-sm'
+                : 'text-slate-500 hover:text-slate-900'
+            }`}
+          >
+            <Receipt size={13} />
+            <span>Tax Invoice</span>
+          </button>
+        </div>
+
         {/* Action CTAs: Responsive Grid on Mobile, Flex on Desktop */}
         <div className="grid grid-cols-2 sm:flex sm:items-center gap-2 w-full md:w-auto">
+          <button
+            onClick={handleCreateNewRevision}
+            title="Create a new version (e.g. R1, R2) preserving this quote"
+            className="flex items-center justify-center gap-1.5 px-3 py-2 text-xs font-semibold text-blue-700 bg-blue-50 hover:bg-blue-100 active:scale-95 rounded-lg transition-colors border border-blue-200"
+          >
+            <GitBranch size={14} />
+            <span>Revise (R{(quotation.revisionNumber || 1) + 1})</span>
+          </button>
+
           <button
             onClick={() => {
               onDuplicate(quotation);
@@ -469,112 +627,207 @@ export const QuotationEditor: React.FC<Props> = ({
               )}
             </div>
 
-            {/* Quotation Metadata Card */}
-            <div className="text-left md:text-right min-w-[260px] space-y-2">
-              <h1 className="text-3xl md:text-4xl font-black tracking-tight text-slate-900 mb-3">QUOTATION</h1>
+            {/* Document Metadata Card */}
+            <div className="text-left md:text-right min-w-[280px] space-y-2">
+              <div className="flex items-center justify-start md:justify-end gap-2 mb-2">
+                <h1 className="text-3xl md:text-4xl font-black tracking-tight text-slate-900">
+                  {isInvoice ? 'TAX INVOICE' : 'QUOTATION'}
+                </h1>
+                {isInvoice && (
+                  <span className="bg-blue-600 text-white text-[10px] font-black uppercase tracking-wider px-2 py-0.5 rounded shadow-sm">
+                    ORIGINAL
+                  </span>
+                )}
+                {quotation.revisionNumber && quotation.revisionNumber > 1 && (
+                  <span className="bg-blue-100 text-blue-800 border border-blue-200 text-[10px] font-black uppercase tracking-wider px-2 py-0.5 rounded shadow-2xs">
+                    REV R{quotation.revisionNumber}
+                  </span>
+                )}
+              </div>
               
               <div className="space-y-1.5 text-xs">
-                <div className="flex items-center justify-between md:justify-end gap-2">
-                  <span className="text-slate-500 font-semibold">Quote No:</span>
-                  <input
-                    value={quotation.quotationNumber}
-                    onChange={(e) => onChange({ ...quotation, quotationNumber: e.target.value })}
-                    className="font-mono font-bold text-slate-900 w-36 text-right border-0 border-b border-transparent hover:border-slate-300 focus:border-blue-500 focus:outline-none"
-                  />
-                </div>
-                <div className="flex items-center justify-between md:justify-end gap-2">
-                  <span className="text-slate-500 font-semibold">Date:</span>
-                  <div className="relative flex items-center">
-                    <input
-                      value={quotation.quotationDate}
-                      placeholder="DD-MM-YYYY"
-                      maxLength={10}
-                      onChange={(e) => {
-                        const formatted = formatDMYInput(e.target.value, quotation.quotationDate);
-                        onChange({ ...quotation, quotationDate: formatted });
-                      }}
-                      onBlur={(e) => {
-                        const validated = validateDMY(e.target.value);
-                        if (validated !== e.target.value) {
-                          onChange({ ...quotation, quotationDate: validated });
-                        }
-                      }}
-                      className="font-medium text-slate-800 w-36 text-right pr-5 border-0 border-b border-transparent hover:border-slate-300 focus:border-blue-500 focus:outline-none"
-                    />
-                    <button
-                      type="button"
-                      title="Select date"
-                      onClick={() => {
-                        if (quoteDatePickerRef.current?.showPicker) {
-                          quoteDatePickerRef.current.showPicker();
-                        } else {
-                          quoteDatePickerRef.current?.click();
-                        }
-                      }}
-                      className="absolute right-0 text-slate-400 hover:text-blue-600 p-0.5 transition-colors no-print"
-                    >
-                      <Calendar size={13} />
-                    </button>
-                    <input
-                      ref={quoteDatePickerRef}
-                      type="date"
-                      className="sr-only"
-                      onChange={(e) => {
-                        if (e.target.value) {
-                          const [y, m, d] = e.target.value.split('-');
-                          onChange({ ...quotation, quotationDate: `${d}-${m}-${y}` });
-                        }
-                      }}
-                    />
-                  </div>
-                </div>
+                {isInvoice ? (
+                  <>
+                    <div className="flex items-center justify-between md:justify-end gap-2">
+                      <span className="text-blue-700 font-bold">Invoice No:</span>
+                      <input
+                        value={quotation.invoiceNumber || ''}
+                        placeholder="INV-001"
+                        onChange={(e) => onChange({ ...quotation, invoiceNumber: e.target.value })}
+                        className="font-mono font-black text-blue-700 w-36 text-right border-0 border-b border-transparent hover:border-slate-300 focus:border-blue-500 focus:outline-none"
+                      />
+                    </div>
 
-                <div className="flex items-center justify-between md:justify-end gap-2">
-                  <span className="text-slate-500 font-semibold">Valid Until:</span>
-                  <div className="relative flex items-center">
-                    <input
-                      value={quotation.validUntil}
-                      placeholder="DD-MM-YYYY"
-                      maxLength={10}
-                      onChange={(e) => {
-                        const formatted = formatDMYInput(e.target.value, quotation.validUntil);
-                        onChange({ ...quotation, validUntil: formatted });
-                      }}
-                      onBlur={(e) => {
-                        const validated = validateDMY(e.target.value);
-                        if (validated !== e.target.value) {
-                          onChange({ ...quotation, validUntil: validated });
-                        }
-                      }}
-                      className="font-medium text-slate-800 w-36 text-right pr-5 border-0 border-b border-transparent hover:border-slate-300 focus:border-blue-500 focus:outline-none"
-                    />
-                    <button
-                      type="button"
-                      title="Select valid until date"
-                      onClick={() => {
-                        if (validDatePickerRef.current?.showPicker) {
-                          validDatePickerRef.current.showPicker();
-                        } else {
-                          validDatePickerRef.current?.click();
-                        }
-                      }}
-                      className="absolute right-0 text-slate-400 hover:text-blue-600 p-0.5 transition-colors no-print"
-                    >
-                      <Calendar size={13} />
-                    </button>
-                    <input
-                      ref={validDatePickerRef}
-                      type="date"
-                      className="sr-only"
-                      onChange={(e) => {
-                        if (e.target.value) {
-                          const [y, m, d] = e.target.value.split('-');
-                          onChange({ ...quotation, validUntil: `${d}-${m}-${y}` });
-                        }
-                      }}
-                    />
-                  </div>
-                </div>
+                    <div className="flex items-center justify-between md:justify-end gap-2">
+                      <span className="text-slate-500 font-semibold">Invoice Date:</span>
+                      <div className="relative flex items-center">
+                        <input
+                          value={quotation.invoiceDate || quotation.quotationDate}
+                          placeholder="DD-MM-YYYY"
+                          maxLength={10}
+                          onChange={(e) => {
+                            const formatted = formatDMYInput(e.target.value, quotation.invoiceDate || quotation.quotationDate);
+                            onChange({ ...quotation, invoiceDate: formatted });
+                          }}
+                          onBlur={(e) => {
+                            const validated = validateDMY(e.target.value);
+                            if (validated !== e.target.value) {
+                              onChange({ ...quotation, invoiceDate: validated });
+                            }
+                          }}
+                          className="font-medium text-slate-800 w-36 text-right pr-5 border-0 border-b border-transparent hover:border-slate-300 focus:border-blue-500 focus:outline-none"
+                        />
+                        <button
+                          type="button"
+                          title="Select invoice date"
+                          onClick={() => {
+                            if (invoiceDatePickerRef.current?.showPicker) {
+                              invoiceDatePickerRef.current.showPicker();
+                            } else {
+                              invoiceDatePickerRef.current?.click();
+                            }
+                          }}
+                          className="absolute right-0 text-slate-400 hover:text-blue-600 p-0.5 transition-colors no-print"
+                        >
+                          <Calendar size={13} />
+                        </button>
+                        <input
+                          ref={invoiceDatePickerRef}
+                          type="date"
+                          className="sr-only"
+                          onChange={(e) => {
+                            if (e.target.value) {
+                              const [y, m, d] = e.target.value.split('-');
+                              onChange({ ...quotation, invoiceDate: `${d}-${m}-${y}` });
+                            }
+                          }}
+                        />
+                      </div>
+                    </div>
+
+                    <div className="flex items-center justify-between md:justify-end gap-2">
+                      <span className="text-slate-400 font-semibold">Ref Quote:</span>
+                      <input
+                        value={quotation.quotationNumber}
+                        onChange={(e) => onChange({ ...quotation, quotationNumber: e.target.value })}
+                        className="font-mono text-slate-500 w-36 text-right border-0 border-b border-transparent hover:border-slate-300 focus:border-blue-500 focus:outline-none"
+                      />
+                    </div>
+                  </>
+                ) : (
+                  <>
+                    <div className="flex items-center justify-between md:justify-end gap-2">
+                      <span className="text-slate-500 font-semibold">Quote No:</span>
+                      <input
+                        value={quotation.quotationNumber}
+                        onChange={(e) => onChange({ ...quotation, quotationNumber: e.target.value })}
+                        className="font-mono font-bold text-slate-900 w-36 text-right border-0 border-b border-transparent hover:border-slate-300 focus:border-blue-500 focus:outline-none"
+                      />
+                    </div>
+                    <div className="flex items-center justify-between md:justify-end gap-2">
+                      <span className="text-slate-500 font-semibold">Date:</span>
+                      <div className="relative flex items-center">
+                        <input
+                          value={quotation.quotationDate}
+                          placeholder="DD-MM-YYYY"
+                          maxLength={10}
+                          onChange={(e) => {
+                            const formatted = formatDMYInput(e.target.value, quotation.quotationDate);
+                            onChange({ ...quotation, quotationDate: formatted });
+                          }}
+                          onBlur={(e) => {
+                            const validated = validateDMY(e.target.value);
+                            if (validated !== e.target.value) {
+                              onChange({ ...quotation, quotationDate: validated });
+                            }
+                          }}
+                          className="font-medium text-slate-800 w-36 text-right pr-5 border-0 border-b border-transparent hover:border-slate-300 focus:border-blue-500 focus:outline-none"
+                        />
+                        <button
+                          type="button"
+                          title="Select date"
+                          onClick={() => {
+                            if (quoteDatePickerRef.current?.showPicker) {
+                              quoteDatePickerRef.current.showPicker();
+                            } else {
+                              quoteDatePickerRef.current?.click();
+                            }
+                          }}
+                          className="absolute right-0 text-slate-400 hover:text-blue-600 p-0.5 transition-colors no-print"
+                        >
+                          <Calendar size={13} />
+                        </button>
+                        <input
+                          ref={quoteDatePickerRef}
+                          type="date"
+                          className="sr-only"
+                          onChange={(e) => {
+                            if (e.target.value) {
+                              const [y, m, d] = e.target.value.split('-');
+                              onChange({ ...quotation, quotationDate: `${d}-${m}-${y}` });
+                            }
+                          }}
+                        />
+                      </div>
+                    </div>
+
+                    <div className="flex items-center justify-between md:justify-end gap-2">
+                      <span className="text-slate-500 font-semibold">Valid Until:</span>
+                      <div className="relative flex items-center">
+                        <input
+                          value={quotation.validUntil}
+                          placeholder="DD-MM-YYYY"
+                          maxLength={10}
+                          onChange={(e) => {
+                            const formatted = formatDMYInput(e.target.value, quotation.validUntil);
+                            onChange({ ...quotation, validUntil: formatted });
+                          }}
+                          onBlur={(e) => {
+                            const validated = validateDMY(e.target.value);
+                            if (validated !== e.target.value) {
+                              onChange({ ...quotation, validUntil: validated });
+                            }
+                          }}
+                          className="font-medium text-slate-800 w-36 text-right pr-5 border-0 border-b border-transparent hover:border-slate-300 focus:border-blue-500 focus:outline-none"
+                        />
+                        <button
+                          type="button"
+                          title="Select valid until date"
+                          onClick={() => {
+                            if (validDatePickerRef.current?.showPicker) {
+                              validDatePickerRef.current.showPicker();
+                            } else {
+                              validDatePickerRef.current?.click();
+                            }
+                          }}
+                          className="absolute right-0 text-slate-400 hover:text-blue-600 p-0.5 transition-colors no-print"
+                        >
+                          <Calendar size={13} />
+                        </button>
+                        <input
+                          ref={validDatePickerRef}
+                          type="date"
+                          className="sr-only"
+                          onChange={(e) => {
+                            if (e.target.value) {
+                              const [y, m, d] = e.target.value.split('-');
+                              onChange({ ...quotation, validUntil: `${d}-${m}-${y}` });
+                            }
+                          }}
+                        />
+                      </div>
+                      {(() => {
+                        const exp = getQuotationExpiryStatus(quotation.validUntil);
+                        return (
+                          <span className={`inline-flex items-center gap-0.5 text-[9px] px-1.5 py-0.5 rounded border ${exp.badgeClass}`}>
+                            <Clock size={9} />
+                            {exp.label}
+                          </span>
+                        );
+                      })()}
+                    </div>
+                  </>
+                )}
 
                 <div className="flex items-center justify-between md:justify-end gap-2">
                   <span className="text-blue-600 font-semibold">Event Date:</span>
@@ -1057,49 +1310,421 @@ export const QuotationEditor: React.FC<Props> = ({
 
           </div>
 
-          {/* Calculations & Bank Info Section */}
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-8 pt-4">
-            
-            {/* Bank Info & Payment Terms */}
-            <div className="space-y-4">
-              <div className="bg-slate-50 p-4 rounded-xl border border-slate-200/80 space-y-2">
-                <div className="flex items-center justify-between">
-                  <span className="text-xs font-bold uppercase tracking-wider text-slate-500">Bank Details for Advance</span>
+          {/* Optional Modules Toolbar: UPI QR & Payment Ledger Switches */}
+          <div className="bg-slate-50 border border-slate-200/90 rounded-xl p-3 flex flex-wrap items-center justify-between gap-3">
+            <span className="text-xs font-bold uppercase tracking-wider text-slate-500">
+              Optional Add-on Features:
+            </span>
+            <div className="flex flex-wrap items-center gap-2 sm:gap-4">
+              
+              {/* UPI QR Switch */}
+              <div className="flex items-center gap-2 bg-white px-3 py-1.5 rounded-lg border border-slate-200 shadow-xs">
+                <QrCode size={13} className={isQrEnabled ? 'text-blue-600' : 'text-slate-400'} />
+                <span className="text-xs font-semibold text-slate-700">UPI QR Code</span>
+                <button
+                  type="button"
+                  role="switch"
+                  aria-checked={isQrEnabled}
+                  onClick={() => {
+                    const next = !isQrEnabled;
+                    onChange({ ...quotation, enableUpiQr: next });
+                    toast.info(`UPI QR Code ${next ? 'enabled' : 'disabled'}`);
+                  }}
+                  className={`relative inline-flex h-5 w-9 shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors duration-200 ease-in-out focus:outline-none ${
+                    isQrEnabled ? 'bg-blue-600' : 'bg-slate-300'
+                  }`}
+                >
+                  <span
+                    className={`pointer-events-none inline-block h-4 w-4 transform rounded-full bg-white shadow-sm ring-0 transition duration-200 ease-in-out ${
+                      isQrEnabled ? 'translate-x-4' : 'translate-x-0'
+                    }`}
+                  />
+                </button>
+              </div>
+
+              {/* Client Enters Amount Switch (Optional: Available when UPI QR is enabled) */}
+              {isQrEnabled && (
+                <div className="flex items-center gap-2 bg-white px-3 py-1.5 rounded-lg border border-slate-200 shadow-xs animate-in fade-in duration-200">
+                  <Smartphone size={13} className={allowCustomerEditQrAmount ? 'text-indigo-600' : 'text-slate-400'} />
+                  <span className="text-xs font-semibold text-slate-700">Client Enters Amount</span>
                   <button
                     type="button"
-                    onClick={onOpenSettings}
-                    className="text-[11px] text-blue-600 hover:underline font-semibold"
+                    role="switch"
+                    aria-checked={allowCustomerEditQrAmount}
+                    onClick={() => {
+                      const next = !allowCustomerEditQrAmount;
+                      onChange({ ...quotation, allowCustomerEditQrAmount: next });
+                      toast.info(next ? 'Client can now enter any amount at their end upon scanning QR' : 'QR payment amount is now fixed');
+                    }}
+                    className={`relative inline-flex h-5 w-9 shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors duration-200 ease-in-out focus:outline-none ${
+                      allowCustomerEditQrAmount ? 'bg-indigo-600' : 'bg-slate-300'
+                    }`}
+                    title="Allow client to enter any payment amount at their end when scanning QR"
                   >
-                    Change
+                    <span
+                      className={`pointer-events-none inline-block h-4 w-4 transform rounded-full bg-white shadow-sm ring-0 transition duration-200 ease-in-out ${
+                        allowCustomerEditQrAmount ? 'translate-x-4' : 'translate-x-0'
+                      }`}
+                    />
                   </button>
                 </div>
-                <div className="text-xs space-y-1 text-slate-700">
-                  <div><strong>A/C Name:</strong> {quotation.company.bankDetails.accountName}</div>
-                  <div><strong>Bank:</strong> {quotation.company.bankDetails.bankName}</div>
-                  <div><strong>Account No:</strong> <span className="font-mono font-bold">{quotation.company.bankDetails.accountNumber}</span></div>
-                  <div><strong>IFSC:</strong> <span className="font-mono font-bold">{quotation.company.bankDetails.ifscCode}</span></div>
-                  {quotation.company.bankDetails.upiId && (
-                    <div className="text-blue-700 font-semibold">
-                      <strong>UPI ID:</strong> {quotation.company.bankDetails.upiId}
+              )}
+
+              {/* Advance & Payment Ledger Switch */}
+              <div className="flex items-center gap-2 bg-white px-3 py-1.5 rounded-lg border border-slate-200 shadow-xs">
+                <CreditCard size={13} className={isLedgerEnabled ? 'text-emerald-600' : 'text-slate-400'} />
+                <span className="text-xs font-semibold text-slate-700">Advance Ledger</span>
+                <button
+                  type="button"
+                  role="switch"
+                  aria-checked={isLedgerEnabled}
+                  onClick={() => {
+                    const next = !isLedgerEnabled;
+                    onChange({
+                      ...quotation,
+                      enablePaymentLedger: next,
+                      advancePercentage: quotation.advancePercentage ?? 70,
+                      advanceAmount: Math.round((grandTotal * (quotation.advancePercentage ?? 70)) / 100),
+                    });
+                    toast.info(`Advance & Payment Ledger ${next ? 'enabled' : 'disabled'}`);
+                  }}
+                  className={`relative inline-flex h-5 w-9 shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors duration-200 ease-in-out focus:outline-none ${
+                    isLedgerEnabled ? 'bg-emerald-600' : 'bg-slate-300'
+                  }`}
+                >
+                  <span
+                    className={`pointer-events-none inline-block h-4 w-4 transform rounded-full bg-white shadow-sm ring-0 transition duration-200 ease-in-out ${
+                      isLedgerEnabled ? 'translate-x-4' : 'translate-x-0'
+                    }`}
+                  />
+                </button>
+              </div>
+
+            </div>
+          </div>
+
+          {/* Calculations & Bank Info Section */}
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-8 pt-2">
+            
+            {/* Left: Bank Info, Optional Dynamic UPI QR & Optional Payment Ledger */}
+            <div className="space-y-4">
+              
+              {/* Bank Details & Optional Live UPI QR Box */}
+              <div className="bg-slate-50 p-4 rounded-xl border border-slate-200/80 space-y-3">
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-1.5">
+                    <QrCode size={14} className={isQrEnabled ? 'text-blue-600' : 'text-slate-400'} />
+                    <span className="text-xs font-bold uppercase tracking-wider text-slate-700">
+                      Bank {isQrEnabled ? '& Instant UPI QR' : 'Details'}
+                    </span>
+                  </div>
+                  <div className="flex items-center gap-3">
+                    <button
+                      type="button"
+                      onClick={() => onChange({ ...quotation, enableUpiQr: !isQrEnabled })}
+                      className="text-[11px] font-bold text-slate-500 hover:text-blue-600"
+                    >
+                      {isQrEnabled ? 'Hide QR' : '+ Add QR'}
+                    </button>
+                    <button
+                      type="button"
+                      onClick={onOpenSettings}
+                      className="text-[11px] text-blue-600 hover:underline font-semibold"
+                    >
+                      Edit Info
+                    </button>
+                  </div>
+                </div>
+
+                <div className="flex flex-col sm:flex-row items-center sm:items-start gap-4">
+                  {/* Bank Text Details */}
+                  <div className="text-xs space-y-1 text-slate-700 flex-1">
+                    <div><span className="text-slate-400 font-medium">A/C Name:</span> <strong>{quotation.company.bankDetails.accountName || quotation.company.name}</strong></div>
+                    <div><span className="text-slate-400 font-medium">Bank:</span> <strong>{quotation.company.bankDetails.bankName || 'Not Set'}</strong></div>
+                    <div><span className="text-slate-400 font-medium">Account No:</span> <span className="font-mono font-bold text-slate-900">{quotation.company.bankDetails.accountNumber || '—'}</span></div>
+                    <div><span className="text-slate-400 font-medium">IFSC Code:</span> <span className="font-mono font-bold text-slate-900">{quotation.company.bankDetails.ifscCode || '—'}</span></div>
+                    {quotation.company.bankDetails.upiId ? (
+                      <div className="text-blue-700 font-semibold pt-0.5">
+                        <span className="text-slate-400 font-medium">UPI ID:</span> <span className="font-mono">{quotation.company.bankDetails.upiId}</span>
+                      </div>
+                    ) : (
+                      <div className="text-[11px] text-amber-600">
+                        Add UPI ID in Settings to enable Scan &amp; Pay QR
+                      </div>
+                    )}
+                  </div>
+
+                  {/* Live UPI QR Code Preview (Shown only when isQrEnabled is ON) */}
+                  {isQrEnabled && liveQrUrl ? (
+                    <div className="flex flex-col items-center justify-center p-3 bg-white rounded-xl border border-blue-200 shadow-sm shrink-0 min-w-[175px] space-y-2">
+                      <img
+                        src={liveQrUrl}
+                        alt="UPI Payment QR Code"
+                        className="w-24 h-24 object-contain rounded"
+                      />
+
+                      {/* Switch-Based Mode: Open Amount (Client Enters Amount) vs Fixed Amount */}
+                      <div className="w-full pt-1.5 border-t border-slate-100 flex flex-col items-center space-y-1.5">
+                        <label className="flex items-center justify-between w-full text-[10px] font-bold text-slate-600 cursor-pointer">
+                          <span title="When enabled, client can type custom payment amount at their end on PhonePe/GPay">Client Enters Amount</span>
+                          <button
+                            type="button"
+                            role="switch"
+                            aria-checked={allowCustomerEditQrAmount}
+                            onClick={() => {
+                              const next = !allowCustomerEditQrAmount;
+                              onChange({ ...quotation, allowCustomerEditQrAmount: next });
+                              toast.info(next ? 'Client can now enter any amount upon scanning QR' : 'QR payment amount is now fixed');
+                            }}
+                            className={`relative inline-flex h-4 w-7 shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors duration-200 ease-in-out focus:outline-none ${
+                              allowCustomerEditQrAmount ? 'bg-indigo-600' : 'bg-slate-300'
+                            }`}
+                          >
+                            <span
+                              className={`pointer-events-none inline-block h-3 w-3 transform rounded-full bg-white shadow-sm ring-0 transition duration-200 ease-in-out ${
+                                allowCustomerEditQrAmount ? 'translate-x-3' : 'translate-x-0'
+                              }`}
+                            />
+                          </button>
+                        </label>
+
+                        {allowCustomerEditQrAmount ? (
+                          <div className="w-full text-center bg-indigo-50 text-indigo-700 text-[10px] font-extrabold px-2 py-1 rounded-md border border-indigo-200">
+                            ✍️ Open Amount (Client Enters)
+                          </div>
+                        ) : (
+                          <div className="w-full space-y-1">
+                            {/* Editable QR Amount Input */}
+                            <div className="flex items-center bg-slate-50 border border-slate-200 rounded px-1.5 py-0.5 shadow-2xs focus-within:border-blue-500 focus-within:bg-white">
+                              <span className="text-[11px] font-bold text-slate-500 mr-1">₹</span>
+                              <input
+                                type="number"
+                                min={0}
+                                value={quotation.customQrAmount !== undefined && quotation.customQrAmount > 0 ? quotation.customQrAmount : targetQrAmount}
+                                onChange={(e) => {
+                                  const val = e.target.value === '' ? undefined : parseFloat(e.target.value) || 0;
+                                  onChange({
+                                    ...quotation,
+                                    customQrAmount: val,
+                                    qrAmountType: 'custom',
+                                  });
+                                }}
+                                className="w-full text-center font-black text-xs text-slate-900 bg-transparent focus:outline-none [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
+                                title="Edit fixed QR payment amount manually"
+                              />
+                              <PenLine size={11} className="text-slate-400 shrink-0 ml-0.5" />
+                            </div>
+
+                            {/* Preset Buttons: Auto Total vs Advance */}
+                            <div className="flex items-center justify-center gap-1 text-[9px] pt-0.5">
+                              <button
+                                type="button"
+                                onClick={() => {
+                                  onChange({
+                                    ...quotation,
+                                    customQrAmount: undefined,
+                                    qrAmountType: 'total',
+                                  });
+                                  toast.info('QR amount reset to Total Payable');
+                                }}
+                                className={`px-2 py-0.5 rounded font-bold border transition-colors ${
+                                  !quotation.customQrAmount && qrAmountType === 'total'
+                                    ? 'bg-blue-600 text-white border-blue-600'
+                                    : 'bg-white text-slate-600 border-slate-200 hover:bg-slate-100'
+                                }`}
+                                title="Snap QR amount to full quotation total"
+                              >
+                                Auto Total
+                              </button>
+
+                              {isLedgerEnabled && effectiveAdvanceAmount > 0 && (
+                                <button
+                                  type="button"
+                                  onClick={() => {
+                                    onChange({
+                                      ...quotation,
+                                      customQrAmount: undefined,
+                                      qrAmountType: 'advance',
+                                    });
+                                    toast.info('QR amount set to Advance Milestone');
+                                  }}
+                                  className={`px-2 py-0.5 rounded font-bold border transition-colors ${
+                                    !quotation.customQrAmount && qrAmountType === 'advance'
+                                      ? 'bg-blue-600 text-white border-blue-600'
+                                      : 'bg-white text-slate-600 border-slate-200 hover:bg-slate-100'
+                                  }`}
+                                  title="Snap QR amount to advance milestone"
+                                >
+                                  Advance
+                                </button>
+                              )}
+                            </div>
+                          </div>
+                        )}
+                      </div>
+
+                      <span className="text-[9px] text-slate-400 font-medium">
+                        PhonePe • GPay • Paytm
+                      </span>
                     </div>
-                  )}
+                  ) : null}
                 </div>
               </div>
 
-              <div>
-                <label className="text-xs font-bold uppercase tracking-wider text-slate-500 block mb-1">
-                  Payment Milestone Term
-                </label>
-                <input
-                  value={quotation.paymentTerms || ''}
-                  placeholder="e.g. 70% Advance | 30% Before Event Delivery"
-                  onChange={(e) => onChange({ ...quotation, paymentTerms: e.target.value })}
-                  className="w-full text-xs font-medium bg-slate-50 border border-slate-200 rounded-lg p-2.5 focus:outline-blue-500"
-                />
-              </div>
+              {/* Optional Advance & Milestone Payment Tracking Ledger */}
+              {isLedgerEnabled ? (
+                <div className="bg-slate-50 p-4 rounded-xl border border-slate-200/80 space-y-3">
+                  <div className="flex items-center justify-between">
+                    <div className="flex items-center gap-1.5">
+                      <CreditCard size={14} className="text-emerald-600" />
+                      <span className="text-xs font-bold uppercase tracking-wider text-slate-700">
+                        Advance Milestone &amp; Payment Ledger
+                      </span>
+                    </div>
+                    <div className="flex items-center gap-2">
+                      <span className={`text-[10px] font-bold px-2 py-0.5 rounded-full uppercase tracking-wider ${
+                        (quotation.paymentStatus || 'unpaid') === 'paid'
+                          ? 'bg-emerald-100 text-emerald-800'
+                          : (quotation.paymentStatus || 'unpaid') === 'partial'
+                          ? 'bg-amber-100 text-amber-800'
+                          : 'bg-slate-200 text-slate-700'
+                      }`}>
+                        {quotation.paymentStatus || 'unpaid'}
+                      </span>
+                      <button
+                        type="button"
+                        onClick={() => onChange({ ...quotation, enablePaymentLedger: false })}
+                        className="text-[11px] font-bold text-slate-400 hover:text-rose-600 ml-1"
+                        title="Disable Advance Ledger"
+                      >
+                        Hide
+                      </button>
+                    </div>
+                  </div>
+
+                  {/* Milestone % Quick Selector */}
+                  <div>
+                    <div className="flex items-center justify-between text-xs mb-1.5">
+                      <span className="text-slate-500 font-medium">Advance Requirement:</span>
+                      <span className="font-bold text-slate-900">
+                        {advancePercentage}% (₹{effectiveAdvanceAmount.toLocaleString('en-IN')})
+                      </span>
+                    </div>
+                    <div className="flex items-center gap-1.5">
+                      {[30, 50, 70, 100].map((pct) => (
+                        <button
+                          key={pct}
+                          type="button"
+                          onClick={() => {
+                            const amt = Math.round((grandTotal * pct) / 100);
+                            onChange({
+                              ...quotation,
+                              advancePercentage: pct,
+                              advanceAmount: amt,
+                              paymentTerms: `${pct}% Advance with Confirmation | ${100 - pct}% Prior to Event Setup`,
+                            });
+                          }}
+                          className={`text-[11px] font-bold py-1 px-2.5 rounded-lg border transition-all ${
+                            advancePercentage === pct
+                              ? 'bg-blue-600 text-white border-blue-600 shadow-xs'
+                              : 'bg-white text-slate-700 border-slate-200 hover:bg-slate-100'
+                          }`}
+                        >
+                          {pct}%
+                        </button>
+                      ))}
+                      <div className="flex items-center bg-white border border-slate-200 rounded-lg px-2.5 py-1 ml-auto shadow-2xs focus-within:border-blue-500 focus-within:ring-1 focus-within:ring-blue-500">
+                        <input
+                          type="number"
+                          min={0}
+                          max={100}
+                          value={advancePercentage}
+                          onChange={(e) => {
+                            const val = Math.min(100, Math.max(0, parseInt(e.target.value, 10) || 0));
+                            const amt = Math.round((grandTotal * val) / 100);
+                            onChange({ ...quotation, advancePercentage: val, advanceAmount: amt });
+                          }}
+                          className="w-11 text-right text-xs font-bold text-slate-900 bg-transparent focus:outline-none [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
+                        />
+                        <span className="text-xs text-slate-500 font-bold ml-1">%</span>
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Payment Tracking Entry Grid */}
+                  <div className="grid grid-cols-2 gap-2 pt-2 border-t border-slate-200/80 text-xs">
+                    <div>
+                      <label className="text-[10px] uppercase font-bold text-slate-400 block mb-0.5">
+                        Amount Paid (₹)
+                      </label>
+                      <input
+                        type="number"
+                        min={0}
+                        value={quotation.paidAmount === 0 ? '' : (quotation.paidAmount ?? '')}
+                        placeholder="0"
+                        onChange={(e) => {
+                          const val = e.target.value === '' ? 0 : parseFloat(e.target.value) || 0;
+                          const newStatus: PaymentStatus = val >= grandTotal && grandTotal > 0
+                            ? 'paid'
+                            : val > 0
+                            ? 'partial'
+                            : 'unpaid';
+                          onChange({
+                            ...quotation,
+                            paidAmount: val,
+                            paymentStatus: newStatus,
+                          });
+                        }}
+                        className="w-full text-xs font-bold text-emerald-700 bg-white border border-slate-200 rounded-lg px-2.5 py-1.5 focus:border-blue-500 focus:outline-none"
+                      />
+                    </div>
+
+                    <div>
+                      <label className="text-[10px] uppercase font-bold text-slate-400 block mb-0.5">
+                        Payment Mode
+                      </label>
+                      <select
+                        value={quotation.paymentMode || 'upi'}
+                        onChange={(e) => onChange({ ...quotation, paymentMode: e.target.value as PaymentMode })}
+                        className="w-full text-xs font-semibold text-slate-800 bg-white border border-slate-200 rounded-lg px-2.5 py-1.5 focus:border-blue-500 focus:outline-none"
+                      >
+                        <option value="upi">UPI / QR</option>
+                        <option value="bank_transfer">Bank Transfer (NEFT/RTGS)</option>
+                        <option value="cash">Cash</option>
+                        <option value="cheque">Cheque</option>
+                      </select>
+                    </div>
+
+                    <div className="col-span-2">
+                      <label className="text-[10px] uppercase font-bold text-slate-400 block mb-0.5">
+                        Payment Reference / UTR / Cheque No
+                      </label>
+                      <input
+                        value={quotation.transactionRef || ''}
+                        placeholder="e.g. UTR #428901239 or Cheque #004521"
+                        onChange={(e) => onChange({ ...quotation, transactionRef: e.target.value })}
+                        className="w-full text-xs text-slate-800 bg-white border border-slate-200 rounded-lg px-2.5 py-1.5 focus:border-blue-500 focus:outline-none placeholder:text-slate-400"
+                      />
+                    </div>
+                  </div>
+
+                  <div>
+                    <label className="text-[10px] uppercase font-bold text-slate-400 block mb-1">
+                      Milestone Terms Line
+                    </label>
+                    <input
+                      value={quotation.paymentTerms || ''}
+                      placeholder="e.g. 50% Advance with PO | 50% on event setup"
+                      onChange={(e) => onChange({ ...quotation, paymentTerms: e.target.value })}
+                      className="w-full text-xs font-medium bg-white border border-slate-200 rounded-lg p-2 focus:outline-blue-500 placeholder:text-slate-400"
+                    />
+                  </div>
+                </div>
+              ) : null}
+
             </div>
 
-            {/* Calculations Breakdown */}
+            {/* Right: Calculations Breakdown & Payable Ledger */}
             <div className="space-y-3">
               <div className="bg-slate-50 p-4 rounded-xl border border-slate-200/80 space-y-3 text-xs">
                 
@@ -1182,28 +1807,277 @@ export const QuotationEditor: React.FC<Props> = ({
                   />
                 </div>
 
-                {/* Total */}
-                <div className="flex justify-between items-center p-3 bg-slate-900 text-white rounded-lg">
-                  <span className="font-bold text-xs uppercase tracking-wider">Total Payable:</span>
-                  <span className="text-xl font-black">
-                    ₹{grandTotal.toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
-                  </span>
+                {/* Adjustment / Round-off */}
+                <div className="flex justify-between items-center py-1 border-b border-slate-200">
+                  <span className="text-slate-500 font-medium">Adjustment / Round-off (+/- ₹):</span>
+                  <input
+                    type="number"
+                    value={quotation.adjustmentAmount === 0 || quotation.adjustmentAmount === undefined ? '' : quotation.adjustmentAmount}
+                    placeholder="0"
+                    onChange={(e) =>
+                      onChange({ ...quotation, adjustmentAmount: e.target.value === '' ? 0 : parseFloat(e.target.value) || 0 })
+                    }
+                    className="w-24 text-right font-medium text-slate-800 bg-white border border-slate-200 rounded px-2 py-1 focus:outline-blue-500 placeholder:text-slate-400"
+                  />
                 </div>
+
+                {/* Total Payable */}
+                <div className="p-3.5 bg-slate-900 text-white rounded-xl shadow-sm space-y-1.5">
+                  <div className="flex justify-between items-center">
+                    <span className="font-bold text-xs uppercase tracking-wider">Total Payable:</span>
+                    <span className="text-xl font-black">
+                      ₹{grandTotal.toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                    </span>
+                  </div>
+                  <div className="text-[10px] text-blue-200/90 font-medium italic pt-1 border-t border-slate-800 leading-tight">
+                    {amountToWordsIndian(grandTotal)}
+                  </div>
+                </div>
+
+                {/* Milestone & Payment Breakdown Box (Optional - shown only when isLedgerEnabled is ON) */}
+                {isLedgerEnabled && (
+                  <div className="pt-2 border-t border-slate-200 space-y-2">
+                    <div className="flex justify-between items-center text-xs text-slate-600">
+                      <span>Advance Milestone ({advancePercentage}%):</span>
+                      <span className="font-bold text-slate-800">
+                        ₹{effectiveAdvanceAmount.toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                      </span>
+                    </div>
+
+                    <div className="flex justify-between items-center text-xs text-slate-600">
+                      <span>Balance on Event Setup:</span>
+                      <span className="font-medium text-slate-700">
+                        ₹{Math.max(0, grandTotal - effectiveAdvanceAmount).toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                      </span>
+                    </div>
+
+                    {paidAmount > 0 && (
+                      <div className="flex justify-between items-center text-xs text-emerald-700 pt-1 border-t border-dashed border-slate-200">
+                        <span className="font-semibold">Amount Received:</span>
+                        <span className="font-bold">
+                          -₹{paidAmount.toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                        </span>
+                      </div>
+                    )}
+
+                    {/* Final Balance Due Card */}
+                    <div className={`p-2.5 rounded-lg border flex items-center justify-between text-xs font-bold ${
+                      balanceDue === 0 && grandTotal > 0
+                        ? 'bg-emerald-50 text-emerald-800 border-emerald-300'
+                        : paidAmount > 0
+                        ? 'bg-amber-50 text-amber-900 border-amber-300'
+                        : 'bg-blue-50 text-blue-900 border-blue-200'
+                    }`}>
+                      <span className="uppercase tracking-wider text-[11px]">
+                        {balanceDue === 0 && grandTotal > 0 ? 'Fully Paid' : 'Net Balance Due:'}
+                      </span>
+                      <span className="text-sm font-black font-mono">
+                        ₹{balanceDue.toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                      </span>
+                    </div>
+                  </div>
+                )}
 
               </div>
             </div>
 
           </div>
 
+          {/* B2B GST Tax Breakdown (HSN / SAC Summary Table) */}
+          {(() => {
+            const gstBreakdown = computeGstTaxBreakdown(quotation);
+            if (!gstBreakdown.hasTax) return null;
+            return (
+              <div className="border border-slate-200/90 rounded-xl overflow-hidden bg-white shadow-2xs">
+                <div className="bg-slate-50 px-4 py-2.5 border-b border-slate-200 flex items-center justify-between">
+                  <div className="font-bold text-slate-700 text-xs uppercase tracking-wider flex items-center gap-2">
+                    <Receipt size={14} className="text-blue-600" />
+                    <span>Tax Invoice GST Breakdown (HSN / SAC Summary)</span>
+                  </div>
+                  <span className="text-[10px] font-bold text-slate-500 bg-slate-200/70 px-2 py-0.5 rounded">
+                    B2B GST Compliance
+                  </span>
+                </div>
+                <div className="overflow-x-auto">
+                  <table className="w-full text-left border-collapse text-xs">
+                    <thead>
+                      <tr className="bg-slate-100/70 text-slate-600 border-b border-slate-200 font-bold text-[11px]">
+                        <th className="py-2.5 px-3">HSN / SAC</th>
+                        <th className="py-2.5 px-3 text-right">Taxable Value (₹)</th>
+                        {gstBreakdown.isSplitTax ? (
+                          <>
+                            <th className="py-2.5 px-3 text-right">CGST Rate</th>
+                            <th className="py-2.5 px-3 text-right">CGST Amt (₹)</th>
+                            <th className="py-2.5 px-3 text-right">SGST Rate</th>
+                            <th className="py-2.5 px-3 text-right">SGST Amt (₹)</th>
+                          </>
+                        ) : (
+                          <>
+                            <th className="py-2.5 px-3 text-right">IGST Rate</th>
+                            <th className="py-2.5 px-3 text-right">IGST Amt (₹)</th>
+                          </>
+                        )}
+                        <th className="py-2.5 px-3 text-right font-black">Total Tax (₹)</th>
+                      </tr>
+                    </thead>
+                    <tbody className="divide-y divide-slate-100">
+                      {gstBreakdown.rows.map((r, i) => (
+                        <tr key={i} className="hover:bg-slate-50/50">
+                          <td className="py-2.5 px-3 font-mono font-bold text-slate-800">{r.hsnSac}</td>
+                          <td className="py-2.5 px-3 text-right font-medium text-slate-700">₹{r.taxableAmount.toLocaleString('en-IN', { minimumFractionDigits: 2 })}</td>
+                          {gstBreakdown.isSplitTax ? (
+                            <>
+                              <td className="py-2.5 px-3 text-right text-slate-500">{r.cgstRate}%</td>
+                              <td className="py-2.5 px-3 text-right font-medium text-slate-700">₹{(r.cgstAmount || 0).toLocaleString('en-IN', { minimumFractionDigits: 2 })}</td>
+                              <td className="py-2.5 px-3 text-right text-slate-500">{r.sgstRate}%</td>
+                              <td className="py-2.5 px-3 text-right font-medium text-slate-700">₹{(r.sgstAmount || 0).toLocaleString('en-IN', { minimumFractionDigits: 2 })}</td>
+                            </>
+                          ) : (
+                            <>
+                              <td className="py-2.5 px-3 text-right text-slate-500">{r.igstRate}%</td>
+                              <td className="py-2.5 px-3 text-right font-medium text-slate-700">₹{(r.igstAmount || 0).toLocaleString('en-IN', { minimumFractionDigits: 2 })}</td>
+                            </>
+                          )}
+                          <td className="py-2.5 px-3 text-right font-bold text-slate-900">₹{r.totalTax.toLocaleString('en-IN', { minimumFractionDigits: 2 })}</td>
+                        </tr>
+                      ))}
+                      <tr className="bg-slate-50/80 font-bold text-slate-900 border-t border-slate-200">
+                        <td className="py-2.5 px-3">Total</td>
+                        <td className="py-2.5 px-3 text-right">₹{gstBreakdown.totalTaxableAmount.toLocaleString('en-IN', { minimumFractionDigits: 2 })}</td>
+                        {gstBreakdown.isSplitTax ? (
+                          <>
+                            <td></td>
+                            <td className="py-2.5 px-3 text-right">₹{gstBreakdown.totalCgstAmount.toLocaleString('en-IN', { minimumFractionDigits: 2 })}</td>
+                            <td></td>
+                            <td className="py-2.5 px-3 text-right">₹{gstBreakdown.totalSgstAmount.toLocaleString('en-IN', { minimumFractionDigits: 2 })}</td>
+                          </>
+                        ) : (
+                          <>
+                            <td></td>
+                            <td className="py-2.5 px-3 text-right">₹{gstBreakdown.totalIgstAmount.toLocaleString('en-IN', { minimumFractionDigits: 2 })}</td>
+                          </>
+                        )}
+                        <td className="py-2.5 px-3 text-right font-black text-blue-700">₹{gstBreakdown.totalTaxAmount.toLocaleString('en-IN', { minimumFractionDigits: 2 })}</td>
+                      </tr>
+                    </tbody>
+                  </table>
+                </div>
+              </div>
+            );
+          })()}
+
           {/* Terms & Conditions */}
-          <div className="border-t-2 border-slate-200 pt-6 space-y-2">
-            <h3 className="text-xs font-bold uppercase tracking-wider text-slate-700">Terms &amp; Conditions</h3>
+          <div className="border-t-2 border-slate-200 pt-6 space-y-3">
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
+              <h3 className="text-xs font-bold uppercase tracking-wider text-slate-700">Terms &amp; Conditions</h3>
+              
+              {/* Template Presets Selector */}
+              <div className="flex items-center gap-2 text-xs">
+                <span className="text-slate-400 font-medium">Load Template:</span>
+                <select
+                  defaultValue=""
+                  onChange={(e) => {
+                    const preset = TERMS_PRESETS.find((p) => p.id === e.target.value);
+                    if (preset) {
+                      onChange({ ...quotation, notes: preset.terms });
+                      toast.success(`Loaded "${preset.title}" template`);
+                      e.target.value = '';
+                    }
+                  }}
+                  className="bg-white border border-slate-200 rounded-lg px-2.5 py-1 text-xs text-slate-700 focus:outline-none focus:border-blue-500 font-medium cursor-pointer shadow-2xs"
+                >
+                  <option value="" disabled>Select Terms Preset...</option>
+                  {TERMS_PRESETS.map((p) => (
+                    <option key={p.id} value={p.id}>{p.title}</option>
+                  ))}
+                </select>
+              </div>
+            </div>
+
             <textarea
               rows={6}
               value={quotation.notes}
               onChange={(e) => onChange({ ...quotation, notes: e.target.value })}
               className="w-full text-xs text-slate-600 bg-slate-50 border border-slate-200/80 rounded-xl p-3.5 focus:outline-blue-500 leading-relaxed font-sans"
             />
+          </div>
+
+          {/* Client Sign-Off & Digital Signature Section */}
+          <div className="border border-slate-200/90 rounded-xl p-4 bg-slate-50/60 space-y-3">
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-2">
+                <PenTool size={15} className="text-blue-600" />
+                <h4 className="text-xs font-bold uppercase tracking-wider text-slate-800">
+                  Client Acceptance &amp; Sign-Off
+                </h4>
+              </div>
+              {quotation.clientSignature ? (
+                <span className="inline-flex items-center gap-1 text-[11px] font-bold px-2.5 py-0.5 rounded-full bg-emerald-50 text-emerald-700 border border-emerald-200">
+                  <CheckCircle2 size={12} />
+                  Digitally Signed &amp; Accepted
+                </span>
+              ) : (
+                <span className="text-[11px] text-slate-400">
+                  Awaiting Client Signature
+                </span>
+              )}
+            </div>
+
+            {quotation.clientSignature ? (
+              <div className="flex flex-col sm:flex-row items-center sm:items-start justify-between gap-4 p-3.5 bg-white rounded-xl border border-slate-200 shadow-2xs">
+                <div className="flex items-center gap-3">
+                  <img
+                    src={quotation.clientSignature.dataUrl}
+                    alt="Client Signature"
+                    className="h-12 max-w-[140px] object-contain bg-slate-50 p-1 rounded border border-slate-200"
+                  />
+                  <div className="text-xs text-slate-700">
+                    <div className="font-bold text-slate-900">{quotation.clientSignature.signerName || 'Client Signatory'}</div>
+                    {quotation.clientSignature.signerPhone && (
+                      <div className="text-[11px] text-slate-500">{quotation.clientSignature.signerPhone}</div>
+                    )}
+                    <div className="text-[10px] text-slate-400 mt-0.5">
+                      Signed on {new Date(quotation.clientSignature.signedAt).toLocaleString('en-IN')}
+                    </div>
+                  </div>
+                </div>
+
+                <div className="flex items-center gap-2">
+                  <button
+                    type="button"
+                    onClick={() => setIsSignatureModalOpen(true)}
+                    className="px-3 py-1.5 text-xs font-semibold text-blue-600 hover:bg-blue-50 border border-blue-200 rounded-lg transition-colors"
+                  >
+                    Change Signature
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      onChange({ ...quotation, clientSignature: undefined });
+                      toast.info('Client signature removed');
+                    }}
+                    className="p-1.5 text-slate-400 hover:text-rose-600 hover:bg-rose-50 rounded-lg transition-colors"
+                    title="Remove signature"
+                  >
+                    <Trash2 size={15} />
+                  </button>
+                </div>
+              </div>
+            ) : (
+              <div className="flex flex-col sm:flex-row items-center justify-between gap-3 p-4 bg-white rounded-xl border border-dashed border-slate-300">
+                <div className="text-xs text-slate-500 text-center sm:text-left">
+                  Capture client signature on touchscreen or mouse, or upload a signed sign-off image. Embeds directly into official PDF.
+                </div>
+                <button
+                  type="button"
+                  onClick={() => setIsSignatureModalOpen(true)}
+                  className="inline-flex items-center gap-1.5 bg-blue-600 hover:bg-blue-700 active:scale-95 text-white px-3.5 py-2 rounded-lg text-xs font-bold transition-all shadow-sm shrink-0"
+                >
+                  <PenTool size={14} />
+                  <span>Capture Client Signature</span>
+                </button>
+              </div>
+            )}
           </div>
 
         </div>
@@ -1231,6 +2105,24 @@ export const QuotationEditor: React.FC<Props> = ({
         quotation={quotation}
         isOpen={isShareModalOpen}
         onClose={() => setIsShareModalOpen(false)}
+      />
+
+      <SignatureModal
+        isOpen={isSignatureModalOpen}
+        onClose={() => setIsSignatureModalOpen(false)}
+        onSave={(sig) => {
+          onChange({
+            ...quotation,
+            clientSignature: sig,
+            status: sig && quotation.status === 'draft' ? 'approved' : quotation.status,
+          });
+          if (sig) {
+            toast.success('Client signature captured and applied!');
+          }
+        }}
+        existingSignature={quotation.clientSignature}
+        clientName={quotation.client?.name}
+        clientPhone={quotation.client?.phone}
       />
 
     </div>
