@@ -6,7 +6,8 @@ export interface LineItem {
   id: string;
   description: string;
   quantity: number;
-  rate: number;
+  amount?: number;
+  rate?: number;
   // Optional industry metadata
   hsnSac?: string;
   unit?: string; // 'Days', 'Sq.Ft', 'Units', 'Set', 'Lot'
@@ -17,6 +18,14 @@ export interface LineItem {
     days?: number;
   };
 }
+
+export const getItemAmount = (item: Partial<LineItem> | null | undefined): number => {
+  if (!item) return 0;
+  if (item.amount !== undefined && item.amount !== null && !isNaN(Number(item.amount))) {
+    return Number(item.amount);
+  }
+  return (Number(item.quantity) || 1) * (Number(item.rate) || 0);
+};
 
 export interface BankDetails {
   accountName: string;

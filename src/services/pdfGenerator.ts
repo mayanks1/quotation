@@ -1,6 +1,6 @@
 import jsPDF from 'jspdf';
 import html2canvas from 'html2canvas';
-import { Quotation } from '../types/quotation';
+import { Quotation, getItemAmount } from '../types/quotation';
 
 export function buildQuotationHTML(quotation: Quotation): string {
   const {
@@ -20,23 +20,25 @@ export function buildQuotationHTML(quotation: Quotation): string {
     paymentTerms,
   } = quotation;
 
-  const subtotal = lineItems.reduce((acc, item) => acc + item.quantity * item.rate, 0);
+  const subtotal = lineItems.reduce((acc, item) => acc + getItemAmount(item), 0);
   const discountedSubtotal = Math.max(0, subtotal - discountAmount);
   
+  const isZeroTax = taxScheme === 'none';
+  const effectiveTaxRate = isZeroTax ? 0 : (taxRate || 0);
   let taxAmount = 0;
-  let taxLabel = `GST (${taxRate}%)`;
+  let taxLabel = `GST (${effectiveTaxRate}%)`;
   let isSplitTax = false;
-  let halfTaxRate = taxRate / 2;
+  let halfTaxRate = effectiveTaxRate / 2;
   let halfTaxAmount = 0;
 
-  if (taxRate > 0) {
-    taxAmount = (discountedSubtotal * taxRate) / 100;
+  if (!isZeroTax && effectiveTaxRate > 0) {
+    taxAmount = (discountedSubtotal * effectiveTaxRate) / 100;
     if (taxScheme === 'cgst_sgst') {
       isSplitTax = true;
-      halfTaxRate = taxRate / 2;
+      halfTaxRate = effectiveTaxRate / 2;
       halfTaxAmount = taxAmount / 2;
     } else if (taxScheme === 'igst') {
-      taxLabel = `IGST (${taxRate}%)`;
+      taxLabel = `IGST (${effectiveTaxRate}%)`;
     }
   }
 
@@ -47,7 +49,8 @@ export function buildQuotationHTML(quotation: Quotation): string {
   const nl2br = (s: string) => esc(s).replace(/\n/g, '<br/>');
 
   const rows = lineItems.map((item, idx) => {
-    const itemTotal = item.quantity * item.rate;
+    const itemTotal = getItemAmount(item);
+    const itemRate = item.rate ?? (item.quantity ? itemTotal / item.quantity : itemTotal);
     return `
       <tr data-pdf-block="table-row" style="background:${idx % 2 === 1 ? '#f8fafc' : '#ffffff'};border-bottom:1px solid #e2e8f0;">
         <td style="padding:7px 10px;font-size:11.5px;color:#64748b;text-align:center;">${idx + 1}</td>
@@ -55,8 +58,8 @@ export function buildQuotationHTML(quotation: Quotation): string {
           <div style="font-weight:600;">${esc(item.description)}</div>
           ${item.hsnSac ? `<div style="font-size:10px;color:#64748b;margin-top:2px;">HSN/SAC: ${esc(item.hsnSac)}</div>` : ''}
         </td>
-        <td style="padding:7px 10px;text-align:center;font-size:11.5px;color:#0f172a;">${item.quantity} ${item.unit ? `<span style="font-size:10px;color:#64748b;">${esc(item.unit)}</span>` : ''}</td>
-        <td style="padding:7px 10px;text-align:right;font-size:11.5px;color:#0f172a;">${fmt(item.rate)}</td>
+        <td style="padding:7px 10px;text-align:center;font-size:11.5px;color:#0f172a;">${item.quantity || 1} ${item.unit ? `<span style="font-size:10px;color:#64748b;">${esc(item.unit)}</span>` : ''}</td>
+        <td style="padding:7px 10px;text-align:right;font-size:11.5px;color:#0f172a;">${fmt(itemRate)}</td>
         <td style="padding:7px 10px;text-align:right;font-size:11.5px;font-weight:600;color:#0f172a;">${fmt(itemTotal)}</td>
       </tr>
     `;

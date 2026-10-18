@@ -1,9 +1,11 @@
-import { Quotation } from '../types/quotation';
+import { Quotation, getItemAmount } from '../types/quotation';
 
 export const formatQuotationWhatsAppText = (quotation: Quotation): string => {
-  const subtotal = quotation.lineItems.reduce((acc, i) => acc + i.quantity * i.rate, 0);
+  const subtotal = quotation.lineItems.reduce((acc, i) => acc + getItemAmount(i), 0);
   const discounted = Math.max(0, subtotal - (quotation.discountAmount || 0));
-  const tax = (discounted * (quotation.taxRate || 0)) / 100;
+  const isZeroTax = quotation.taxScheme === 'none';
+  const effectiveTaxRate = isZeroTax ? 0 : (quotation.taxRate || 0);
+  const tax = isZeroTax ? 0 : (discounted * effectiveTaxRate) / 100;
   const grandTotal = discounted + tax + (quotation.shippingCharges || 0);
 
   let text = `*QUOTATION: ${quotation.quotationNumber}*\n`;
@@ -15,8 +17,9 @@ export const formatQuotationWhatsAppText = (quotation: Quotation): string => {
   text += `\n*Scope of Setup / Line Items:*\n`;
 
   quotation.lineItems.forEach((item, index) => {
-    const itemTotal = item.quantity * item.rate;
-    text += `${index + 1}. ${item.description} - Qty: ${item.quantity} ${item.unit || ''} @ ₹${item.rate.toLocaleString('en-IN')} = ₹${itemTotal.toLocaleString('en-IN')}\n`;
+    const itemTotal = getItemAmount(item);
+    const itemRate = item.rate ?? (item.quantity ? itemTotal / item.quantity : itemTotal);
+    text += `${index + 1}. ${item.description} - Qty: ${item.quantity || 1} ${item.unit || ''} @ ₹${itemRate.toLocaleString('en-IN')} = ₹${itemTotal.toLocaleString('en-IN')}\n`;
   });
 
   text += `\n*Summary:*`;
@@ -59,9 +62,11 @@ export const generateWhatsAppShareUrl = (quotation: Quotation, customPhone?: str
 };
 
 export const generateWhatsAppPdfNoticeUrl = (quotation: Quotation, filename: string, customPhone?: string): string => {
-  const subtotal = quotation.lineItems.reduce((acc, i) => acc + i.quantity * i.rate, 0);
+  const subtotal = quotation.lineItems.reduce((acc, i) => acc + getItemAmount(i), 0);
   const discounted = Math.max(0, subtotal - (quotation.discountAmount || 0));
-  const tax = (discounted * (quotation.taxRate || 0)) / 100;
+  const isZeroTax = quotation.taxScheme === 'none';
+  const effectiveTaxRate = isZeroTax ? 0 : (quotation.taxRate || 0);
+  const tax = isZeroTax ? 0 : (discounted * effectiveTaxRate) / 100;
   const grandTotal = discounted + tax + (quotation.shippingCharges || 0);
 
   let text = `*QUOTATION: ${quotation.quotationNumber}*\n`;

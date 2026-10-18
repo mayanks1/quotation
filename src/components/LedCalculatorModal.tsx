@@ -74,6 +74,7 @@ export const LedCalculatorModal: React.FC<Props> = ({ isOpen, onClose, onAddLine
       id: `item-led-${Date.now()}`,
       description: desc,
       quantity: 1,
+      amount: finalTotal,
       rate: finalTotal,
       unit: `${finalSqFt} Sq.Ft`,
       hsnSac: '9973',

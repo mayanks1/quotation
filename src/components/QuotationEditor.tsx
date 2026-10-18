@@ -2,9 +2,9 @@ import React, { useState, useRef } from 'react';
 import { 
   ArrowLeft, Download, Printer, Share2, Copy, Plus, 
   Trash2, Image as ImageIcon, Calculator, BookOpen, 
-  Settings, UserCheck, Calendar
+  Settings, UserCheck, Calendar, Zap
 } from 'lucide-react';
-import { Quotation, LineItem, QuotationStatus, TaxScheme, ClientProfile } from '../types/quotation';
+import { Quotation, LineItem, QuotationStatus, TaxScheme, ClientProfile, getItemAmount } from '../types/quotation';
 import { generateWhatsAppShareUrl } from '../services/whatsapp';
 import { exportQuotationPDF } from '../services/pdfGenerator';
 import { LedCalculatorModal } from './LedCalculatorModal';
@@ -160,6 +160,7 @@ export const QuotationEditor: React.FC<Props> = ({
   const [isLedCalcOpen, setIsLedCalcOpen] = useState(false);
   const [isCatalogOpen, setIsCatalogOpen] = useState(false);
   const [isShareModalOpen, setIsShareModalOpen] = useState(false);
+  const [autoCalc, setAutoCalc] = useState<boolean>(false);
 
   // Date picker refs
   const eventDatePickerRef = useRef<HTMLInputElement>(null);
@@ -167,15 +168,49 @@ export const QuotationEditor: React.FC<Props> = ({
   const validDatePickerRef = useRef<HTMLInputElement>(null);
 
   // Math
-  const subtotal = quotation.lineItems.reduce((acc, i) => acc + (i.quantity || 0) * (i.rate || 0), 0);
+  const subtotal = quotation.lineItems.reduce((acc, i) => acc + getItemAmount(i), 0);
   const discountedSubtotal = Math.max(0, subtotal - (quotation.discountAmount || 0));
-  const taxAmount = (discountedSubtotal * (quotation.taxRate || 0)) / 100;
+  const isZeroTax = quotation.taxScheme === 'none';
+  const effectiveTaxRate = isZeroTax ? 0 : (quotation.taxRate || 0);
+  const taxAmount = isZeroTax ? 0 : (discountedSubtotal * effectiveTaxRate) / 100;
   const grandTotal = discountedSubtotal + taxAmount + (quotation.shippingCharges || 0);
 
   // Line item handlers
   const handleUpdateItem = (id: string, field: keyof LineItem, val: string | number) => {
+    const updated = quotation.lineItems.map((item) => {
+      if (item.id !== id) return item;
+
+      // If Auto-Calc switch is ON, recalculate Amount = Qty * Rate
+      if (autoCalc) {
+        if (field === 'quantity') {
+          const qty = typeof val === 'number' ? val : (parseFloat(String(val)) || 0);
+          const currentRate = item.rate || 0;
+          return {
+            ...item,
+            quantity: qty,
+            amount: Math.round(qty * currentRate * 100) / 100,
+          };
+        }
+        if (field === 'rate') {
+          const rate = typeof val === 'number' ? val : (parseFloat(String(val)) || 0);
+          const qty = item.quantity || 1;
+          return {
+            ...item,
+            rate,
+            amount: Math.round(qty * rate * 100) / 100,
+          };
+        }
+      }
+
+      return { ...item, [field]: val };
+    });
+    onChange({ ...quotation, lineItems: updated });
+  };
+
+  const handleUpdateItemAmount = (id: string, val: string | number) => {
+    const amount = typeof val === 'number' ? val : (parseFloat(String(val)) || 0);
     const updated = quotation.lineItems.map((item) =>
-      item.id === id ? { ...item, [field]: val } : item
+      item.id === id ? { ...item, amount } : item
     );
     onChange({ ...quotation, lineItems: updated });
   };
@@ -185,6 +220,7 @@ export const QuotationEditor: React.FC<Props> = ({
       id: `item-${Date.now()}`,
       description: '',
       quantity: 1,
+      amount: 0,
       rate: 0,
       unit: '',
       hsnSac: '',
@@ -698,7 +734,32 @@ export const QuotationEditor: React.FC<Props> = ({
           <div className="space-y-4">
             
             <div className="flex flex-wrap items-center justify-between gap-3">
-              <h2 className="text-sm font-bold uppercase tracking-wider text-slate-700">Setup & Equipment Specifications</h2>
+              <div className="flex flex-wrap items-center gap-3">
+                <h2 className="text-sm font-bold uppercase tracking-wider text-slate-700">Setup &amp; Equipment Specifications</h2>
+                
+                {/* Switch for Auto-Calculate vs Manual Independent */}
+                <button
+                  type="button"
+                  onClick={() => {
+                    const next = !autoCalc;
+                    setAutoCalc(next);
+                    if (next) {
+                      toast.success('Auto-calc enabled: Changing Rate or Qty will auto-calculate Amount = Qty × Rate');
+                    } else {
+                      toast.info('Manual mode: Rate and Amount can be typed independently');
+                    }
+                  }}
+                  className={`flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-bold border transition-all ${
+                    autoCalc
+                      ? 'bg-emerald-50 text-emerald-700 border-emerald-300 shadow-xs'
+                      : 'bg-slate-100 text-slate-600 border-slate-300 hover:bg-slate-200'
+                  }`}
+                  title={autoCalc ? 'Auto-calculate enabled (Qty × Rate = Amount). Click to switch to Independent.' : 'Independent mode (Type Rate and Amount freely). Click to enable Auto-Calculate.'}
+                >
+                  <Zap size={13} className={autoCalc ? 'text-emerald-600 fill-emerald-600' : 'text-slate-400'} />
+                  <span>{autoCalc ? 'Auto-Calc (Qty × Rate): ON' : 'Auto-Calc: OFF (Independent)'}</span>
+                </button>
+              </div>
               
               <div className="flex items-center gap-2">
                 <button
@@ -724,7 +785,7 @@ export const QuotationEditor: React.FC<Props> = ({
             {/* Mobile View: Responsive Line Item Cards (md:hidden) */}
             <div className="md:hidden space-y-3">
               {quotation.lineItems.map((item, index) => {
-                const lineTotal = (item.quantity || 0) * (item.rate || 0);
+                const itemAmount = getItemAmount(item);
                 const isLegacyDummy = item.description === 'Setup Equipment / Service description';
                 const displayDesc = isLegacyDummy ? '' : item.description;
 
@@ -776,13 +837,13 @@ export const QuotationEditor: React.FC<Props> = ({
                       />
                     </div>
 
-                    {/* Qty, Unit, Rate, Amount Grid */}
+                    {/* Qty, Unit, Rate, Amount Grid (Bidirectional) */}
                     <div className="grid grid-cols-3 gap-2 pt-1 border-t border-slate-200/80">
                       
                       {/* Qty & Unit */}
                       <div>
                         <label className="text-[10px] uppercase font-bold text-slate-400 block mb-1">
-                          Qty
+                          Qty / Unit
                         </label>
                         <div className="flex items-center bg-white rounded-lg border border-slate-200 px-2 py-1.5 focus-within:border-blue-500">
                           <input
@@ -798,9 +859,9 @@ export const QuotationEditor: React.FC<Props> = ({
                           />
                           <input
                             value={item.unit || ''}
-                            placeholder="Day"
+                            placeholder="Unit"
                             onChange={(e) => handleUpdateItem(item.id, 'unit', e.target.value)}
-                            className="w-8 text-[10px] text-right text-slate-400 bg-transparent focus:outline-none placeholder:text-slate-300"
+                            className="w-10 text-[10px] text-right text-slate-400 bg-transparent focus:outline-none placeholder:text-slate-300"
                           />
                         </div>
                       </div>
@@ -810,27 +871,51 @@ export const QuotationEditor: React.FC<Props> = ({
                         <label className="text-[10px] uppercase font-bold text-slate-400 block mb-1">
                           Rate (₹)
                         </label>
-                        <div className="bg-white rounded-lg border border-slate-200 px-2 py-1.5 focus-within:border-blue-500">
+                        <div className="flex items-center bg-white rounded-lg border border-slate-200 px-2 py-1.5 focus-within:border-blue-500">
                           <input
                             type="number"
                             min={0}
-                            value={item.rate === 0 ? '' : item.rate}
+                            value={item.rate === 0 ? '' : (item.rate ?? '')}
                             placeholder="0"
                             onChange={(e) => handleUpdateItem(item.id, 'rate', e.target.value === '' ? 0 : parseFloat(e.target.value) || 0)}
-                            className="w-full text-xs font-bold text-slate-800 bg-transparent focus:outline-none"
+                            className="w-full text-xs font-bold text-slate-800 bg-transparent focus:outline-none text-right"
                           />
                         </div>
                       </div>
 
-                      {/* Total Amount */}
+                      {/* Manual Amount */}
                       <div>
-                        <label className="text-[10px] uppercase font-bold text-slate-400 block mb-1">
-                          Total
-                        </label>
-                        <div className="bg-blue-50/70 border border-blue-200/80 rounded-lg px-2 py-1.5 flex items-center justify-end h-[34px]">
-                          <span className="text-xs font-black text-blue-900 truncate">
-                            ₹{lineTotal.toLocaleString('en-IN', { minimumFractionDigits: 0, maximumFractionDigits: 2 })}
-                          </span>
+                        <div className="flex items-center justify-between mb-1">
+                          <label className="text-[10px] uppercase font-bold text-slate-400">
+                            Amount (₹)
+                          </label>
+                          <button
+                            type="button"
+                            onClick={() => {
+                              const computed = Math.round((item.quantity || 1) * (item.rate || 0) * 100) / 100;
+                              handleUpdateItemAmount(item.id, computed);
+                              toast.info(`Calculated: ${(item.quantity || 1)} × ₹${(item.rate || 0)} = ₹${computed}`);
+                            }}
+                            className="text-[10px] text-blue-600 hover:underline flex items-center gap-0.5 font-bold"
+                            title="Auto-calc this line: Qty × Rate"
+                          >
+                            <Zap size={10} />
+                            <span>Calc</span>
+                          </button>
+                        </div>
+                        <div className="flex items-center bg-white rounded-lg border border-slate-200 px-2.5 py-1.5 focus-within:border-blue-500 focus-within:ring-1 focus-within:ring-blue-500">
+                          <span className="text-slate-400 text-xs font-semibold mr-1">₹</span>
+                          <input
+                            type="number"
+                            min={0}
+                            value={itemAmount === 0 ? '' : itemAmount}
+                            placeholder="0"
+                            onChange={(e) => {
+                              const val = e.target.value === '' ? 0 : parseFloat(e.target.value) || 0;
+                              handleUpdateItemAmount(item.id, val);
+                            }}
+                            className="w-full text-xs font-bold text-slate-900 bg-transparent focus:outline-none text-right"
+                          />
                         </div>
                       </div>
 
@@ -843,20 +928,20 @@ export const QuotationEditor: React.FC<Props> = ({
 
             {/* Desktop View: Full Table (hidden md:block) */}
             <div className="hidden md:block overflow-x-auto border border-slate-200 rounded-xl">
-              <table className="w-full text-left border-collapse min-w-[700px]">
+              <table className="w-full text-left border-collapse min-w-[720px]">
                 <thead>
                   <tr className="bg-slate-900 text-white text-xs uppercase tracking-wider">
                     <th className="py-3 px-3 text-center w-10 font-bold">#</th>
                     <th className="py-3 px-4 font-bold">Item Description &amp; Specifications</th>
-                    <th className="py-3 px-3 text-center w-24 font-bold">Qty / Unit</th>
-                    <th className="py-3 px-4 text-right w-32 font-bold">Rate (₹)</th>
-                    <th className="py-3 px-4 text-right w-32 font-bold">Amount (₹)</th>
+                    <th className="py-3 px-3 text-center w-28 font-bold">Qty / Unit</th>
+                    <th className="py-3 px-3 text-right w-32 font-bold">Rate (₹)</th>
+                    <th className="py-3 px-4 text-right w-40 font-bold">Amount (₹)</th>
                     <th className="py-3 px-2 w-10"></th>
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-slate-100 text-xs">
                   {quotation.lineItems.map((item, index) => {
-                    const lineTotal = (item.quantity || 0) * (item.rate || 0);
+                    const itemAmount = getItemAmount(item);
                     const isLegacyDummy = item.description === 'Setup Equipment / Service description';
                     const displayDesc = isLegacyDummy ? '' : item.description;
 
@@ -900,23 +985,48 @@ export const QuotationEditor: React.FC<Props> = ({
                           />
                           <input
                             value={item.unit || ''}
-                            placeholder="Day"
+                            placeholder="Unit"
                             onChange={(e) => handleUpdateItem(item.id, 'unit', e.target.value)}
                             className="text-[10px] text-center text-slate-400 w-16 bg-transparent border-0 hover:border-slate-200 focus:outline-none mx-auto block mt-0.5 placeholder:text-slate-300"
                           />
                         </td>
-                        <td className="py-3 px-4 text-right">
+                        <td className="py-3 px-3 text-right">
                           <input
                             type="number"
                             min={0}
-                            value={item.rate === 0 ? '' : item.rate}
+                            value={item.rate === 0 ? '' : (item.rate ?? '')}
                             placeholder="0"
                             onChange={(e) => handleUpdateItem(item.id, 'rate', e.target.value === '' ? 0 : parseFloat(e.target.value) || 0)}
-                            className="w-24 text-right font-medium text-slate-800 bg-transparent border-0 border-b border-transparent hover:border-slate-300 focus:border-blue-500 focus:outline-none ml-auto block placeholder:text-slate-400"
+                            className="w-24 text-right font-medium text-slate-800 bg-transparent border border-transparent hover:border-slate-300 focus:border-blue-500 focus:bg-white rounded px-2 py-1.5 focus:outline-none ml-auto block placeholder:text-slate-400 transition-colors"
                           />
                         </td>
-                        <td className="py-3 px-4 text-right font-bold text-slate-900">
-                          ₹{lineTotal.toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                        <td className="py-3 px-4 text-right">
+                          <div className="flex items-center justify-end gap-1 ml-auto">
+                            <span className="text-slate-400 text-xs font-semibold">₹</span>
+                            <input
+                              type="number"
+                              min={0}
+                              value={itemAmount === 0 ? '' : itemAmount}
+                              placeholder="0"
+                              onChange={(e) => {
+                                const val = e.target.value === '' ? 0 : parseFloat(e.target.value) || 0;
+                                handleUpdateItemAmount(item.id, val);
+                              }}
+                              className="w-28 text-right font-bold text-slate-900 bg-white border border-slate-200 hover:border-slate-300 focus:border-blue-500 rounded-lg px-2.5 py-1.5 focus:outline-none focus:ring-1 focus:ring-blue-500 transition-colors placeholder:text-slate-400"
+                            />
+                            <button
+                              type="button"
+                              onClick={() => {
+                                const computed = Math.round((item.quantity || 1) * (item.rate || 0) * 100) / 100;
+                                handleUpdateItemAmount(item.id, computed);
+                                toast.info(`Calculated: ${(item.quantity || 1)} × ₹${(item.rate || 0)} = ₹${computed}`);
+                              }}
+                              className="p-1 text-slate-400 hover:text-emerald-600 hover:bg-emerald-50 rounded transition-colors"
+                              title="Auto-calculate this line: Qty × Rate"
+                            >
+                              <Zap size={14} />
+                            </button>
+                          </div>
                         </td>
                         <td className="py-3 px-2 text-center">
                           {quotation.lineItems.length > 1 && (

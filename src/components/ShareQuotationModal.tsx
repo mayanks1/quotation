@@ -4,7 +4,7 @@ import {
   MessageSquare, ExternalLink, Loader2, Smartphone, 
   AlertCircle, ChevronDown, ChevronUp, IndianRupee 
 } from 'lucide-react';
-import { Quotation } from '../types/quotation';
+import { Quotation, getItemAmount } from '../types/quotation';
 import { formatQuotationWhatsAppText, generateWhatsAppShareUrl, generateWhatsAppPdfNoticeUrl } from '../services/whatsapp';
 import { generateQuotationPDFFile, exportQuotationPDF } from '../services/pdfGenerator';
 import { useToast } from '../context/ToastContext';
@@ -36,9 +36,11 @@ export const ShareQuotationModal: React.FC<Props> = ({
 
   if (!isOpen || !quotation) return null;
 
-  const subtotal = quotation.lineItems.reduce((acc, i) => acc + i.quantity * i.rate, 0);
+  const subtotal = quotation.lineItems.reduce((acc, i) => acc + getItemAmount(i), 0);
   const discounted = Math.max(0, subtotal - (quotation.discountAmount || 0));
-  const tax = (discounted * (quotation.taxRate || 0)) / 100;
+  const isZeroTax = quotation.taxScheme === 'none';
+  const effectiveTaxRate = isZeroTax ? 0 : (quotation.taxRate || 0);
+  const tax = isZeroTax ? 0 : (discounted * effectiveTaxRate) / 100;
   const grandTotal = discounted + tax + (quotation.shippingCharges || 0);
 
   const formattedText = formatQuotationWhatsAppText(quotation);

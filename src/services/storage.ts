@@ -42,6 +42,7 @@ export const createBlankQuotation = (companyProfile: CompanyProfile): Quotation 
       id: `item-${Date.now()}-1`,
       description: '',
       quantity: 1,
+      amount: 0,
       rate: 0,
       unit: '',
       hsnSac: '9973',

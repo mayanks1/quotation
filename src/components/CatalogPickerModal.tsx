@@ -117,6 +117,7 @@ export const CatalogPickerModal: React.FC<Props> = ({ isOpen, onClose, onAddItem
         id: `item-cat-${Date.now()}-${Math.random().toString(36).slice(2, 6)}`,
         description: `${item.title}${item.description && item.description !== item.title ? ` - ${item.description}` : ''}`,
         quantity: 1,
+        amount: item.defaultRate,
         rate: item.defaultRate,
         unit: item.unit,
         hsnSac: item.hsnSac,
@@ -246,7 +247,7 @@ export const CatalogPickerModal: React.FC<Props> = ({ isOpen, onClose, onAddItem
               </div>
 
               <div>
-                <label className="text-slate-600 font-semibold block mb-0.5">Default Rate (₹)</label>
+                <label className="text-slate-600 font-semibold block mb-0.5">Default Amount (₹)</label>
                 <input
                   type="number"
                   min={0}

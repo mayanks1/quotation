@@ -7,7 +7,7 @@ import {
   ChevronsLeft, ChevronsRight, ArrowUpDown, SlidersHorizontal,
   RotateCcw, Sparkles
 } from 'lucide-react';
-import { Quotation, QuotationStatus } from '../types/quotation';
+import { Quotation, QuotationStatus, getItemAmount } from '../types/quotation';
 import { generateWhatsAppShareUrl } from '../services/whatsapp';
 import { exportQuotationPDF } from '../services/pdfGenerator';
 import { useToast, useConfirm } from '../context/ToastContext';
@@ -102,9 +102,11 @@ export const QuotationList: React.FC<Props> = ({
 
   // Helper to calculate total value for a quote
   const calculateTotal = (q: Quotation): number => {
-    const subtotal = q.lineItems.reduce((acc, i) => acc + i.quantity * i.rate, 0);
+    const subtotal = q.lineItems.reduce((acc, i) => acc + getItemAmount(i), 0);
     const discounted = Math.max(0, subtotal - (q.discountAmount || 0));
-    const tax = (discounted * (q.taxRate || 0)) / 100;
+    const isZeroTax = q.taxScheme === 'none';
+    const effectiveTaxRate = isZeroTax ? 0 : (q.taxRate || 0);
+    const tax = isZeroTax ? 0 : (discounted * effectiveTaxRate) / 100;
     return discounted + tax + (q.shippingCharges || 0);
   };
 
