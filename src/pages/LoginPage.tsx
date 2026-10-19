@@ -43,12 +43,6 @@ export const LoginPage: React.FC = () => {
     }
   };
 
-  const handleQuickFill = (demoEmail: string, demoPass: string) => {
-    setEmail(demoEmail);
-    setPassword(demoPass);
-    setErrorMsg('');
-  };
-
   return (
     <div className="min-h-screen w-full bg-[#06080e] text-neutral-100 flex items-center justify-center relative overflow-hidden font-sans">
       {/* Dynamic Background Mesh & Lighting Effects */}
@@ -210,17 +204,9 @@ export const LoginPage: React.FC = () => {
 
                 {/* Password Field */}
                 <div>
-                  <div className="flex items-center justify-between mb-1.5">
-                    <label className="block text-xs font-bold text-neutral-300">
-                      Password
-                    </label>
-                    <Link
-                      to="/forgot-password"
-                      className="text-[11px] font-semibold text-blue-400 hover:text-blue-300 transition-colors"
-                    >
-                      Forgot password?
-                    </Link>
-                  </div>
+                  <label className="block text-xs font-bold text-neutral-300 mb-1.5">
+                    Password
+                  </label>
                   <div className="relative group">
                     <div className="absolute inset-y-0 left-0 pl-3.5 flex items-center pointer-events-none text-neutral-500 group-focus-within:text-blue-400 transition-colors">
                       <Lock size={16} />
@@ -236,11 +222,19 @@ export const LoginPage: React.FC = () => {
                     <button
                       type="button"
                       onClick={() => setShowPassword(!showPassword)}
-                      className="absolute inset-y-0 right-0 pr-3.5 flex items-center text-neutral-500 hover:text-neutral-300 transition-colors"
+                      className="absolute inset-y-0 right-0 pr-3.5 flex items-center text-neutral-500 hover:text-neutral-300 transition-colors cursor-pointer"
                       title={showPassword ? 'Hide password' : 'Show password'}
                     >
                       {showPassword ? <EyeOff size={16} /> : <Eye size={16} />}
                     </button>
+                  </div>
+                  <div className="flex justify-end mt-1.5">
+                    <Link
+                      to="/forgot-password"
+                      className="text-[11px] font-semibold text-blue-400 hover:text-blue-300 transition-colors"
+                    >
+                      Forgot password?
+                    </Link>
                   </div>
                 </div>
 
