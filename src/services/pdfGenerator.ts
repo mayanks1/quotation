@@ -208,12 +208,14 @@ export function buildQuotationHTML(quotation: Quotation, upiQrDataUrl?: string):
           ${upiQrDataUrl ? `
           <div style="text-align:center;background:#ffffff;border:1px solid #cbd5e1;border-radius:6px;padding:6px 8px;min-width:96px;">
             <img src="${upiQrDataUrl}" style="width:86px;height:86px;display:block;margin:0 auto;" />
-            <div style="font-size:8.5px;font-weight:800;color:${quotation.allowCustomerEditQrAmount ? '#6366f1' : '#1e3a8a'};margin-top:3px;text-transform:uppercase;letter-spacing:0.4px;">
-              ${quotation.allowCustomerEditQrAmount ? 'Open Amount' : `Scan &amp; Pay: ${fmt(quotation.customQrAmount && quotation.customQrAmount > 0 && quotation.qrAmountType === 'custom' ? quotation.customQrAmount : (quotation.qrAmountType === 'advance' && quotation.enablePaymentLedger ? Math.round(grandTotal * (advancePercentage / 100)) : grandTotal))}`}
+            ${!quotation.allowCustomerEditQrAmount ? `
+            <div style="font-size:8.5px;font-weight:800;color:#1e3a8a;margin-top:3px;text-transform:uppercase;letter-spacing:0.4px;">
+              Scan &amp; Pay: ${fmt(quotation.customQrAmount && quotation.customQrAmount > 0 && quotation.qrAmountType === 'custom' ? quotation.customQrAmount : (quotation.qrAmountType === 'advance' && quotation.enablePaymentLedger ? Math.round(grandTotal * (advancePercentage / 100)) : grandTotal))}
             </div>
             <div style="font-size:7.5px;color:#64748b;margin-top:1px;">
-              ${quotation.allowCustomerEditQrAmount ? 'Enter amount on scan' : 'PhonePe &bull; GPay &bull; Paytm'}
+              PhonePe &bull; GPay &bull; Paytm
             </div>
+            ` : ''}
           </div>
           ` : ''}
         </div>

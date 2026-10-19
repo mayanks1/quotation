@@ -110,6 +110,18 @@ export function App() {
   const handleSaveCompany = async (updated: CompanyProfile) => {
     await storage.saveCompanyProfile(updated);
     setCompany(updated);
+    if (activeQuoteId) {
+      setQuotations((prev) =>
+        prev.map((q) => {
+          if (q.id === activeQuoteId) {
+            const updatedQuote = { ...q, company: updated };
+            storage.saveQuotation(updatedQuote);
+            return updatedQuote;
+          }
+          return q;
+        })
+      );
+    }
   };
 
   const handleSaveClient = (client: ClientProfile) => {
