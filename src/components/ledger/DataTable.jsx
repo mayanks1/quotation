@@ -1,4 +1,4 @@
-import React, { useState, useRef, useEffect } from 'react';
+import React, { useState, useRef, useEffect, useMemo } from 'react';
 import { 
   Search, 
   ArrowUpDown, 
@@ -21,7 +21,9 @@ import {
   User,
   ChevronDown,
   StickyNote,
-  Check
+  Check,
+  MessageCircle,
+  Printer
 } from 'lucide-react';
 import { formatDate, parseDate } from '../../services/sheetService';
 
@@ -180,6 +182,206 @@ export default function DataTable({
     setClientQuery('');
     setIsClientDropdownOpen(false);
     setCurrentPage(1);
+  };
+
+  const handleWhatsAppFollowup = (record) => {
+    const isPartial = record.status === 'Partial';
+    const pendingAmt = isPartial ? (record.pendingAmount || Math.round(record.amount / 2)) : record.amount;
+    const paidAmt = isPartial ? (record.paidAmount || (record.amount - pendingAmt)) : 0;
+    
+    const lines = [
+      `*PAYMENT REMINDER - TISHA LED WALLS*`,
+      `Hello *${record.client}*,`,
+      ``,
+      `Gentle reminder regarding payment for your event setup:`,
+      `📅 *Event Date:* ${formatDate(record.date)}`,
+      `🖥️ *Setup:* ${record.size || 'LED Wall Display'}`,
+      `💰 *Total Amount:* ₹${Number(record.amount || 0).toLocaleString('en-IN')}`,
+    ];
+
+    if (paidAmt > 0) {
+      lines.push(`✅ *Received:* ₹${Number(paidAmt).toLocaleString('en-IN')}`);
+    }
+    lines.push(`⏳ *Balance Due:* ₹${Number(pendingAmt).toLocaleString('en-IN')}`);
+    lines.push(``);
+    lines.push(`Kindly clear the balance at your earliest convenience.`);
+    lines.push(`Thank you for choosing *Tisha LED Walls*!`);
+
+    const text = lines.join('\n');
+    window.open(`https://wa.me/?text=${encodeURIComponent(text)}`, '_blank');
+  };
+
+  // Client stats for Account Statement
+  const clientStats = useMemo(() => {
+    if (!selectedClient || selectedClient === 'all') return null;
+    const clientRecords = records.filter(r => r.client.toLowerCase() === selectedClient.toLowerCase());
+    const totalEvents = clientRecords.length;
+    let totalBilled = 0;
+    let totalReceived = 0;
+    let totalPending = 0;
+
+    clientRecords.forEach(r => {
+      totalBilled += (r.amount || 0);
+      if (r.status === 'Received') {
+        totalReceived += (r.amount || 0);
+      } else if (r.status === 'Partial') {
+        const paid = r.paidAmount || Math.round(r.amount / 2);
+        totalReceived += paid;
+        totalPending += Math.max(0, r.amount - paid);
+      } else {
+        totalPending += (r.amount || 0);
+      }
+    });
+
+    return {
+      totalEvents,
+      totalBilled,
+      totalReceived,
+      totalPending,
+      records: clientRecords
+    };
+  }, [records, selectedClient]);
+
+  const handlePrintClientStatement = () => {
+    if (!clientStats || !selectedClient || selectedClient === 'all') return;
+    const clientRecords = clientStats.records;
+    const win = window.open('', '_blank');
+    if (!win) return;
+    
+    const html = `
+      <!DOCTYPE html>
+      <html>
+      <head>
+        <title>Account Statement - ${selectedClient}</title>
+        <meta charset="utf-8" />
+        <style>
+          * { box-sizing: border-box; margin: 0; padding: 0; }
+          body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; padding: 36px; color: #0f172a; background: #fff; line-height: 1.5; }
+          .header { display: flex; justify-content: space-between; align-items: flex-start; border-bottom: 2px solid #e2e8f0; padding-bottom: 20px; margin-bottom: 24px; }
+          .brand { font-size: 24px; font-weight: 800; color: #0f172a; letter-spacing: -0.02em; }
+          .brand span { color: #4f46e5; }
+          .tagline { font-size: 13px; color: #64748b; margin-top: 4px; }
+          .title-block { text-align: right; }
+          .doc-title { font-size: 18px; font-weight: 800; color: #1e293b; text-transform: uppercase; letter-spacing: 0.05em; }
+          .client-name { font-size: 14px; font-weight: 700; color: #4f46e5; margin-top: 4px; }
+          .gen-date { font-size: 12px; color: #64748b; margin-top: 2px; }
+          .stats-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 14px; margin-bottom: 28px; }
+          .stat-card { background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 10px; padding: 14px; }
+          .stat-label { font-size: 11px; color: #64748b; font-weight: 700; text-transform: uppercase; letter-spacing: 0.05em; }
+          .stat-value { font-size: 20px; font-weight: 800; color: #0f172a; margin-top: 4px; }
+          .due { color: #d97706; }
+          .rec { color: #16a34a; }
+          table { width: 100%; border-collapse: collapse; margin-top: 10px; font-size: 13px; }
+          th { background: #f1f5f9; text-align: left; padding: 10px 12px; font-weight: 700; color: #475569; border-bottom: 2px solid #cbd5e1; }
+          td { padding: 10px 12px; border-bottom: 1px solid #e2e8f0; }
+          .text-right { text-align: right; }
+          .badge { padding: 3px 9px; border-radius: 999px; font-size: 11px; font-weight: 700; display: inline-block; }
+          .badge-rec { background: #dcfce7; color: #15803d; }
+          .badge-part { background: #fef3c7; color: #b45309; }
+          .badge-pend { background: #fee2e2; color: #b91c1c; }
+          .footer { margin-top: 36px; padding-top: 18px; border-top: 1px solid #e2e8f0; font-size: 12px; color: #94a3b8; text-align: center; }
+          @media print {
+            body { padding: 20px; }
+            button { display: none; }
+          }
+        </style>
+      </head>
+      <body>
+        <div class="header">
+          <div>
+            <div class="brand">TISHA <span>LED WALLS</span></div>
+            <div class="tagline">Premium Indoor & Outdoor LED Display Screen Rentals</div>
+          </div>
+          <div class="title-block">
+            <div class="doc-title">Statement of Accounts</div>
+            <div class="client-name">${selectedClient}</div>
+            <div class="gen-date">Date: ${new Date().toLocaleDateString('en-IN', { day: '2-digit', month: 'short', year: 'numeric' })}</div>
+          </div>
+        </div>
+
+        <div class="stats-grid">
+          <div class="stat-card">
+            <div class="stat-label">Total Events</div>
+            <div class="stat-value">${clientStats.totalEvents}</div>
+          </div>
+          <div class="stat-card">
+            <div class="stat-label">Total Billed</div>
+            <div class="stat-value">₹${clientStats.totalBilled.toLocaleString('en-IN')}</div>
+          </div>
+          <div class="stat-card">
+            <div class="stat-label">Total Received</div>
+            <div class="stat-value rec">₹${clientStats.totalReceived.toLocaleString('en-IN')}</div>
+          </div>
+          <div class="stat-card">
+            <div class="stat-label">Net Balance Due</div>
+            <div class="stat-value due">₹${clientStats.totalPending.toLocaleString('en-IN')}</div>
+          </div>
+        </div>
+
+        <table>
+          <thead>
+            <tr>
+              <th style="width: 40px;">#</th>
+              <th>Event Date</th>
+              <th>Screen Setup</th>
+              <th class="text-right">Total Amount</th>
+              <th class="text-right">Paid</th>
+              <th class="text-right">Due Balance</th>
+              <th>Status</th>
+              <th>Notes</th>
+            </tr>
+          </thead>
+          <tbody>
+            ${clientRecords.map((r, i) => {
+              const paid = r.status === 'Received' ? r.amount : (r.status === 'Partial' ? (r.paidAmount || Math.round(r.amount/2)) : 0);
+              const due = r.status === 'Pending' ? r.amount : (r.status === 'Partial' ? (r.pendingAmount || Math.round(r.amount/2)) : 0);
+              const badgeClass = r.status === 'Received' ? 'badge-rec' : (r.status === 'Partial' ? 'badge-part' : 'badge-pend');
+              return `
+                <tr>
+                  <td>${i + 1}</td>
+                  <td><strong>${formatDate(r.date)}</strong></td>
+                  <td>${r.size || '—'}</td>
+                  <td class="text-right">₹${Number(r.amount).toLocaleString('en-IN')}</td>
+                  <td class="text-right" style="color: #16a34a;">₹${Number(paid).toLocaleString('en-IN')}</td>
+                  <td class="text-right" style="color: #d97706; font-weight: 700;">₹${Number(due).toLocaleString('en-IN')}</td>
+                  <td><span class="badge ${badgeClass}">${r.status}</span></td>
+                  <td style="color: #64748b; font-size: 12px;">${r.note || '—'}</td>
+                </tr>
+              `;
+            }).join('')}
+          </tbody>
+        </table>
+
+        <div class="footer">
+          This is a computer-generated account statement for records and payment reconciliation. Contact Tisha LED Walls for any questions.
+        </div>
+        <script>
+          window.onload = function() { window.print(); }
+        </script>
+      </body>
+      </html>
+    `;
+    win.document.write(html);
+    win.document.close();
+  };
+
+  const handleWhatsAppClientStatement = () => {
+    if (!clientStats || !selectedClient || selectedClient === 'all') return;
+    const text = `*STATEMENT OF ACCOUNTS - TISHA LED WALLS*
+Client: *${selectedClient}*
+Date: ${new Date().toLocaleDateString('en-IN', { day: '2-digit', month: 'short', year: 'numeric' })}
+
+📊 *Summary:*
+• Total Events: ${clientStats.totalEvents}
+• Total Billed: ₹${clientStats.totalBilled.toLocaleString('en-IN')}
+• Total Received: ₹${clientStats.totalReceived.toLocaleString('en-IN')}
+• *Net Outstanding Balance: ₹${clientStats.totalPending.toLocaleString('en-IN')}*
+
+Kindly review and let us know if you need invoices or breakdown for any specific event.
+Thank you for your continuous business!
+— *Tisha LED Walls*`;
+
+    window.open(`https://wa.me/?text=${encodeURIComponent(text)}`, '_blank');
   };
 
   return (
@@ -348,6 +550,81 @@ export default function DataTable({
         </div>
       </div>
 
+      {/* Client Account Summary & Statement Banner */}
+      {clientStats && (
+        <div style={{
+          margin: '0 0 16px 0',
+          padding: '14px 18px',
+          background: 'linear-gradient(135deg, rgba(99, 102, 241, 0.08) 0%, rgba(139, 92, 246, 0.05) 100%)',
+          border: '1px solid rgba(99, 102, 241, 0.25)',
+          borderRadius: '12px',
+          display: 'flex',
+          flexWrap: 'wrap',
+          alignItems: 'center',
+          justifyContent: 'space-between',
+          gap: '12px'
+        }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '16px', flexWrap: 'wrap' }}>
+            <div>
+              <div style={{ fontSize: '11px', textTransform: 'uppercase', letterSpacing: '0.05em', color: '#818cf8', fontWeight: '700' }}>
+                Client Account Summary
+              </div>
+              <div style={{ fontSize: '16px', fontWeight: '800', color: '#f8fafc', marginTop: '2px' }}>
+                {selectedClient}
+              </div>
+            </div>
+            <div style={{ display: 'flex', gap: '16px', fontSize: '12px', borderLeft: '1px solid rgba(255,255,255,0.1)', paddingLeft: '16px' }}>
+              <div>
+                <span style={{ color: '#94a3b8' }}>Events: </span>
+                <strong style={{ color: '#f8fafc' }}>{clientStats.totalEvents}</strong>
+              </div>
+              <div>
+                <span style={{ color: '#94a3b8' }}>Billed: </span>
+                <strong style={{ color: '#f8fafc' }}>₹{clientStats.totalBilled.toLocaleString('en-IN')}</strong>
+              </div>
+              <div>
+                <span style={{ color: '#94a3b8' }}>Received: </span>
+                <strong style={{ color: '#4ade80' }}>₹{clientStats.totalReceived.toLocaleString('en-IN')}</strong>
+              </div>
+              <div>
+                <span style={{ color: '#94a3b8' }}>Due: </span>
+                <strong style={{ color: '#fbbf24' }}>₹{clientStats.totalPending.toLocaleString('en-IN')}</strong>
+              </div>
+            </div>
+          </div>
+
+          <div style={{ display: 'flex', gap: '8px' }}>
+            <button
+              onClick={handlePrintClientStatement}
+              className="btn btn-secondary"
+              style={{ fontSize: '12px', padding: '6px 12px', display: 'flex', alignItems: 'center', gap: '6px' }}
+              title="Print or Save Statement PDF"
+            >
+              <Printer size={13} color="#818cf8" />
+              <span>Statement PDF</span>
+            </button>
+            <button
+              onClick={handleWhatsAppClientStatement}
+              className="btn"
+              style={{
+                fontSize: '12px',
+                padding: '6px 12px',
+                display: 'flex',
+                alignItems: 'center',
+                gap: '6px',
+                background: 'rgba(37, 211, 102, 0.15)',
+                border: '1px solid rgba(37, 211, 102, 0.35)',
+                color: '#4ade80'
+              }}
+              title="Send Statement Summary on WhatsApp"
+            >
+              <MessageCircle size={13} />
+              <span>WhatsApp Summary</span>
+            </button>
+          </div>
+        </div>
+      )}
+
       {/* Secondary Row: Status Tabs & Mobile View Toggle & Export */}
         <div className="table-tabs-and-export">
           {/* Status Tabs */}
@@ -362,7 +639,7 @@ export default function DataTable({
               onClick={() => { setStatusFilter('Received'); setCurrentPage(1); }}
               className={`status-tab status-tab-received ${statusFilter === 'Received' ? 'active' : ''}`}
             >
-              Received
+              Received ({records.filter(r => r.status === 'Received').length})
             </button>
             <button
               onClick={() => { setStatusFilter('Partial'); setCurrentPage(1); }}
@@ -374,7 +651,7 @@ export default function DataTable({
               onClick={() => { setStatusFilter('Pending'); setCurrentPage(1); }}
               className={`status-tab status-tab-pending ${statusFilter === 'Pending' ? 'active' : ''}`}
             >
-              Pending
+              Pending ({records.filter(r => r.status === 'Pending').length})
             </button>
           </div>
 
@@ -489,6 +766,20 @@ export default function DataTable({
                 </div>
 
                 <div className="mobile-card-actions">
+                  {record.status !== 'Received' && (
+                    <button 
+                      onClick={() => handleWhatsAppFollowup(record)}
+                      className="btn btn-icon-sm"
+                      style={{
+                        background: 'rgba(37, 211, 102, 0.15)',
+                        border: '1px solid rgba(37, 211, 102, 0.35)',
+                        color: '#4ade80'
+                      }}
+                      title="Send WhatsApp Payment Follow-up"
+                    >
+                      <MessageCircle size={14} />
+                    </button>
+                  )}
                   <button 
                     onClick={() => onOpenNoteModal && onOpenNoteModal(record)}
                     className={`btn btn-icon-sm ${record.note ? 'btn-note-active' : 'btn-secondary'}`}
@@ -630,6 +921,20 @@ export default function DataTable({
                   </td>
                   <td style={{ textAlign: 'right' }}>
                     <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '4px' }}>
+                      {record.status !== 'Received' && (
+                        <button 
+                          onClick={() => handleWhatsAppFollowup(record)}
+                          className="btn btn-icon-sm"
+                          style={{
+                            background: 'rgba(37, 211, 102, 0.15)',
+                            border: '1px solid rgba(37, 211, 102, 0.35)',
+                            color: '#4ade80'
+                          }}
+                          title="Send WhatsApp Payment Follow-up"
+                        >
+                          <MessageCircle size={13} />
+                        </button>
+                      )}
                       <button 
                         onClick={() => onOpenNoteModal && onOpenNoteModal(record)}
                         className={`btn btn-icon-sm ${record.note ? 'btn-note-active' : 'btn-secondary'}`}

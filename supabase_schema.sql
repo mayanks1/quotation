@@ -9,7 +9,15 @@ CREATE TABLE IF NOT EXISTS public.quotations (
   valid_until TEXT NOT NULL,
   event_date TEXT,
   venue TEXT,
+  -- Document Type & Status
   status TEXT NOT NULL DEFAULT 'draft',
+  document_type TEXT NOT NULL DEFAULT 'quotation',
+  invoice_number TEXT,
+  invoice_date TEXT,
+  
+  -- Soft Delete & Retention
+  is_deleted BOOLEAN NOT NULL DEFAULT false,
+  deleted_at TIMESTAMPTZ,
   
   -- Parties
   company JSONB NOT NULL,
@@ -31,10 +39,30 @@ CREATE TABLE IF NOT EXISTS public.quotations (
   updated_at TIMESTAMPTZ NOT NULL DEFAULT timezone('utc'::text, now())
 );
 
--- Index for fast lookup by quote number & status
+-- Index for fast lookup by quote number, status & trash
 CREATE INDEX IF NOT EXISTS idx_quotations_quote_no ON public.quotations(quotation_number);
 CREATE INDEX IF NOT EXISTS idx_quotations_status ON public.quotations(status);
+CREATE INDEX IF NOT EXISTS idx_quotations_is_deleted ON public.quotations(is_deleted);
 CREATE INDEX IF NOT EXISTS idx_quotations_updated ON public.quotations(updated_at DESC);
+
+-- 1b. Reusable Quotation Packages & Presets Table
+CREATE TABLE IF NOT EXISTS public.quotation_templates (
+  id TEXT PRIMARY KEY,
+  name TEXT NOT NULL,
+  description TEXT,
+  category TEXT DEFAULT 'general',
+  line_items JSONB NOT NULL DEFAULT '[]'::jsonb,
+  notes TEXT,
+  payment_terms TEXT,
+  tax_scheme TEXT DEFAULT 'cgst_sgst',
+  tax_rate NUMERIC DEFAULT 18,
+  created_at TIMESTAMPTZ NOT NULL DEFAULT timezone('utc'::text, now()),
+  updated_at TIMESTAMPTZ NOT NULL DEFAULT timezone('utc'::text, now())
+);
+
+ALTER TABLE public.quotation_templates ENABLE ROW LEVEL SECURITY;
+CREATE POLICY "Allow public access for quotation_templates" ON public.quotation_templates
+  FOR ALL USING (true) WITH CHECK (true);
 
 -- 2. Clients Table (Address Book)
 CREATE TABLE IF NOT EXISTS public.clients (

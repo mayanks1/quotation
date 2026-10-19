@@ -60,6 +60,11 @@ export const cloudSync = {
         event_date: quote.eventDate || null,
         venue: quote.venue || null,
         status: quote.status,
+        document_type: quote.documentType || 'quotation',
+        invoice_number: quote.invoiceNumber || null,
+        invoice_date: quote.invoiceDate || null,
+        is_deleted: Boolean(quote.isDeleted),
+        deleted_at: quote.deletedAt || null,
         company: quote.company,
         client: {
           ...quote.client,

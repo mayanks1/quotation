@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
-import { 
-  X, Share2, FileText, Download, Copy, Check, 
-  MessageSquare, ExternalLink, Loader2, Smartphone, 
+import {
+  X, Share2, FileText, Download, Copy, Check,
+  MessageSquare, ExternalLink, Loader2, Smartphone,
   AlertCircle, ChevronDown, ChevronUp, IndianRupee, Bell, Clock
 } from 'lucide-react';
 import { Quotation, getItemAmount } from '../types/quotation';
@@ -159,11 +159,11 @@ export const ShareQuotationModal: React.FC<Props> = ({
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-4 bg-slate-900/60 backdrop-blur-xs animate-in fade-in duration-200">
-      <div 
+      <div
         className="bg-white w-full max-w-lg rounded-2xl shadow-2xl border border-slate-200 overflow-hidden flex flex-col max-h-[92vh]"
         onClick={(e) => e.stopPropagation()}
       >
-        
+
         {/* Modal Header */}
         <div className="p-4 sm:p-5 border-b border-slate-100 flex items-center justify-between bg-slate-50/80">
           <div className="flex items-center gap-2.5">
@@ -188,7 +188,7 @@ export const ShareQuotationModal: React.FC<Props> = ({
 
         {/* Modal Body */}
         <div className="p-4 sm:p-5 space-y-4 overflow-y-auto flex-1 text-slate-700">
-          
+
           {/* Quick Info Chip */}
           <div className="bg-slate-50 rounded-xl p-3 border border-slate-200/80 flex items-center justify-between flex-wrap gap-2">
             <div>
@@ -400,7 +400,7 @@ export const ShareQuotationModal: React.FC<Props> = ({
                 <div className="flex items-center gap-1.5 flex-wrap">
                   <h4 className="font-extrabold text-sm text-slate-900">Live Client Portal Link</h4>
                   <span className="text-[9px] font-extrabold px-1.5 py-0.2 rounded bg-indigo-600 text-white uppercase tracking-wider">
-                    SaaS Portal
+                    Portal
                   </span>
                 </div>
                 <p className="text-xs text-slate-600 mt-0.5 leading-relaxed">
