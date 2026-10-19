@@ -12,10 +12,33 @@ const STORAGE_KEYS = {
   LEGACY_CLIENTS: 'tisha_clients_v2',
 };
 
+export const normalizeCompany = (raw: any): CompanyProfile => {
+  if (!raw || typeof raw !== 'object') return DEFAULT_COMPANY;
+  return {
+    ...DEFAULT_COMPANY,
+    ...raw,
+    bankDetails: {
+      ...DEFAULT_COMPANY.bankDetails,
+      ...(raw.bankDetails || {}),
+    },
+  };
+};
+
+const loadInitialCompany = (): CompanyProfile => {
+  try {
+    const raw = localStorage.getItem(STORAGE_KEYS.LEGACY_COMPANY);
+    if (raw) {
+      const parsed = JSON.parse(raw);
+      if (parsed && (parsed.name || parsed.address)) return normalizeCompany(parsed);
+    }
+  } catch (e) {}
+  return DEFAULT_COMPANY;
+};
+
 // In-memory cache for immediate zero-latency UI rendering
 let memoryQuotations: Quotation[] = [];
 let memoryClients: ClientProfile[] = [];
-let memoryCompany: CompanyProfile = DEFAULT_COMPANY;
+let memoryCompany: CompanyProfile = loadInitialCompany();
 let memoryCustomCatalog: CatalogItem[] = [];
 let isInitialized = false;
 
@@ -134,18 +157,23 @@ export const storage = {
 
       memoryQuotations = idbQuotes;
       memoryClients = idbClients;
-      memoryCompany = idbCompany || DEFAULT_COMPANY;
+      memoryCompany = normalizeCompany(idbCompany);
       memoryCustomCatalog = idbCatalog || [];
 
       // 3. Cloud sync: pull from cloud if available
       if (cloudSync.isEnabled()) {
         try {
           const cloudData = await cloudSync.pullAllFromCloud();
-          if (cloudData && cloudData.quotations.length > 0) {
-            memoryQuotations = cloudData.quotations;
-          }
-          if (cloudData && cloudData.clients.length > 0) {
-            memoryClients = cloudData.clients;
+          if (cloudData) {
+            if (cloudData.quotations && cloudData.quotations.length > 0) {
+              memoryQuotations = cloudData.quotations;
+            }
+            if (cloudData.clients && cloudData.clients.length > 0) {
+              memoryClients = cloudData.clients;
+            }
+            if (cloudData.company) {
+              memoryCompany = normalizeCompany(cloudData.company);
+            }
           }
         } catch (e) {
           console.warn('Cloud sync pull notice:', e);
@@ -165,13 +193,40 @@ export const storage = {
   },
 
   getCompanyProfile(): CompanyProfile {
-    return memoryCompany || DEFAULT_COMPANY;
+    if (memoryCompany && (memoryCompany.name || memoryCompany.address)) {
+      return normalizeCompany(memoryCompany);
+    }
+    const fallback = loadInitialCompany();
+    if (fallback) {
+      memoryCompany = fallback;
+      return fallback;
+    }
+    return DEFAULT_COMPANY;
   },
 
-  saveCompanyProfile(profile: CompanyProfile): void {
+  async saveCompanyProfile(profile: CompanyProfile): Promise<void> {
     memoryCompany = profile;
-    idb.saveSetting('company_profile', profile).catch(console.error);
-    cloudSync.syncCompanyProfile(profile).catch(console.error);
+    const nowIso = new Date().toISOString();
+    try {
+      localStorage.setItem(STORAGE_KEYS.LEGACY_COMPANY, JSON.stringify(profile));
+      localStorage.setItem('tisha_company_profile_updated_at', nowIso);
+    } catch (e) {
+      console.warn('LocalStorage save error:', e);
+    }
+
+    try {
+      await idb.saveSetting('company_profile', profile);
+    } catch (e) {
+      console.error('IndexedDB saveSetting error:', e);
+    }
+
+    if (cloudSync.isEnabled()) {
+      try {
+        await cloudSync.syncCompanyProfile(profile);
+      } catch (e) {
+        console.error('Cloud company profile sync error:', e);
+      }
+    }
   },
 
   getAllQuotations(): Quotation[] {

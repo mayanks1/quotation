@@ -43,10 +43,8 @@ export const formatQuotationWhatsAppText = (quotation: Quotation): string => {
   text += `\n*Total Amount:* ₹${grandTotal.toLocaleString('en-IN')}`;
 
   if (quotation.enablePaymentLedger) {
-    const advancePercentage = quotation.advancePercentage ?? 70;
-    const advanceReq = quotation.advanceAmount && quotation.advanceAmount <= grandTotal && quotation.advanceAmount > 0
-      ? quotation.advanceAmount
-      : Math.round(grandTotal * (advancePercentage / 100));
+    const advancePercentage = quotation.advancePercentage ?? (quotation.advanceAmount && grandTotal > 0 ? Math.round((quotation.advanceAmount / grandTotal) * 100) : 70);
+    const advanceReq = Math.round(grandTotal * (advancePercentage / 100));
     const paid = quotation.paidAmount || 0;
     const balance = Math.max(0, grandTotal - paid);
 
@@ -64,9 +62,12 @@ export const formatQuotationWhatsAppText = (quotation: Quotation): string => {
     if (quotation.allowCustomerEditQrAmount) {
       text += `\n*Instant UPI Payment:* ${quotation.company.bankDetails.upiId} _(Open Amount - enter desired payment on scan)_`;
     } else {
-      const qrTargetAmount = quotation.customQrAmount !== undefined && quotation.customQrAmount > 0
-        ? quotation.customQrAmount
-        : (quotation.qrAmountType === 'advance' && quotation.enablePaymentLedger && quotation.advanceAmount ? quotation.advanceAmount : grandTotal);
+      const isCustomQr = quotation.qrAmountType === 'custom' && quotation.customQrAmount !== undefined && quotation.customQrAmount > 0;
+      const advancePercentage = quotation.advancePercentage ?? (quotation.advanceAmount && grandTotal > 0 ? Math.round((quotation.advanceAmount / grandTotal) * 100) : 70);
+      const advanceReq = Math.round(grandTotal * (advancePercentage / 100));
+      const qrTargetAmount = isCustomQr
+        ? quotation.customQrAmount!
+        : (quotation.qrAmountType === 'advance' && quotation.enablePaymentLedger ? advanceReq : grandTotal);
       text += `\n*Instant UPI Payment:* ${quotation.company.bankDetails.upiId} (Amount: ₹${qrTargetAmount.toLocaleString('en-IN')})`;
     }
   }

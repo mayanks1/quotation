@@ -1,18 +1,32 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { X, Building2, Save, Image as ImageIcon, CreditCard, Download, Upload, Cloud, HardDrive, CheckCircle2, RefreshCw, AlertCircle } from 'lucide-react';
 import { CompanyProfile } from '../types/quotation';
 import { storage } from '../services/storage';
+import { DEFAULT_COMPANY } from '../config/defaults';
 import { isSupabaseConfigured } from '../services/supabaseClient';
 import { cloudSync } from '../services/cloudSync';
 import { useToast, useConfirm } from '../context/ToastContext';
+import { useAuth } from '../context/AuthContext';
+import { Lock } from 'lucide-react';
 
 interface Props {
   isOpen: boolean;
   onClose: () => void;
   company: CompanyProfile;
-  onSave: (updated: CompanyProfile) => void;
+  onSave: (updated: CompanyProfile) => Promise<void> | void;
   onRestoreBackup?: () => void;
 }
+
+const ensureCompanyProfile = (c?: Partial<CompanyProfile> | null): CompanyProfile => {
+  return {
+    ...DEFAULT_COMPANY,
+    ...(c || {}),
+    bankDetails: {
+      ...DEFAULT_COMPANY.bankDetails,
+      ...(c?.bankDetails || {}),
+    },
+  };
+};
 
 export const CompanySettingsModal: React.FC<Props> = ({ 
   isOpen, 
@@ -23,9 +37,22 @@ export const CompanySettingsModal: React.FC<Props> = ({
 }) => {
   const toast = useToast();
   const { confirm } = useConfirm();
-  const [profile, setProfile] = useState<CompanyProfile>({ ...company });
+  const { isSuperAdmin, hasPermission, user } = useAuth();
+  const canEditBank = isSuperAdmin || hasPermission('canEditBankDetails');
+  const canRestore = isSuperAdmin || hasPermission('canRestoreBackups');
+
+  const [profile, setProfile] = useState<CompanyProfile>(() => ensureCompanyProfile(company));
+  const [isSaving, setIsSaving] = useState(false);
   const [testingConn, setTestingConn] = useState(false);
   const [testResult, setTestResult] = useState<{ success: boolean; message: string; tableReady?: boolean } | null>(null);
+
+  // Synchronize internal state whenever the modal opens or the company prop updates
+  useEffect(() => {
+    if (isOpen) {
+      setProfile(ensureCompanyProfile(company));
+      setTestResult(null);
+    }
+  }, [isOpen, company]);
 
   if (!isOpen) return null;
 
@@ -55,11 +82,18 @@ export const CompanySettingsModal: React.FC<Props> = ({
     reader.readAsDataURL(file);
   };
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    onSave(profile);
-    toast.success('Company profile & bank settings updated successfully');
-    onClose();
+    setIsSaving(true);
+    try {
+      await onSave(profile);
+      toast.success('Company profile & bank settings saved successfully');
+      onClose();
+    } catch (err: any) {
+      toast.error('Failed to save settings: ' + (err?.message || 'Unknown error'));
+    } finally {
+      setIsSaving(false);
+    }
   };
 
   return (
@@ -184,94 +218,118 @@ export const CompanySettingsModal: React.FC<Props> = ({
 
           {/* Banking & UPI */}
           <div className="bg-slate-50/80 p-4 rounded-xl border border-slate-200/80 space-y-3">
-            <div className="flex items-center gap-2 text-xs font-bold text-slate-700 uppercase tracking-wider">
-              <CreditCard size={16} className="text-blue-600" />
-              <span>Bank Account & UPI Details</span>
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-2 text-xs font-bold text-slate-700 uppercase tracking-wider">
+                <CreditCard size={16} className="text-blue-600" />
+                <span>Bank Account &amp; UPI Details</span>
+              </div>
+              {!canEditBank && (
+                <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded text-[10px] font-bold bg-amber-100 text-amber-800 border border-amber-200">
+                  <Lock size={10} />
+                  <span>Super Admin Only</span>
+                </span>
+              )}
             </div>
+
+            {!canEditBank && (
+              <div className="p-2.5 bg-amber-50 border border-amber-200 rounded-lg flex items-start gap-2 text-xs text-amber-800">
+                <Lock size={14} className="text-amber-600 shrink-0 mt-0.5" />
+                <div className="text-[11px] leading-relaxed">
+                  <strong className="font-bold">Locked by Super Admin:</strong> You do not have permission to modify company payment bank accounts or UPI IDs. Contact Super Admin to request changes.
+                </div>
+              </div>
+            )}
+
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
               <div>
                 <label className="text-xs font-medium text-slate-600 block mb-1">Account Holder Name</label>
                 <input
                   type="text"
-                  value={profile.bankDetails.accountName}
+                  disabled={!canEditBank}
+                  value={profile.bankDetails?.accountName || ''}
                   onChange={(e) =>
-                    setProfile({
-                      ...profile,
-                      bankDetails: { ...profile.bankDetails, accountName: e.target.value },
-                    })
+                    setProfile((prev) => ({
+                      ...prev,
+                      bankDetails: { ...(prev.bankDetails || DEFAULT_COMPANY.bankDetails), accountName: e.target.value },
+                    }))
                   }
-                  className="w-full bg-white border border-slate-200 rounded-lg p-2 text-xs focus:outline-blue-500 font-medium"
+                  className="w-full bg-white border border-slate-200 rounded-lg p-2 text-xs focus:outline-blue-500 font-medium disabled:bg-slate-100 disabled:text-slate-500 disabled:cursor-not-allowed"
                 />
               </div>
               <div>
                 <label className="text-xs font-medium text-slate-600 block mb-1">Bank Name</label>
                 <input
                   type="text"
-                  value={profile.bankDetails.bankName}
+                  disabled={!canEditBank}
+                  value={profile.bankDetails?.bankName || ''}
                   onChange={(e) =>
-                    setProfile({
-                      ...profile,
-                      bankDetails: { ...profile.bankDetails, bankName: e.target.value },
-                    })
+                    setProfile((prev) => ({
+                      ...prev,
+                      bankDetails: { ...(prev.bankDetails || DEFAULT_COMPANY.bankDetails), bankName: e.target.value },
+                    }))
                   }
-                  className="w-full bg-white border border-slate-200 rounded-lg p-2 text-xs focus:outline-blue-500 font-medium"
+                  className="w-full bg-white border border-slate-200 rounded-lg p-2 text-xs focus:outline-blue-500 font-medium disabled:bg-slate-100 disabled:text-slate-500 disabled:cursor-not-allowed"
                 />
               </div>
               <div>
                 <label className="text-xs font-medium text-slate-600 block mb-1">Account Number</label>
                 <input
                   type="text"
-                  value={profile.bankDetails.accountNumber}
+                  disabled={!canEditBank}
+                  value={profile.bankDetails?.accountNumber || ''}
                   onChange={(e) =>
-                    setProfile({
-                      ...profile,
-                      bankDetails: { ...profile.bankDetails, accountNumber: e.target.value },
-                    })
+                    setProfile((prev) => ({
+                      ...prev,
+                      bankDetails: { ...(prev.bankDetails || DEFAULT_COMPANY.bankDetails), accountNumber: e.target.value },
+                    }))
                   }
-                  className="w-full bg-white border border-slate-200 rounded-lg p-2 text-xs font-mono focus:outline-blue-500 font-semibold"
+                  className="w-full bg-white border border-slate-200 rounded-lg p-2 text-xs font-mono focus:outline-blue-500 font-semibold disabled:bg-slate-100 disabled:text-slate-500 disabled:cursor-not-allowed"
                 />
               </div>
               <div>
                 <label className="text-xs font-medium text-slate-600 block mb-1">IFSC Code</label>
                 <input
                   type="text"
-                  value={profile.bankDetails.ifscCode}
+                  disabled={!canEditBank}
+                  value={profile.bankDetails?.ifscCode || ''}
                   onChange={(e) =>
-                    setProfile({
-                      ...profile,
-                      bankDetails: { ...profile.bankDetails, ifscCode: e.target.value.toUpperCase() },
-                    })
+                    setProfile((prev) => ({
+                      ...prev,
+                      bankDetails: { ...(prev.bankDetails || DEFAULT_COMPANY.bankDetails), ifscCode: e.target.value.toUpperCase() },
+                    }))
                   }
-                  className="w-full bg-white border border-slate-200 rounded-lg p-2 text-xs font-mono uppercase focus:outline-blue-500 font-semibold"
+                  className="w-full bg-white border border-slate-200 rounded-lg p-2 text-xs font-mono uppercase focus:outline-blue-500 font-semibold disabled:bg-slate-100 disabled:text-slate-500 disabled:cursor-not-allowed"
                 />
               </div>
               <div>
                 <label className="text-xs font-medium text-slate-600 block mb-1">Bank Branch</label>
                 <input
                   type="text"
-                  value={profile.bankDetails.branch}
+                  disabled={!canEditBank}
+                  value={profile.bankDetails?.branch || ''}
                   onChange={(e) =>
-                    setProfile({
-                      ...profile,
-                      bankDetails: { ...profile.bankDetails, branch: e.target.value },
-                    })
+                    setProfile((prev) => ({
+                      ...prev,
+                      bankDetails: { ...(prev.bankDetails || DEFAULT_COMPANY.bankDetails), branch: e.target.value },
+                    }))
                   }
-                  className="w-full bg-white border border-slate-200 rounded-lg p-2 text-xs focus:outline-blue-500"
+                  className="w-full bg-white border border-slate-200 rounded-lg p-2 text-xs focus:outline-blue-500 disabled:bg-slate-100 disabled:text-slate-500 disabled:cursor-not-allowed"
                 />
               </div>
               <div>
                 <label className="text-xs font-medium text-blue-700 block mb-1">UPI ID (GooglePay / PhonePe / Paytm)</label>
                 <input
                   type="text"
-                  value={profile.bankDetails.upiId}
+                  disabled={!canEditBank}
+                  value={profile.bankDetails?.upiId || ''}
                   onChange={(e) =>
-                    setProfile({
-                      ...profile,
-                      bankDetails: { ...profile.bankDetails, upiId: e.target.value },
-                    })
+                    setProfile((prev) => ({
+                      ...prev,
+                      bankDetails: { ...(prev.bankDetails || DEFAULT_COMPANY.bankDetails), upiId: e.target.value },
+                    }))
                   }
                   placeholder="e.g. 7703948857@upi"
-                  className="w-full bg-white border border-blue-200 rounded-lg p-2 text-xs font-mono text-blue-700 focus:outline-blue-500 font-semibold"
+                  className="w-full bg-white border border-blue-200 rounded-lg p-2 text-xs font-mono text-blue-700 focus:outline-blue-500 font-semibold disabled:bg-slate-100 disabled:text-slate-500 disabled:cursor-not-allowed"
                 />
               </div>
             </div>
@@ -332,36 +390,48 @@ export const CompanySettingsModal: React.FC<Props> = ({
                 <span>Export Full Backup (.json)</span>
               </button>
 
-              <label className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-white hover:bg-slate-100 text-slate-700 rounded-lg border border-slate-200 text-xs font-semibold shadow-2xs cursor-pointer transition-colors">
-                <Upload size={14} className="text-emerald-600" />
-                <span>Restore from Backup (.json)</span>
-                <input
-                  type="file"
-                  accept=".json,application/json"
-                  className="hidden"
-                  onChange={async (e) => {
-                    const file = e.target.files?.[0];
-                    if (!file) return;
-                    const confirmed = await confirm({
-                      title: 'Restore Database Backup',
-                      message: 'Restoring will merge quotations, clients, and catalog items from the backup file into your database. Continue?',
-                      confirmText: 'Restore Backup',
-                      cancelText: 'Cancel',
-                      variant: 'warning',
-                    });
-                    if (confirmed) {
-                      try {
-                        const res = await storage.importBackup(file);
-                        toast.success(`Restored successfully! Loaded ${res.quotationsCount} quotations.`);
-                        if (onRestoreBackup) onRestoreBackup();
-                        onClose();
-                      } catch (err) {
-                        toast.error('Restore failed: ' + err);
+              {canRestore ? (
+                <label className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-white hover:bg-slate-100 text-slate-700 rounded-lg border border-slate-200 text-xs font-semibold shadow-2xs cursor-pointer transition-colors">
+                  <Upload size={14} className="text-emerald-600" />
+                  <span>Restore from Backup (.json)</span>
+                  <input
+                    type="file"
+                    accept=".json,application/json"
+                    className="hidden"
+                    onChange={async (e) => {
+                      const file = e.target.files?.[0];
+                      if (!file) return;
+                      const confirmed = await confirm({
+                        title: 'Restore Database Backup',
+                        message: 'Restoring will merge quotations, clients, and catalog items from the backup file into your database. Continue?',
+                        confirmText: 'Restore Backup',
+                        cancelText: 'Cancel',
+                        variant: 'warning',
+                      });
+                      if (confirmed) {
+                        try {
+                          const res = await storage.importBackup(file);
+                          toast.success(`Restored successfully! Loaded ${res.quotationsCount} quotations.`);
+                          if (onRestoreBackup) onRestoreBackup();
+                          onClose();
+                        } catch (err) {
+                          toast.error('Restore failed: ' + err);
+                        }
                       }
-                    }
-                  }}
-                />
-              </label>
+                    }}
+                  />
+                </label>
+              ) : (
+                <button
+                  type="button"
+                  disabled
+                  title="Restricted: Only Super Admin can restore database backups"
+                  className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-slate-100 text-slate-400 rounded-lg border border-slate-200 text-xs font-semibold cursor-not-allowed opacity-75"
+                >
+                  <Lock size={13} className="text-slate-400" />
+                  <span>Restore from Backup (Super Admin Only)</span>
+                </button>
+              )}
             </div>
 
             {/* Test Connection Result Alert */}
@@ -405,10 +475,20 @@ export const CompanySettingsModal: React.FC<Props> = ({
             </button>
             <button
               type="submit"
-              className="flex items-center gap-1.5 bg-blue-600 hover:bg-blue-700 text-white px-5 py-2 rounded-lg text-xs font-bold shadow-md shadow-blue-500/20"
+              disabled={isSaving}
+              className="flex items-center gap-1.5 bg-blue-600 hover:bg-blue-700 disabled:opacity-60 text-white px-5 py-2 rounded-lg text-xs font-bold shadow-md shadow-blue-500/20 cursor-pointer disabled:cursor-not-allowed transition-all"
             >
-              <Save size={16} />
-              Save Settings
+              {isSaving ? (
+                <>
+                  <RefreshCw size={15} className="animate-spin" />
+                  Saving Settings...
+                </>
+              ) : (
+                <>
+                  <Save size={16} />
+                  Save Settings
+                </>
+              )}
             </button>
           </div>
 

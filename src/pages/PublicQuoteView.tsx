@@ -12,6 +12,8 @@ import { generateUpiQrDataUrl } from '../services/upiQr';
 import { getQuotationExpiryStatus } from '../utils/quotationExpiry';
 import { SignatureModal } from '../components/SignatureModal';
 import { useToast } from '../context/ToastContext';
+import { supabase, isSupabaseConfigured } from '../services/supabaseClient';
+import { cloudSync } from '../services/cloudSync';
 
 export const PublicQuoteView: React.FC = () => {
   const { id } = useParams<{ id: string }>();
@@ -26,17 +28,58 @@ export const PublicQuoteView: React.FC = () => {
       setIsLoading(false);
       return;
     }
-    storage.initialize().then(() => {
-      const all = storage.getAllQuotations();
-      const found = all.find((q) => q.id === id || q.quotationNumber.toLowerCase() === id.toLowerCase());
-      if (found) {
-        setQuotation(found);
+
+    const loadProposal = async () => {
+      try {
+        await storage.initialize();
+        const all = storage.getAllQuotations();
+        let found = all.find((q) => q.id === id || q.quotationNumber.toLowerCase() === id.toLowerCase());
+
+        // If not in local storage (e.g. client viewing on their personal phone/laptop), query Supabase directly
+        if (!found && cloudSync.isEnabled() && supabase) {
+          const { data, error } = await supabase
+            .from('quotations')
+            .select('*')
+            .or(`id.eq.${id},quotation_number.ilike.${id}`)
+            .maybeSingle();
+
+          if (!error && data) {
+            found = {
+              id: data.id,
+              quotationNumber: data.quotation_number,
+              quotationDate: data.quotation_date,
+              validUntil: data.valid_until,
+              eventDate: data.event_date || undefined,
+              venue: data.venue || undefined,
+              status: data.status,
+              company: data.company,
+              client: data.client,
+              lineItems: data.line_items || [],
+              discountAmount: Number(data.discount_amount || 0),
+              taxScheme: data.tax_scheme,
+              taxRate: Number(data.tax_rate || 18),
+              shippingCharges: Number(data.shipping_charges || 0),
+              notes: data.notes || '',
+              paymentTerms: data.payment_terms || '',
+              createdAt: data.created_at || new Date().toISOString(),
+              updatedAt: data.updated_at || new Date().toISOString(),
+            };
+            // Cache in local storage for subsequent views
+            storage.saveQuotation(found);
+          }
+        }
+
+        if (found) {
+          setQuotation(found);
+        }
+      } catch (err) {
+        console.error('Error fetching proposal:', err);
+      } finally {
+        setIsLoading(false);
       }
-      setIsLoading(false);
-    }).catch((err) => {
-      console.error('Storage init error:', err);
-      setIsLoading(false);
-    });
+    };
+
+    loadProposal();
   }, [id]);
 
   useEffect(() => {

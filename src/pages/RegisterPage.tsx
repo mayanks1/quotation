@@ -2,9 +2,9 @@ import React, { useState } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import { useToast } from '../context/ToastContext';
-import { 
-  Building2, User, Mail, Lock, Phone, ArrowRight, 
-  Sparkles, Check, CheckCircle2 
+import {
+  Building2, User, Mail, Lock, Phone, ArrowRight,
+  Sparkles, Check, CheckCircle2
 } from 'lucide-react';
 import { SaaSPlan } from '../types/auth';
 
@@ -67,7 +67,7 @@ export const RegisterPage: React.FC = () => {
 
       <div className="mt-6 sm:mx-auto sm:w-full sm:max-w-xl relative z-10 px-4">
         <div className="bg-neutral-900/80 border border-neutral-800/90 rounded-2xl shadow-2xl p-6 sm:p-8 backdrop-blur-xl">
-          
+
           {errorMsg && (
             <div className="mb-4 p-3 bg-red-500/10 border border-red-500/30 rounded-xl text-xs text-red-400 flex items-start gap-2">
               <span className="text-red-400 font-bold">Error:</span>
@@ -76,7 +76,7 @@ export const RegisterPage: React.FC = () => {
           )}
 
           <form onSubmit={handleSubmit} className="space-y-4">
-            
+
             {/* Plan Selector */}
             <div>
               <label className="block text-xs font-semibold text-neutral-300 mb-2">
@@ -85,17 +85,16 @@ export const RegisterPage: React.FC = () => {
               <div className="grid grid-cols-3 gap-2">
                 {[
                   { id: 'starter', name: 'Starter', price: 'Free', limit: '50 Quotes' },
-                  { id: 'pro', name: 'Pro SaaS', price: '₹999/mo', limit: '1000 Quotes', popular: true },
+                  { id: 'pro', name: 'Pro', price: '₹999/mo', limit: '1000 Quotes', popular: true },
                   { id: 'enterprise', name: 'Enterprise', price: '₹2499/mo', limit: 'Unlimited' },
                 ].map((p) => (
                   <div
                     key={p.id}
                     onClick={() => setPlan(p.id as SaaSPlan)}
-                    className={`cursor-pointer p-3 rounded-xl border text-center transition-all relative ${
-                      plan === p.id
+                    className={`cursor-pointer p-3 rounded-xl border text-center transition-all relative ${plan === p.id
                         ? 'border-blue-500 bg-blue-500/10 shadow-md shadow-blue-500/10'
                         : 'border-neutral-800 bg-neutral-950 hover:border-neutral-700'
-                    }`}
+                      }`}
                   >
                     {p.popular && (
                       <span className="absolute -top-2 left-1/2 -translate-x-1/2 text-[9px] uppercase font-bold tracking-wider px-2 py-0.5 bg-blue-600 text-white rounded-full">

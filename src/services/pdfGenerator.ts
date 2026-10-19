@@ -209,7 +209,7 @@ export function buildQuotationHTML(quotation: Quotation, upiQrDataUrl?: string):
           <div style="text-align:center;background:#ffffff;border:1px solid #cbd5e1;border-radius:6px;padding:6px 8px;min-width:96px;">
             <img src="${upiQrDataUrl}" style="width:86px;height:86px;display:block;margin:0 auto;" />
             <div style="font-size:8.5px;font-weight:800;color:${quotation.allowCustomerEditQrAmount ? '#6366f1' : '#1e3a8a'};margin-top:3px;text-transform:uppercase;letter-spacing:0.4px;">
-              ${quotation.allowCustomerEditQrAmount ? 'Open Amount' : `Scan &amp; Pay: ${fmt(quotation.customQrAmount && quotation.customQrAmount > 0 ? quotation.customQrAmount : (quotation.qrAmountType === 'advance' && quotation.enablePaymentLedger && quotation.advanceAmount ? quotation.advanceAmount : grandTotal))}`}
+              ${quotation.allowCustomerEditQrAmount ? 'Open Amount' : `Scan &amp; Pay: ${fmt(quotation.customQrAmount && quotation.customQrAmount > 0 && quotation.qrAmountType === 'custom' ? quotation.customQrAmount : (quotation.qrAmountType === 'advance' && quotation.enablePaymentLedger ? Math.round(grandTotal * (advancePercentage / 100)) : grandTotal))}`}
             </div>
             <div style="font-size:7.5px;color:#64748b;margin-top:1px;">
               ${quotation.allowCustomerEditQrAmount ? 'Enter amount on scan' : 'PhonePe &bull; GPay &bull; Paytm'}
@@ -270,11 +270,11 @@ export function buildQuotationHTML(quotation: Quotation, upiQrDataUrl?: string):
           <div style="background:#f1f5f9;border:1px solid #e2e8f0;border-radius:6px;padding:6px 10px;margin-top:8px;font-size:10px;">
             <div style="display:flex;justify-content:space-between;color:#1e3a8a;font-weight:600;">
               <span>Advance Required (${advancePercentage}%):</span>
-              <span>${fmt(advanceAmount && advanceAmount <= grandTotal && advanceAmount > 0 ? advanceAmount : Math.round(grandTotal * (advancePercentage / 100)))}</span>
+              <span>${fmt(Math.round(grandTotal * (advancePercentage / 100)))}</span>
             </div>
             <div style="display:flex;justify-content:space-between;color:#64748b;margin-top:2px;">
               <span>Balance on Delivery (${100 - advancePercentage}%):</span>
-              <span>${fmt(Math.max(0, grandTotal - (advanceAmount && advanceAmount <= grandTotal && advanceAmount > 0 ? advanceAmount : Math.round(grandTotal * (advancePercentage / 100)))))}</span>
+              <span>${fmt(Math.max(0, grandTotal - Math.round(grandTotal * (advancePercentage / 100))))}</span>
             </div>
             ${paidAmount > 0 ? `
             <div style="display:flex;justify-content:space-between;color:#15803d;font-weight:700;margin-top:4px;padding-top:3px;border-top:1px dashed #cbd5e1;">
@@ -432,15 +432,12 @@ export async function generateQuotationPDFDoc(quotation: Quotation): Promise<{ p
     const taxAmount = isZeroTax ? 0 : (discountedSubtotal * effectiveTaxRate) / 100;
     const grandTotal = Math.max(0, discountedSubtotal + taxAmount + (quotation.shippingCharges || 0) + (quotation.adjustmentAmount || 0));
     
-    const advancePercentage = quotation.advancePercentage ?? 70;
-    const computedAdvanceAmt = Math.round(grandTotal * (advancePercentage / 100));
-    const effectiveAdvanceAmt = quotation.advanceAmount && quotation.advanceAmount <= grandTotal && quotation.advanceAmount > 0
-      ? quotation.advanceAmount
-      : computedAdvanceAmt;
+    const advancePercentage = quotation.advancePercentage ?? (quotation.advanceAmount && grandTotal > 0 ? Math.round((quotation.advanceAmount / grandTotal) * 100) : 70);
+    const effectiveAdvanceAmt = Math.round(grandTotal * (advancePercentage / 100));
 
     const qrTargetAmount = quotation.allowCustomerEditQrAmount
       ? undefined
-      : (quotation.customQrAmount !== undefined && quotation.customQrAmount > 0
+      : (quotation.customQrAmount !== undefined && quotation.customQrAmount > 0 && quotation.qrAmountType === 'custom'
           ? quotation.customQrAmount
           : (quotation.qrAmountType === 'advance' && quotation.enablePaymentLedger
               ? effectiveAdvanceAmt

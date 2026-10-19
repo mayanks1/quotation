@@ -50,17 +50,96 @@ CREATE TABLE IF NOT EXISTS public.clients (
 
 CREATE INDEX IF NOT EXISTS idx_clients_name ON public.clients(name);
 
--- 3. Company Settings (Single row config)
+-- 3. Company Settings (Single row config & SaaS team metadata)
 CREATE TABLE IF NOT EXISTS public.company_settings (
   id TEXT PRIMARY KEY DEFAULT 'primary',
   profile JSONB NOT NULL,
   updated_at TIMESTAMPTZ NOT NULL DEFAULT timezone('utc'::text, now())
 );
 
--- 4. Enable Row Level Security (RLS) & Allow public read/write with anon key for this tenant
+-- 4. Users Table (Team Users & Granular RBAC Permissions)
+CREATE TABLE IF NOT EXISTS public.users (
+  id TEXT PRIMARY KEY,
+  name TEXT NOT NULL,
+  email TEXT UNIQUE NOT NULL,
+  password TEXT NOT NULL,
+  role TEXT NOT NULL DEFAULT 'member',
+  status TEXT NOT NULL DEFAULT 'active',
+  phone TEXT,
+  avatar TEXT,
+  organization_id TEXT NOT NULL DEFAULT 'org_tisha_main',
+  permissions JSONB NOT NULL DEFAULT '{}'::jsonb,
+  created_at TIMESTAMPTZ NOT NULL DEFAULT timezone('utc'::text, now()),
+  last_login TIMESTAMPTZ
+);
+
+CREATE INDEX IF NOT EXISTS idx_users_email ON public.users(email);
+CREATE INDEX IF NOT EXISTS idx_users_role ON public.users(role);
+
+-- Seed Team Members into public.users
+INSERT INTO public.users (id, name, email, password, role, status, phone, organization_id, permissions)
+VALUES 
+(
+  'usr_super_admin_tadmin',
+  'Mayank Saini (Super Admin)',
+  'admin@tishaledwalls.com',
+  'admin@123',
+  'owner',
+  'active',
+  '+91 7703948857',
+  'org_tisha_main',
+  '{"canEditBankDetails": true, "canDeleteQuotes": true, "canManageUsers": true, "canRestoreBackups": true, "canApplyDiscounts": true, "canManageClients": true, "canExportData": true}'::jsonb
+),
+(
+  'usr_sales_mgr_02',
+  'Pooja Verma',
+  'sales@tishaledwalls.com',
+  'sales123',
+  'manager',
+  'active',
+  '+91 98200 54321',
+  'org_tisha_main',
+  '{"canEditBankDetails": false, "canDeleteQuotes": false, "canManageUsers": false, "canRestoreBackups": false, "canApplyDiscounts": true, "canManageClients": true, "canExportData": true}'::jsonb
+),
+(
+  'usr_sales_exec_03',
+  'Amit Kumar',
+  'amit@tishaledwalls.com',
+  'amit123',
+  'member',
+  'active',
+  '+91 98300 11223',
+  'org_tisha_main',
+  '{"canEditBankDetails": false, "canDeleteQuotes": false, "canManageUsers": false, "canRestoreBackups": false, "canApplyDiscounts": false, "canManageClients": false, "canExportData": false}'::jsonb
+)
+ON CONFLICT (email) DO UPDATE SET
+  password = EXCLUDED.password,
+  role = EXCLUDED.role,
+  status = EXCLUDED.status,
+  permissions = EXCLUDED.permissions;
+
+-- Alias table saas_users for backwards compatibility
+CREATE TABLE IF NOT EXISTS public.saas_users (
+  id TEXT PRIMARY KEY,
+  name TEXT NOT NULL,
+  email TEXT UNIQUE NOT NULL,
+  password TEXT NOT NULL,
+  role TEXT NOT NULL DEFAULT 'member',
+  status TEXT NOT NULL DEFAULT 'active',
+  phone TEXT,
+  avatar TEXT,
+  organization_id TEXT NOT NULL DEFAULT 'org_tisha_main',
+  permissions JSONB NOT NULL DEFAULT '{}'::jsonb,
+  created_at TIMESTAMPTZ NOT NULL DEFAULT timezone('utc'::text, now()),
+  last_login TIMESTAMPTZ
+);
+
+-- 5. Enable Row Level Security (RLS) & Allow public read/write with anon key for this tenant
 ALTER TABLE public.quotations ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.clients ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.company_settings ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.users ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.saas_users ENABLE ROW LEVEL SECURITY;
 
 CREATE POLICY "Allow public access for quotations" ON public.quotations
   FOR ALL USING (true) WITH CHECK (true);
@@ -70,3 +149,11 @@ CREATE POLICY "Allow public access for clients" ON public.clients
 
 CREATE POLICY "Allow public access for company_settings" ON public.company_settings
   FOR ALL USING (true) WITH CHECK (true);
+
+CREATE POLICY "Allow public access for users" ON public.users
+  FOR ALL USING (true) WITH CHECK (true);
+
+CREATE POLICY "Allow public access for saas_users" ON public.saas_users
+  FOR ALL USING (true) WITH CHECK (true);
+
+

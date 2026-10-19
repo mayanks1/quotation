@@ -12,6 +12,7 @@ import { RegisterPage } from './pages/RegisterPage';
 import { ForgotPasswordPage } from './pages/ForgotPasswordPage';
 import { PublicQuoteView } from './pages/PublicQuoteView';
 import { QuoteEditorPage } from './pages/QuoteEditorPage';
+import { UsersPage } from './pages/UsersPage';
 import { useToast } from './context/ToastContext';
 
 export function App() {
@@ -106,10 +107,9 @@ export function App() {
     toast.info('Quotation deleted.');
   };
 
-  const handleSaveCompany = (updated: CompanyProfile) => {
-    storage.saveCompanyProfile(updated);
+  const handleSaveCompany = async (updated: CompanyProfile) => {
+    await storage.saveCompanyProfile(updated);
     setCompany(updated);
-    toast.success('Company profile updated.');
   };
 
   const handleSaveClient = (client: ClientProfile) => {
@@ -216,6 +216,7 @@ export function App() {
             />
           }
         />
+        <Route path="/team" element={<UsersPage />} />
         <Route path="*" element={<Navigate to="/quotes" replace />} />
       </Route>
     </Routes>

@@ -197,30 +197,28 @@ export const QuotationEditor: React.FC<Props> = ({
   const isLedgerEnabled = quotation.enablePaymentLedger ?? false;
   const allowCustomerEditQrAmount = quotation.allowCustomerEditQrAmount ?? false;
   const qrAmountType = quotation.qrAmountType || (quotation.customQrAmount !== undefined && quotation.customQrAmount > 0 ? 'custom' : (isLedgerEnabled ? 'advance' : 'total'));
+  const isCustomQr = qrAmountType === 'custom' && quotation.customQrAmount !== undefined && quotation.customQrAmount > 0;
 
   // Payment Milestone & Tracking Math
-  const advancePercentage = quotation.advancePercentage ?? 70;
-  const computedAdvanceAmount = Math.round((grandTotal * advancePercentage) / 100);
-  // Auto-sync: If stored advanceAmount exceeds grandTotal or is invalid, re-sync to computed
-  const effectiveAdvanceAmount = (quotation.advanceAmount !== undefined && quotation.advanceAmount <= grandTotal && quotation.advanceAmount > 0)
-    ? quotation.advanceAmount
-    : computedAdvanceAmount;
+  // Milestone percentage is the authoritative source of truth for advance calculations
+  const advancePercentage = quotation.advancePercentage ?? (quotation.advanceAmount && grandTotal > 0 ? Math.round((quotation.advanceAmount / grandTotal) * 100) : 70);
+  const effectiveAdvanceAmount = Math.round((grandTotal * advancePercentage) / 100);
 
   const paidAmount = quotation.paidAmount || 0;
   const balanceDue = Math.max(0, grandTotal - paidAmount);
 
   // Dynamic QR Code Target Amount:
   // If allowCustomerEditQrAmount is true -> Open Amount QR (customer types amount in UPI app on scan)
-  // Else if customQrAmount is set -> customQrAmount typed by user
-  // Else if qrAmountType === 'advance' -> effectiveAdvanceAmount
-  // Else -> balanceDue > 0 ? balanceDue : grandTotal
+  // Else if user manually typed a custom amount -> customQrAmount
+  // Else if qrAmountType === 'advance' -> effectiveAdvanceAmount (dynamically tracks grandTotal with tax)
+  // Else -> grandTotal (dynamically tracks grandTotal with tax)
   const targetQrAmount = allowCustomerEditQrAmount
     ? 0
-    : (quotation.customQrAmount !== undefined && quotation.customQrAmount > 0
-        ? quotation.customQrAmount
+    : (isCustomQr
+        ? quotation.customQrAmount!
         : (qrAmountType === 'advance' && isLedgerEnabled && effectiveAdvanceAmount > 0
             ? effectiveAdvanceAmount
-            : (balanceDue > 0 ? balanceDue : grandTotal)));
+            : grandTotal));
 
   // Live UPI QR code generator effect
   useEffect(() => {
@@ -1500,7 +1498,7 @@ export const QuotationEditor: React.FC<Props> = ({
                               <input
                                 type="number"
                                 min={0}
-                                value={quotation.customQrAmount !== undefined && quotation.customQrAmount > 0 ? quotation.customQrAmount : targetQrAmount}
+                                value={isCustomQr ? quotation.customQrAmount : (targetQrAmount > 0 ? targetQrAmount : '')}
                                 onChange={(e) => {
                                   const val = e.target.value === '' ? undefined : parseFloat(e.target.value) || 0;
                                   onChange({
@@ -1528,7 +1526,7 @@ export const QuotationEditor: React.FC<Props> = ({
                                   toast.info('QR amount reset to Total Payable');
                                 }}
                                 className={`px-2 py-0.5 rounded font-bold border transition-colors ${
-                                  !quotation.customQrAmount && qrAmountType === 'total'
+                                  !isCustomQr && qrAmountType === 'total'
                                     ? 'bg-blue-600 text-white border-blue-600'
                                     : 'bg-white text-slate-600 border-slate-200 hover:bg-slate-100'
                                 }`}
@@ -1549,7 +1547,7 @@ export const QuotationEditor: React.FC<Props> = ({
                                     toast.info('QR amount set to Advance Milestone');
                                   }}
                                   className={`px-2 py-0.5 rounded font-bold border transition-colors ${
-                                    !quotation.customQrAmount && qrAmountType === 'advance'
+                                    !isCustomQr && qrAmountType === 'advance'
                                       ? 'bg-blue-600 text-white border-blue-600'
                                       : 'bg-white text-slate-600 border-slate-200 hover:bg-slate-100'
                                   }`}

@@ -1,5 +1,6 @@
 import { supabase, isSupabaseConfigured } from './supabaseClient';
 import { Quotation, ClientProfile, CompanyProfile } from '../types/quotation';
+import { SaaSOrganization } from '../types/auth';
 import { idb } from './indexedDb';
 
 export const cloudSync = {
@@ -60,7 +61,16 @@ export const cloudSync = {
         venue: quote.venue || null,
         status: quote.status,
         company: quote.company,
-        client: quote.client,
+        client: {
+          ...quote.client,
+          clientSignature: quote.clientSignature,
+          adjustmentAmount: quote.adjustmentAmount,
+          advancePercentage: quote.advancePercentage,
+          customQrAmount: quote.customQrAmount,
+          allowCustomerEditQrAmount: quote.allowCustomerEditQrAmount,
+          isRevised: quote.isRevised,
+          originalQuotationNumber: quote.originalQuotationNumber,
+        },
         line_items: quote.lineItems,
         discount_amount: quote.discountAmount || 0,
         tax_scheme: quote.taxScheme,
@@ -125,28 +135,34 @@ export const cloudSync = {
     }
   },
 
-  async syncCompanyProfile(profile: CompanyProfile): Promise<void> {
-    if (!cloudSync.isEnabled() || !supabase) return;
+  async syncCompanyProfile(profile: CompanyProfile): Promise<{ success: boolean; error?: any }> {
+    if (!cloudSync.isEnabled() || !supabase) return { success: false, error: 'Cloud sync not enabled' };
 
     try {
-      await supabase.from('company_settings').upsert({
+      const { error } = await supabase.from('company_settings').upsert({
         id: 'primary',
         profile,
         updated_at: new Date().toISOString(),
-      });
+      }, { onConflict: 'id' });
+      if (error) {
+        console.error('Cloud company sync error:', error);
+        return { success: false, error };
+      }
+      return { success: true };
     } catch (err) {
       console.warn('Cloud company sync warning:', err);
+      return { success: false, error: err };
     }
   },
 
-  async pullAllFromCloud(): Promise<{ quotations: Quotation[]; clients: ClientProfile[] } | null> {
+  async pullAllFromCloud(): Promise<{ quotations: Quotation[]; clients: ClientProfile[]; company?: CompanyProfile } | null> {
     if (!cloudSync.isEnabled() || !supabase) return null;
 
     try {
       const [quotesRes, clientsRes, companyRes] = await Promise.all([
         supabase.from('quotations').select('*').order('updated_at', { ascending: false }),
         supabase.from('clients').select('*'),
-        supabase.from('company_settings').select('*').eq('id', 'primary').single(),
+        supabase.from('company_settings').select('*').eq('id', 'primary').maybeSingle(),
       ]);
 
       if (quotesRes.data) {
@@ -160,7 +176,21 @@ export const cloudSync = {
             venue: row.venue || undefined,
             status: row.status,
             company: row.company,
-            client: row.client,
+            client: {
+              name: row.client?.name || '',
+              company: row.client?.company || '',
+              address: row.client?.address || '',
+              phone: row.client?.phone || '',
+              email: row.client?.email || '',
+              gstin: row.client?.gstin || '',
+            },
+            clientSignature: row.client?.clientSignature || undefined,
+            adjustmentAmount: row.client?.adjustmentAmount !== undefined ? Number(row.client.adjustmentAmount) : undefined,
+            advancePercentage: row.client?.advancePercentage !== undefined ? Number(row.client.advancePercentage) : undefined,
+            customQrAmount: row.client?.customQrAmount !== undefined ? Number(row.client.customQrAmount) : undefined,
+            allowCustomerEditQrAmount: row.client?.allowCustomerEditQrAmount || false,
+            isRevised: row.client?.isRevised || false,
+            originalQuotationNumber: row.client?.originalQuotationNumber || undefined,
             lineItems: row.line_items || [],
             discountAmount: Number(row.discount_amount || 0),
             taxScheme: row.tax_scheme,
@@ -203,15 +233,375 @@ export const cloudSync = {
       }
 
       if (companyRes.data && companyRes.data.profile) {
-        await idb.saveSetting('company_profile', companyRes.data.profile);
+        const localUpdatedAtStr = localStorage.getItem('tisha_company_profile_updated_at');
+        const localUpdatedTime = localUpdatedAtStr ? new Date(localUpdatedAtStr).getTime() : 0;
+        const cloudUpdatedTime = companyRes.data.updated_at ? new Date(companyRes.data.updated_at).getTime() : 0;
+
+        if (localUpdatedTime > cloudUpdatedTime) {
+          // Local profile is newer than cloud. Resync local up to cloud!
+          const localProfileRaw = localStorage.getItem('tisha_company_profile_v2');
+          if (localProfileRaw) {
+            try {
+              const localProfile = JSON.parse(localProfileRaw);
+              await supabase.from('company_settings').upsert({
+                id: 'primary',
+                profile: localProfile,
+                updated_at: localUpdatedAtStr || new Date().toISOString(),
+              }, { onConflict: 'id' });
+              await idb.saveSetting('company_profile', localProfile);
+            } catch (e) {
+              await idb.saveSetting('company_profile', companyRes.data.profile);
+            }
+          }
+        } else {
+          // Cloud profile is newer or equal. Save to IDB & LocalStorage.
+          await idb.saveSetting('company_profile', companyRes.data.profile);
+          try {
+            localStorage.setItem('tisha_company_profile_v2', JSON.stringify(companyRes.data.profile));
+            if (companyRes.data.updated_at) {
+              localStorage.setItem('tisha_company_profile_updated_at', companyRes.data.updated_at);
+            }
+          } catch (e) {}
+        }
       }
 
       const mergedQuotes = await idb.getAllQuotations();
       const mergedClients = await idb.getAllClients();
-      return { quotations: mergedQuotes, clients: mergedClients };
+      const mergedCompany = await idb.getSetting<CompanyProfile>('company_profile');
+      return { 
+        quotations: mergedQuotes, 
+        clients: mergedClients,
+        company: mergedCompany || undefined,
+      };
     } catch (err) {
       console.warn('Failed pulling from cloud:', err);
       return null;
+    }
+  },
+
+  async syncUsersDirectory(users: any[]): Promise<void> {
+    if (!cloudSync.isEnabled() || !supabase) return;
+    try {
+      // 1. Upsert each user into public.users or public.saas_users table
+      for (const u of users) {
+        const row = {
+          id: u.id,
+          name: u.name,
+          email: u.email,
+          password: u.password || '',
+          role: u.role,
+          status: u.status,
+          phone: u.phone || null,
+          avatar: u.avatar || null,
+          organization_id: u.organizationId || 'org_tisha_main',
+          permissions: u.permissions || {},
+          created_at: u.createdAt || new Date().toISOString(),
+          last_login: u.lastLogin || null,
+        };
+
+        const { error: userErr } = await supabase.from('users').upsert(row);
+        if (userErr) {
+          await supabase.from('saas_users').upsert(row).catch(() => {});
+        }
+      }
+
+      // 2. Also keep company_settings updated as resilient backup
+      await supabase.from('company_settings').upsert({
+        id: 'saas_team_directory',
+        profile: {
+          users,
+          updated_at: new Date().toISOString(),
+        },
+        updated_at: new Date().toISOString(),
+      });
+    } catch (err) {
+      console.warn('Failed syncing users to Supabase:', err);
+    }
+  },
+
+  async fetchUsersFromCloud(): Promise<any[]> {
+    if (!cloudSync.isEnabled() || !supabase) return [];
+    try {
+      const { data, error } = await supabase
+        .from('users')
+        .select('*')
+        .order('created_at', { ascending: true });
+
+      if (!error && data && data.length > 0) {
+        return data.map((r: any) => ({
+          id: r.id,
+          name: r.name,
+          email: r.email,
+          password: r.password,
+          role: r.role,
+          status: r.status,
+          phone: r.phone || '',
+          avatar: r.avatar,
+          organizationId: r.organization_id || 'org_tisha_main',
+          permissions: r.permissions || {},
+          createdAt: r.created_at,
+          lastLogin: r.last_login,
+        }));
+      }
+
+      // Fallback check on saas_users or company_settings if users table is empty
+      const fallback = await cloudSync.pullUsersDirectory();
+      return fallback || [];
+    } catch (err) {
+      console.warn('Error fetching users from Supabase:', err);
+      return [];
+    }
+  },
+
+  async authenticateWithCloud(email: string, password: string): Promise<{ success: boolean; user?: any; error?: string }> {
+    if (!cloudSync.isEnabled() || !supabase) {
+      return { success: false, error: 'Database connection not available.' };
+    }
+
+    try {
+      const cleanEmail = email.trim().toLowerCase();
+      const { data, error } = await supabase
+        .from('users')
+        .select('*')
+        .ilike('email', cleanEmail)
+        .maybeSingle();
+
+      if (error) {
+        return { success: false, error: `Authentication failed: ${error.message}` };
+      }
+
+      if (!data) {
+        return { success: false, error: 'No user account found with this email address.' };
+      }
+
+      if (data.status === 'suspended') {
+        return { success: false, error: 'Your account has been suspended by the Super Admin.' };
+      }
+
+      // Verify password against stored password in DB
+      if (data.password !== password) {
+        return { success: false, error: 'Incorrect password. Please try again.' };
+      }
+
+      // Update last_login in background
+      supabase
+        .from('users')
+        .update({ last_login: new Date().toISOString() })
+        .eq('id', data.id)
+        .then();
+
+      const mappedUser = {
+        id: data.id,
+        name: data.name,
+        email: data.email,
+        role: data.role,
+        status: data.status,
+        phone: data.phone || '',
+        avatar: data.avatar,
+        organizationId: data.organization_id || 'org_tisha_main',
+        permissions: data.permissions || {},
+        createdAt: data.created_at,
+        lastLogin: new Date().toISOString(),
+      };
+
+      return { success: true, user: mappedUser };
+    } catch (err: any) {
+      return { success: false, error: err?.message || 'Authentication error.' };
+    }
+  },
+
+  async createCloudUser(user: any): Promise<{ success: boolean; error?: string }> {
+    if (!cloudSync.isEnabled() || !supabase) {
+      return { success: false, error: 'Database not connected.' };
+    }
+
+    try {
+      const row = {
+        id: user.id,
+        name: user.name,
+        email: user.email.toLowerCase().trim(),
+        password: user.password || '',
+        role: user.role,
+        status: user.status || 'active',
+        phone: user.phone || null,
+        avatar: user.avatar || null,
+        organization_id: user.organizationId || 'org_tisha_main',
+        permissions: user.permissions || {},
+        created_at: user.createdAt || new Date().toISOString(),
+      };
+
+      const { error } = await supabase.from('users').insert(row);
+      if (error) {
+        return { success: false, error: error.message };
+      }
+      return { success: true };
+    } catch (err: any) {
+      return { success: false, error: err?.message || 'Failed to create user.' };
+    }
+  },
+
+  async updateCloudUser(id: string, updates: any): Promise<{ success: boolean; error?: string }> {
+    if (!cloudSync.isEnabled() || !supabase) {
+      return { success: false, error: 'Database not connected.' };
+    }
+
+    try {
+      const dbUpdates: any = {};
+      if (updates.name !== undefined) dbUpdates.name = updates.name;
+      if (updates.email !== undefined) dbUpdates.email = updates.email.toLowerCase().trim();
+      if (updates.password !== undefined && updates.password) dbUpdates.password = updates.password;
+      if (updates.role !== undefined) dbUpdates.role = updates.role;
+      if (updates.status !== undefined) dbUpdates.status = updates.status;
+      if (updates.phone !== undefined) dbUpdates.phone = updates.phone;
+      if (updates.avatar !== undefined) dbUpdates.avatar = updates.avatar;
+      if (updates.permissions !== undefined) dbUpdates.permissions = updates.permissions;
+
+      const { error } = await supabase.from('users').update(dbUpdates).eq('id', id);
+      if (error) {
+        return { success: false, error: error.message };
+      }
+      return { success: true };
+    } catch (err: any) {
+      return { success: false, error: err?.message || 'Failed to update user.' };
+    }
+  },
+
+  async deleteCloudUser(id: string): Promise<{ success: boolean; error?: string }> {
+    if (!cloudSync.isEnabled() || !supabase) {
+      return { success: false, error: 'Database not connected.' };
+    }
+
+    try {
+      const { error } = await supabase.from('users').delete().eq('id', id);
+      if (error) {
+        return { success: false, error: error.message };
+      }
+      return { success: true };
+    } catch (err: any) {
+      return { success: false, error: err?.message || 'Failed to delete user.' };
+    }
+  },
+
+  async pullUsersDirectory(): Promise<any[] | null> {
+    if (!cloudSync.isEnabled() || !supabase) return null;
+    try {
+      // 1. Try direct public.users table
+      const { data: usersData, error: usersErr } = await supabase.from('users').select('*').order('created_at', { ascending: true });
+      if (!usersErr && usersData && usersData.length > 0) {
+        return usersData.map((r: any) => ({
+          id: r.id,
+          name: r.name,
+          email: r.email,
+          password: r.password,
+          role: r.role,
+          status: r.status,
+          phone: r.phone,
+          avatar: r.avatar,
+          organizationId: r.organization_id || 'org_tisha_main',
+          permissions: r.permissions,
+          createdAt: r.created_at,
+          lastLogin: r.last_login,
+        }));
+      }
+
+      // 2. Try direct public.saas_users table
+      const { data: saasData, error: saasErr } = await supabase.from('saas_users').select('*');
+      if (!saasErr && saasData && saasData.length > 0) {
+        return saasData.map((r: any) => ({
+          id: r.id,
+          name: r.name,
+          email: r.email,
+          password: r.password,
+          role: r.role,
+          status: r.status,
+          phone: r.phone,
+          avatar: r.avatar,
+          organizationId: r.organization_id || 'org_tisha_main',
+          permissions: r.permissions,
+          createdAt: r.created_at,
+          lastLogin: r.last_login,
+        }));
+      }
+
+      // 3. Fallback to company_settings
+      const { data, error } = await supabase
+        .from('company_settings')
+        .select('*')
+        .eq('id', 'saas_team_directory')
+        .single();
+
+      if (!error && data && data.profile && Array.isArray(data.profile.users)) {
+        return data.profile.users;
+      }
+      return null;
+    } catch (err) {
+      console.warn('Failed pulling users from Supabase:', err);
+      return null;
+    }
+  },
+
+  async fetchOrganizationsFromCloud(): Promise<SaaSOrganization[] | null> {
+    if (!cloudSync.isEnabled() || !supabase) return null;
+    try {
+      const { data, error } = await supabase
+        .from('company_settings')
+        .select('*')
+        .eq('id', 'saas_organizations')
+        .maybeSingle();
+
+      if (!error && data && data.profile && Array.isArray(data.profile.organizations)) {
+        return data.profile.organizations;
+      }
+      return null;
+    } catch (err) {
+      console.warn('Failed to fetch organizations from Supabase:', err);
+      return null;
+    }
+  },
+
+  async saveOrganizationsToCloud(orgs: SaaSOrganization[]): Promise<{ success: boolean; error?: string }> {
+    if (!cloudSync.isEnabled() || !supabase) {
+      return { success: false, error: 'Cloud database not connected.' };
+    }
+    try {
+      const { error } = await supabase
+        .from('company_settings')
+        .upsert({
+          id: 'saas_organizations',
+          profile: { organizations: orgs },
+          updated_at: new Date().toISOString(),
+        });
+
+      if (error) {
+        return { success: false, error: error.message };
+      }
+      return { success: true };
+    } catch (err: any) {
+      return { success: false, error: err?.message || 'Failed saving organizations.' };
+    }
+  },
+
+  subscribeToCloudChanges(callback: (payload: { table: string; eventType: string }) => void): () => void {
+    if (!cloudSync.isEnabled() || !supabase) return () => {};
+
+    try {
+      const channel = supabase
+        .channel('tisha_db_changes')
+        .on(
+          'postgres_changes',
+          { event: '*', schema: 'public' },
+          (payload) => {
+            callback({ table: payload.table, eventType: payload.eventType });
+          }
+        )
+        .subscribe();
+
+      return () => {
+        supabase?.removeChannel(channel);
+      };
+    } catch (err) {
+      console.warn('Failed to set up Supabase realtime listener:', err);
+      return () => {};
     }
   },
 };
