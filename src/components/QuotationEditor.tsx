@@ -546,16 +546,34 @@ export const QuotationEditor: React.FC<Props> = ({
             <div className="flex-1 space-y-2">
               <div className="flex items-center gap-3 mb-2">
                 {quotation.company.logo ? (
-                  <div className="relative group inline-block">
-                    <img
-                      src={quotation.company.logo}
-                      alt="Logo"
-                      className="h-14 md:h-16 w-auto object-contain rounded"
-                    />
-                    <label className="absolute inset-0 bg-black/50 opacity-0 group-hover:opacity-100 flex items-center justify-center cursor-pointer transition-opacity rounded">
-                      <ImageIcon size={18} className="text-white" />
-                      <input type="file" accept="image/*" onChange={handleLogoUpload} className="hidden" />
-                    </label>
+                  <div className="flex items-center gap-2">
+                    <div className="relative group inline-block">
+                      <img
+                        src={quotation.company.logo}
+                        alt="Logo"
+                        className="h-14 md:h-16 w-auto object-contain rounded border border-slate-200/80 p-0.5 bg-white shadow-2xs"
+                      />
+                      <label 
+                        title="Click to replace logo"
+                        className="absolute inset-0 bg-black/60 opacity-0 group-hover:opacity-100 flex items-center justify-center cursor-pointer transition-opacity rounded"
+                      >
+                        <ImageIcon size={18} className="text-white" />
+                        <input type="file" accept="image/*" onChange={handleLogoUpload} className="hidden" />
+                      </label>
+                    </div>
+
+                    <button
+                      type="button"
+                      onClick={() => {
+                        onChange({ ...quotation, company: { ...quotation.company, logo: '' } });
+                        toast.info('Logo removed from this quotation');
+                      }}
+                      title="Clear logo from quotation"
+                      className="inline-flex items-center gap-1 text-[11px] font-semibold text-rose-600 hover:text-rose-800 bg-rose-50 hover:bg-rose-100 px-2.5 py-1 rounded-md transition-colors cursor-pointer"
+                    >
+                      <Trash2 size={12} />
+                      <span>Clear Logo</span>
+                    </button>
                   </div>
                 ) : (
                   <label className="inline-flex items-center gap-2 px-3 py-1.5 bg-slate-100 hover:bg-slate-200 rounded-lg cursor-pointer transition-colors text-xs font-semibold text-slate-700">

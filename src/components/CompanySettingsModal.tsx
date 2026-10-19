@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { X, Building2, Save, Image as ImageIcon, CreditCard, Download, Upload, Cloud, HardDrive, CheckCircle2, RefreshCw, AlertCircle } from 'lucide-react';
+import { X, Building2, Save, Image as ImageIcon, CreditCard, Download, Upload, Cloud, HardDrive, CheckCircle2, RefreshCw, AlertCircle, Trash2 } from 'lucide-react';
 import { CompanyProfile } from '../types/quotation';
 import { storage } from '../services/storage';
 import { DEFAULT_COMPANY } from '../config/defaults';
@@ -139,6 +139,19 @@ export const CompanySettingsModal: React.FC<Props> = ({
                     </label>
                   )}
                 </div>
+                {profile.logo && (
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setProfile((prev) => ({ ...prev, logo: '' }));
+                      toast.info('Logo cleared');
+                    }}
+                    className="mt-1.5 w-full text-center text-[10px] font-bold text-rose-600 hover:text-rose-700 hover:bg-rose-50 py-1 rounded transition-colors flex items-center justify-center gap-1 cursor-pointer"
+                  >
+                    <Trash2 size={11} />
+                    <span>Clear Logo</span>
+                  </button>
+                )}
               </div>
 
               <div className="flex-1 space-y-3">
