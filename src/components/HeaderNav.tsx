@@ -3,7 +3,7 @@ import { NavLink, useNavigate, useLocation } from 'react-router-dom';
 import {
   FileText, Settings, Check, Plus, Users, Edit3,
   LogOut, Shield, ChevronDown, User, Sparkles, Building2,
-  Lock, Crown, Briefcase, UserCheck
+  Lock, Crown, Briefcase, UserCheck, CreditCard
 } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
 import { useToast } from '../context/ToastContext';
@@ -21,7 +21,7 @@ export const HeaderNav: React.FC<Props> = ({
   hasActiveQuote,
   activeQuoteId,
 }) => {
-  const { user, organization, organizations, switchOrganization, logout, isSuperAdmin, hasPermission } = useAuth();
+  const { user, organization, organizations, switchOrganization, logout, isSuperAdmin, hasPermission, isPaymentLedgerEnabled } = useAuth();
   const toast = useToast();
   const navigate = useNavigate();
   const location = useLocation();
@@ -31,6 +31,7 @@ export const HeaderNav: React.FC<Props> = ({
 
   const canManageUsers = isSuperAdmin || hasPermission('canManageUsers');
   const canEditBank = isSuperAdmin || hasPermission('canEditBankDetails');
+  const canViewPaymentLedger = isPaymentLedgerEnabled && (isSuperAdmin || hasPermission('canViewPaymentLedger'));
 
   // Close dropdown on outside click
   useEffect(() => {
@@ -53,62 +54,64 @@ export const HeaderNav: React.FC<Props> = ({
   const isEditorActive = location.pathname.startsWith('/quotes/') && location.pathname !== '/quotes';
 
   return (
-    <header className="no-print bg-black text-white border-b border-neutral-800 sticky top-0 z-50">
-      <div className="max-w-6xl mx-auto px-3 sm:px-4">
+    <header className="no-print bg-neutral-950 text-white border-b border-neutral-800/90 sticky top-0 z-50 shadow-md">
+      <div className="w-full max-w-[1500px] mx-auto px-3 sm:px-6">
 
         {/* Main Header Bar */}
-        <div className="h-14 sm:h-16 flex items-center justify-between gap-2">
+        <div className="h-14 sm:h-16 flex items-center justify-between gap-3">
 
           {/* Brand / Logo */}
           <NavLink
             to="/quotes"
-            className="flex items-center gap-2.5 sm:gap-3 min-w-0 hover:opacity-95 transition-opacity"
+            className="flex items-center gap-2.5 sm:gap-3 shrink-0 hover:opacity-95 transition-opacity"
           >
             <img
               src={organization?.logoUrl || "https://res.cloudinary.com/dcfouzaii/image/upload/f_auto,q_auto,w_160/v1763444919/logo_a6xmsh.png"}
               alt={organization?.name || "Tisha LED Walls"}
-              className="h-12 sm:h-14 w-auto max-w-[120px] object-contain flex-shrink-0 rounded-lg drop-shadow-sm"
+              className="h-9 sm:h-10 w-auto max-w-[90px] object-contain flex-shrink-0 rounded-lg drop-shadow-sm"
             />
-            <div className="min-w-0">
-              <div className="font-black text-xs sm:text-base tracking-tight flex items-center gap-1.5 whitespace-nowrap">
-                <span className="truncate">{organization?.name || 'TISHA LED WALLS'}</span>
+            <div className="shrink-0">
+              <div className="font-black text-xs sm:text-sm lg:text-base tracking-tight flex items-center gap-1.5 whitespace-nowrap">
+                <span>{organization?.name || 'TISHA LED WALLS'}</span>
                 <span className="text-[9px] sm:text-[10px] uppercase font-extrabold tracking-wider px-1.5 py-0.5 rounded bg-blue-500/20 text-blue-400 border border-blue-500/30 flex-shrink-0">
                   {organization?.plan?.toUpperCase() || 'PRO'}
                 </span>
               </div>
-              <div className="text-[11px] text-neutral-400 hidden lg:block leading-tight mt-0.5">
-                Quotation Management System
+              <div className="text-[10px] text-neutral-400 hidden xl:block leading-tight mt-0.5">
+                Quotation &amp; Ledger Suite
               </div>
             </div>
           </NavLink>
 
           {/* Desktop Navigation Tabs */}
-          <nav className="hidden md:flex items-center gap-1 bg-neutral-900/90 p-1 rounded-xl border border-neutral-800">
+          <nav className="hidden md:flex items-center gap-1 bg-neutral-900/90 p-1 rounded-xl border border-neutral-800/90 shadow-inner">
             <NavLink
               to="/quotes"
               end
               className={({ isActive }) =>
-                `flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold transition-all ${isActive && !isEditorActive
-                  ? 'bg-blue-600 text-white shadow-md shadow-blue-500/25 font-bold'
-                  : 'text-neutral-300 hover:text-white hover:bg-neutral-800'
+                `flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold whitespace-nowrap transition-all ${
+                  isActive && !isEditorActive
+                    ? 'bg-blue-600 text-white shadow-sm shadow-blue-500/30 font-bold'
+                    : 'text-neutral-300 hover:text-white hover:bg-neutral-800/90'
                 }`
               }
             >
-              <FileText size={14} />
-              <span>All Quotes</span>
+              <FileText size={14} className="shrink-0" />
+              <span>Quotes</span>
             </NavLink>
 
             {(hasActiveQuote || isEditorActive) && (
               <NavLink
                 to={activeQuoteId ? `/quotes/${activeQuoteId}` : '/quotes'}
                 className={({ isActive }) =>
-                  `flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold transition-all ${isEditorActive || isActive
-                    ? 'bg-blue-600 text-white shadow-md shadow-blue-500/25 font-bold'
-                    : 'text-neutral-300 hover:text-white hover:bg-neutral-800'
+                  `flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold whitespace-nowrap transition-all ${
+                    isEditorActive || isActive
+                      ? 'bg-blue-600 text-white shadow-sm shadow-blue-500/30 font-bold'
+                      : 'text-neutral-300 hover:text-white hover:bg-neutral-800/90'
                   }`
                 }
               >
-                <Edit3 size={14} />
+                <Edit3 size={14} className="shrink-0" />
                 <span>Editor</span>
               </NavLink>
             )}
@@ -116,40 +119,58 @@ export const HeaderNav: React.FC<Props> = ({
             <NavLink
               to="/clients"
               className={({ isActive }) =>
-                `flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold transition-all ${isActive
-                  ? 'bg-blue-600 text-white shadow-md shadow-blue-500/25 font-bold'
-                  : 'text-neutral-300 hover:text-white hover:bg-neutral-800'
+                `flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold whitespace-nowrap transition-all ${
+                  isActive
+                    ? 'bg-blue-600 text-white shadow-sm shadow-blue-500/30 font-bold'
+                    : 'text-neutral-300 hover:text-white hover:bg-neutral-800/90'
                 }`
               }
             >
-              <Users size={14} />
+              <Users size={14} className="shrink-0" />
               <span>Clients</span>
             </NavLink>
+
+            {canViewPaymentLedger && (
+              <NavLink
+                to="/ledger"
+                className={({ isActive }) =>
+                  `flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold whitespace-nowrap transition-all ${
+                    isActive
+                      ? 'bg-emerald-600 text-white shadow-sm shadow-emerald-500/30 font-bold'
+                      : 'text-emerald-400 hover:text-white hover:bg-emerald-950/50'
+                  }`
+                }
+              >
+                <CreditCard size={14} className="text-emerald-400 shrink-0" />
+                <span>Payment Ledger</span>
+              </NavLink>
+            )}
 
             {canManageUsers && (
               <NavLink
                 to="/team"
                 className={({ isActive }) =>
-                  `flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold transition-all ${isActive
-                    ? 'bg-purple-600 text-white shadow-md shadow-purple-500/25 font-bold'
-                    : 'text-purple-300 hover:text-white hover:bg-purple-950/60'
+                  `flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold whitespace-nowrap transition-all ${
+                    isActive
+                      ? 'bg-purple-600 text-white shadow-sm shadow-purple-500/30 font-bold'
+                      : 'text-purple-300 hover:text-white hover:bg-purple-950/60'
                   }`
                 }
               >
-                <Crown size={14} className="text-purple-400" />
+                <Crown size={14} className="text-purple-400 shrink-0" />
                 <span>Team &amp; Roles</span>
               </NavLink>
             )}
           </nav>
 
           {/* Right side CTAs */}
-          <div className="flex items-center gap-1.5 sm:gap-2 flex-shrink-0">
+          <div className="flex items-center gap-2 flex-shrink-0">
             <button
               onClick={onCreateNew}
               title="Create New Quote"
-              className="flex items-center gap-1 bg-blue-600 hover:bg-blue-700 active:scale-95 text-white px-2.5 sm:px-3 py-1.5 rounded-lg text-xs font-bold transition-all shadow-sm"
+              className="flex items-center gap-1.5 bg-blue-600 hover:bg-blue-500 active:scale-95 text-white px-3 py-1.5 rounded-lg text-xs font-bold transition-all shadow-sm whitespace-nowrap cursor-pointer"
             >
-              <Plus size={15} />
+              <Plus size={15} className="shrink-0" />
               <span className="hidden sm:inline">New Quote</span>
               <span className="sm:hidden">New</span>
             </button>
@@ -323,8 +344,8 @@ export const HeaderNav: React.FC<Props> = ({
               </div>
             )}
 
-            <div className="hidden lg:flex items-center gap-1 text-[11px] text-emerald-400 bg-emerald-950/60 border border-emerald-800/60 px-2 py-1 rounded-md">
-              <Check size={12} />
+            <div className="hidden xl:flex items-center gap-1.5 text-[11px] font-medium text-emerald-400 bg-emerald-950/50 border border-emerald-800/50 px-2.5 py-1 rounded-full whitespace-nowrap shadow-inner">
+              <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse" />
               <span>Auto-saved</span>
             </div>
           </div>
@@ -375,6 +396,21 @@ export const HeaderNav: React.FC<Props> = ({
               <Users size={13} />
               <span>Clients</span>
             </NavLink>
+
+            {canViewPaymentLedger && (
+              <NavLink
+                to="/ledger"
+                className={({ isActive }) =>
+                  `flex-1 flex items-center justify-center gap-1 py-1.5 px-2 rounded-lg text-xs font-bold transition-all whitespace-nowrap ${isActive
+                    ? 'bg-emerald-600 text-white shadow-sm shadow-emerald-500/30'
+                    : 'text-emerald-400 hover:text-white hover:bg-neutral-800'
+                  }`
+                }
+              >
+                <CreditCard size={13} />
+                <span>Ledger</span>
+              </NavLink>
+            )}
 
             {canManageUsers && (
               <NavLink

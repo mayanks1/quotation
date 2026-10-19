@@ -4,7 +4,7 @@ import {
   Trash2, Edit, CheckCircle2, XCircle, Lock, Key, 
   Crown, Briefcase, User, Mail, Phone, Sparkles, Check, AlertTriangle,
   Building2, Plus, ExternalLink, ArrowRight, RefreshCw, FolderPlus,
-  CheckCheck, Globe, Zap, Layers, Search, Filter
+  CheckCheck, Globe, Zap, Layers, Search, Filter, CreditCard
 } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
 import { useToast, useConfirm } from '../context/ToastContext';
@@ -28,6 +28,8 @@ export const UsersPage: React.FC = () => {
     createWorkspace,
     updateWorkspace,
     deleteWorkspace,
+    isPaymentLedgerEnabled,
+    setPaymentLedgerEnabled,
   } = useAuth();
   
   const toast = useToast();
@@ -119,7 +121,13 @@ export const UsersPage: React.FC = () => {
       role: target.role,
       status: target.status,
       organizationId: target.organizationId || currentOrganization?.id || 'org_tisha_main',
-      permissions: { ...target.permissions },
+      permissions: {
+        ...DEFAULT_PERMISSIONS_BY_ROLE[target.role],
+        ...target.permissions,
+        canViewPaymentLedger: target.permissions?.canViewPaymentLedger !== undefined 
+          ? Boolean(target.permissions.canViewPaymentLedger) 
+          : Boolean(DEFAULT_PERMISSIONS_BY_ROLE[target.role]?.canViewPaymentLedger),
+      },
     });
     setIsCreateModalOpen(true);
   };
@@ -438,6 +446,65 @@ export const UsersPage: React.FC = () => {
         </div>
       </div>
 
+      {/* System Modules & Suite Features Switch */}
+      <div className="bg-slate-900 text-white p-4 sm:p-5 rounded-2xl border border-slate-800 shadow-sm flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+        <div className="flex items-center gap-3.5">
+          <div className={`w-11 h-11 rounded-2xl flex items-center justify-center shrink-0 border transition-colors ${
+            isPaymentLedgerEnabled 
+              ? 'bg-emerald-500/20 text-emerald-400 border-emerald-500/30' 
+              : 'bg-slate-800/80 text-slate-500 border-slate-700'
+          }`}>
+            <CreditCard size={22} />
+          </div>
+          <div>
+            <div className="flex items-center gap-2">
+              <span className="font-bold text-sm text-white">Payment Ledger Module</span>
+              <span className={`text-[10px] font-extrabold uppercase px-2 py-0.5 rounded-full border ${
+                isPaymentLedgerEnabled
+                  ? 'bg-emerald-500/20 text-emerald-400 border-emerald-500/30'
+                  : 'bg-rose-500/20 text-rose-300 border-rose-500/30'
+              }`}>
+                {isPaymentLedgerEnabled ? 'Module Active' : 'Module Hidden'}
+              </span>
+            </div>
+            <p className="text-xs text-slate-400 mt-0.5">
+              {isPaymentLedgerEnabled
+                ? 'Payment Ledger is enabled in the suite navigation. Access for individual members is regulated below via the Permissions Matrix.'
+                : 'Payment Ledger is turned off and hidden system-wide from the navigation for all users.'}
+            </p>
+          </div>
+        </div>
+
+        <div className="flex items-center gap-3 shrink-0 self-end sm:self-center">
+          {isSuperAdmin ? (
+            <label className="relative inline-flex items-center cursor-pointer select-none">
+              <input
+                type="checkbox"
+                checked={isPaymentLedgerEnabled}
+                onChange={async (e) => {
+                  const val = e.target.checked;
+                  await setPaymentLedgerEnabled(val);
+                  if (val) {
+                    toast.success('Payment Ledger module enabled! User visibility is now regulated by the Permissions Matrix.');
+                  } else {
+                    toast.info('Payment Ledger module disabled and hidden system-wide.');
+                  }
+                }}
+                className="sr-only peer"
+              />
+              <div className="w-11 h-6 bg-slate-700 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-slate-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-emerald-500"></div>
+              <span className="ml-2.5 text-xs font-bold text-slate-300">
+                {isPaymentLedgerEnabled ? 'Show Ledger' : 'Hide Ledger'}
+              </span>
+            </label>
+          ) : (
+            <span className="text-[11px] text-slate-400 flex items-center gap-1 bg-slate-800 px-2.5 py-1 rounded-lg border border-slate-700">
+              <Lock size={12} /> Super Admin Only
+            </span>
+          )}
+        </div>
+      </div>
+
       {/* Navigation Tabs */}
       <div className="flex items-center justify-between border-b border-slate-200 pb-px">
         <div className="flex items-center gap-2">
@@ -683,6 +750,14 @@ export const UsersPage: React.FC = () => {
                                   : 'bg-slate-50 text-slate-400 border border-slate-200 line-through'
                               }`}>
                                 Restore DB
+                              </span>
+
+                              <span className={`px-2 py-0.5 rounded text-[10px] font-semibold flex items-center gap-1 ${
+                                isPaymentLedgerEnabled && (isUserOwner || u.permissions.canViewPaymentLedger)
+                                  ? 'bg-blue-50 text-blue-700 border border-blue-200'
+                                  : 'bg-slate-50 text-slate-400 border border-slate-200 line-through'
+                              }`}>
+                                Ledger Access
                               </span>
                             </div>
                           </td>
@@ -1073,6 +1148,7 @@ export const UsersPage: React.FC = () => {
 
                   <div className={`space-y-1.5 ${!isSuperAdmin ? 'opacity-70 pointer-events-none' : ''}`}>
                     {[
+                      { key: 'canViewPaymentLedger', label: 'Can Access Payment Ledger', desc: 'Allows viewing payments, financial transactions & client ledger' },
                       { key: 'canEditBankDetails', label: 'Can Edit Bank Details & UPI IDs', desc: 'Allows altering UPI ID & bank account on quotations (High Risk)', danger: true },
                       { key: 'canDeleteQuotes', label: 'Can Permanently Delete Quotations', desc: 'Allows deleting proposals from database' },
                       { key: 'canManageUsers', label: 'Can Manage Team Users', desc: 'Allows creating and editing team accounts' },

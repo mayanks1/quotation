@@ -29,8 +29,19 @@ const USERS_CACHE_KEY = 'tisha_saas_users_directory_v3';
 const ORGS_CACHE_KEY = 'tisha_saas_orgs_directory_v2';
 const ACTIVE_ORG_ID_KEY = 'tisha_active_org_id';
 const SESSION_KEY = 'tisha_saas_auth_session';
+const MODULE_LEDGER_KEY = 'tisha_module_payment_ledger_enabled';
 
 export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
+  const [isPaymentLedgerEnabled, setIsPaymentLedgerEnabledState] = useState<boolean>(() => {
+    try {
+      const stored = localStorage.getItem(MODULE_LEDGER_KEY);
+      if (stored !== null) {
+        return JSON.parse(stored);
+      }
+    } catch (e) {}
+    return true; // Default: Enabled
+  });
+
   const [users, setUsers] = useState<SaaSUser[]>(() => {
     try {
       const stored = localStorage.getItem(USERS_CACHE_KEY);
@@ -73,6 +84,22 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     return DEFAULT_ORG;
   });
   const [isLoading, setIsLoading] = useState(true);
+
+  const setPaymentLedgerEnabled = async (enabled: boolean): Promise<void> => {
+    setIsPaymentLedgerEnabledState(enabled);
+    try {
+      localStorage.setItem(MODULE_LEDGER_KEY, JSON.stringify(enabled));
+      if (isSupabaseConfigured() && supabase) {
+        await supabase.from('company_settings').upsert({
+          id: 'module_payment_ledger',
+          profile: { enabled, updated_at: new Date().toISOString() },
+          updated_at: new Date().toISOString(),
+        }, { onConflict: 'id' }).catch(() => {});
+      }
+    } catch (e) {
+      console.warn('Failed saving module setting:', e);
+    }
+  };
 
   // Sync users to local storage whenever updated
   useEffect(() => {
@@ -353,7 +380,10 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const hasPermission = (perm: keyof UserPermissions): boolean => {
     if (!user) return false;
     if (isMasterSuperAdmin || user.role === 'owner') return true;
-    return !!user.permissions?.[perm];
+    if (user.permissions && user.permissions[perm] !== undefined) {
+      return Boolean(user.permissions[perm]);
+    }
+    return Boolean(DEFAULT_PERMISSIONS_BY_ROLE[user.role]?.[perm]);
   };
 
   const switchOrganization = (orgId: string) => {
@@ -626,6 +656,8 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         updateUserById,
         deleteUserById,
         hasPermission,
+        isPaymentLedgerEnabled,
+        setPaymentLedgerEnabled,
       }}
     >
       {children}
@@ -658,6 +690,8 @@ export const useAuth = () => {
       updateUserById: async () => ({ success: false, error: 'Auth provider not ready' }),
       deleteUserById: async () => ({ success: false, error: 'Auth provider not ready' }),
       hasPermission: () => false,
+      isPaymentLedgerEnabled: true,
+      setPaymentLedgerEnabled: async () => {},
     };
   }
   return ctx;

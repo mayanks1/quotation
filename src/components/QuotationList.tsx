@@ -2,7 +2,7 @@ import React, { useState, useMemo, useEffect } from 'react';
 import { 
   FileText, Plus, Search, Copy, Download, Trash2, 
   Share2, CheckCircle2, Clock, CheckCheck, 
-  XCircle, Receipt, ArrowRight, IndianRupee,
+  XCircle, Receipt, ArrowRight, ArrowLeft, IndianRupee,
   Calendar, Filter, X, ChevronLeft, ChevronRight,
   ChevronsLeft, ChevronsRight, ArrowUpDown, SlidersHorizontal,
   RotateCcw, Sparkles, FileSpreadsheet, Upload, Database, Layers, Bell,
@@ -26,6 +26,9 @@ interface Props {
   onDuplicate: (quotation: Quotation) => void;
   onDelete: (id: string) => void;
   onRestoreBackup?: () => void;
+  onRestoreQuotation?: (id: string) => void;
+  onPermanentDelete?: (id: string) => void;
+  onEmptyTrash?: () => void;
 }
 
 type DatePreset = 'all' | 'today' | 'this_week' | 'this_month' | 'last_30_days' | 'this_year' | 'custom';
@@ -84,12 +87,31 @@ export const QuotationList: React.FC<Props> = ({
   onDuplicate,
   onDelete,
   onRestoreBackup,
+  onRestoreQuotation,
+  onPermanentDelete,
+  onEmptyTrash,
 }) => {
   const toast = useToast();
   const { confirm } = useConfirm();
   const { isSuperAdmin, hasPermission } = useAuth();
   const canDelete = isSuperAdmin || hasPermission('canDeleteQuotes');
   const canRestore = isSuperAdmin || hasPermission('canRestoreBackups');
+
+  // Trashed items state (synced with storage)
+  const [trashedList, setTrashedList] = useState<Quotation[]>(() => storage.getTrashedQuotations());
+
+  useEffect(() => {
+    setTrashedList(storage.getTrashedQuotations());
+  }, [quotations]);
+
+  const trashCount = trashedList.length;
+
+  const getDaysRemainingInTrash = (deletedAt?: string) => {
+    if (!deletedAt) return 30;
+    const deletedMs = new Date(deletedAt).getTime();
+    const elapsedDays = Math.floor((Date.now() - deletedMs) / (24 * 60 * 60 * 1000));
+    return Math.max(0, 30 - elapsedDays);
+  };
 
   // Primary Controls State
   const [search, setSearch] = useState('');
@@ -239,10 +261,11 @@ export const QuotationList: React.FC<Props> = ({
 
   // Filter & Sort Logic
   const filteredAndSorted = useMemo(() => {
-    return quotations
+    const sourceList = statusFilter === 'trash' ? trashedList : quotations;
+    return sourceList
       .filter((q) => {
         // Status filter
-        if (statusFilter !== 'all' && q.status !== statusFilter) {
+        if (statusFilter !== 'all' && statusFilter !== 'trash' && q.status !== statusFilter) {
           return false;
         }
 
@@ -321,7 +344,7 @@ export const QuotationList: React.FC<Props> = ({
         return 0;
       });
   }, [
-    quotations, search, statusFilter, dateFieldTarget, 
+    quotations, trashedList, search, statusFilter, dateFieldTarget, 
     customStartDate, customEndDate, clientFilter, amountFilter, sortOption
   ]);
 
@@ -418,15 +441,70 @@ export const QuotationList: React.FC<Props> = ({
       return;
     }
     const confirmed = await confirm({
-      title: 'Delete Quotation',
-      message: `Are you sure you want to delete quotation "${quote.quotationNumber}"? This will permanently remove it from your records.`,
-      confirmText: 'Delete Quotation',
+      title: 'Move to Trash (30 Days Retention)',
+      message: `Move quotation "${quote.quotationNumber}" to Trash? It will be safely retained in Trash for 30 days before permanent deletion. You can restore it anytime.`,
+      confirmText: 'Move to Trash',
       cancelText: 'Keep Quote',
       variant: 'danger',
     });
     if (confirmed) {
       onDelete(quote.id);
-      toast.success(`Quotation ${quote.quotationNumber} deleted successfully`);
+      setTrashedList(storage.getTrashedQuotations());
+    }
+  };
+
+  const handleRestoreQuote = async (e: React.MouseEvent, quote: Quotation) => {
+    e.stopPropagation();
+    if (onRestoreQuotation) {
+      onRestoreQuotation(quote.id);
+    } else {
+      storage.restoreFromTrash(quote.id);
+    }
+    setTrashedList(storage.getTrashedQuotations());
+  };
+
+  const handlePermanentDeleteQuote = async (e: React.MouseEvent, quote: Quotation) => {
+    e.stopPropagation();
+    if (!canDelete) {
+      toast.warning('Locked: Only Super Admin can permanently delete quotation records.');
+      return;
+    }
+    const confirmed = await confirm({
+      title: 'Permanently Delete Quotation',
+      message: `Are you sure you want to permanently delete "${quote.quotationNumber}"? This action cannot be undone or recovered.`,
+      confirmText: 'Delete Permanently',
+      cancelText: 'Cancel',
+      variant: 'danger',
+    });
+    if (confirmed) {
+      if (onPermanentDelete) {
+        onPermanentDelete(quote.id);
+      } else {
+        storage.permanentlyDelete(quote.id);
+      }
+      setTrashedList(storage.getTrashedQuotations());
+    }
+  };
+
+  const handleEmptyAllTrash = async () => {
+    if (!canDelete) {
+      toast.warning('Locked: Only Super Admin can empty the trash.');
+      return;
+    }
+    const confirmed = await confirm({
+      title: 'Empty Trash',
+      message: `Permanently delete all ${trashedList.length} quotations/invoices in the Trash? This cannot be recovered.`,
+      confirmText: 'Empty All Trash',
+      cancelText: 'Cancel',
+      variant: 'danger',
+    });
+    if (confirmed) {
+      if (onEmptyTrash) {
+        onEmptyTrash();
+      } else {
+        storage.emptyTrash();
+      }
+      setTrashedList([]);
     }
   };
 
@@ -567,6 +645,7 @@ export const QuotationList: React.FC<Props> = ({
             { id: 'invoiced', label: 'Invoiced', count: invoicedCount, icon: Receipt, activeBadge: 'bg-indigo-100 text-indigo-700' },
             { id: 'draft', label: 'Drafts', count: draftCount, icon: FileEdit, activeBadge: 'bg-amber-100 text-amber-700' },
             { id: 'rejected', label: 'Rejected', count: rejectedCount, icon: XCircle, activeBadge: 'bg-rose-100 text-rose-700' },
+            { id: 'trash', label: 'Trash', count: trashCount, icon: Trash2, activeBadge: 'bg-rose-100 text-rose-700' },
           ].map((tab) => {
             const isActive = statusFilter === tab.id;
             const Icon = tab.icon;
@@ -960,32 +1039,76 @@ export const QuotationList: React.FC<Props> = ({
           </div>
         </div>
 
+        {/* 30-Day Trash Announcement & Bulk Purge Bar */}
+        {statusFilter === 'trash' && (
+          <div className="px-4 sm:px-6 py-3.5 bg-amber-50/90 border-b border-amber-200/80 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 text-xs text-amber-900">
+            <div className="flex items-center gap-2.5">
+              <div className="w-8 h-8 rounded-xl bg-amber-200/80 text-amber-900 flex items-center justify-center shrink-0 shadow-2xs">
+                <Trash2 size={16} />
+              </div>
+              <div>
+                <span className="font-extrabold text-amber-950">30-Day Recycle Bin:</span> Deleted quotations &amp; invoices are safely stored here for 30 days before permanent auto-purge. You can restore them anytime or delete them forever.
+              </div>
+            </div>
+            {trashedList.length > 0 && canDelete && (
+              <button
+                type="button"
+                onClick={handleEmptyAllTrash}
+                className="flex items-center gap-1.5 px-3.5 py-1.5 rounded-xl bg-rose-600 hover:bg-rose-700 text-white font-bold text-xs shadow-xs transition-colors shrink-0 cursor-pointer"
+              >
+                <Trash2 size={13} />
+                <span>Empty Trash ({trashedList.length})</span>
+              </button>
+            )}
+          </div>
+        )}
+
         {/* Quotations List */}
         {totalItems === 0 ? (
           <div className="py-16 px-4 text-center">
-            <FileText size={48} className="mx-auto text-slate-300 mb-3" />
-            <h4 className="text-base font-bold text-slate-700">No Quotations Match Your Criteria</h4>
-            <p className="text-xs text-slate-400 max-w-sm mx-auto mt-1 mb-5">
-              {activeFiltersCount > 0
-                ? 'Try broadening your search or clearing applied date and status filters.'
-                : 'Create your first professional LED wall quotation to get started!'}
-            </p>
-            {activeFiltersCount > 0 ? (
-              <button
-                onClick={handleResetFilters}
-                className="inline-flex items-center gap-2 bg-slate-800 hover:bg-slate-900 text-white px-4 py-2 rounded-xl text-xs font-bold transition-all shadow-sm"
-              >
-                <RotateCcw size={14} />
-                Reset Filters
-              </button>
+            {statusFilter === 'trash' ? (
+              <>
+                <Trash2 size={48} className="mx-auto text-slate-300 mb-3" />
+                <h4 className="text-base font-bold text-slate-700">Trash is Empty</h4>
+                <p className="text-xs text-slate-400 max-w-sm mx-auto mt-1 mb-5">
+                  No deleted quotations or invoices in the last 30 days. When you delete a quote, it is preserved here safely.
+                </p>
+                <button
+                  type="button"
+                  onClick={() => setStatusFilter('all')}
+                  className="inline-flex items-center gap-2 bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-xl text-xs font-bold transition-all shadow-sm cursor-pointer"
+                >
+                  <ArrowLeft size={14} />
+                  <span>Back to Active Quotes</span>
+                </button>
+              </>
             ) : (
-              <button
-                onClick={onCreateNew}
-                className="inline-flex items-center gap-2 bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-xl text-xs font-bold transition-all shadow-md shadow-blue-500/20"
-              >
-                <Plus size={16} />
-                Create Quotation Now
-              </button>
+              <>
+                <FileText size={48} className="mx-auto text-slate-300 mb-3" />
+                <h4 className="text-base font-bold text-slate-700">No Quotations Match Your Criteria</h4>
+                <p className="text-xs text-slate-400 max-w-sm mx-auto mt-1 mb-5">
+                  {activeFiltersCount > 0
+                    ? 'Try broadening your search or clearing applied date and status filters.'
+                    : 'Create your first professional LED wall quotation to get started!'}
+                </p>
+                {activeFiltersCount > 0 ? (
+                  <button
+                    onClick={handleResetFilters}
+                    className="inline-flex items-center gap-2 bg-slate-800 hover:bg-slate-900 text-white px-4 py-2 rounded-xl text-xs font-bold transition-all shadow-sm"
+                  >
+                    <RotateCcw size={14} />
+                    Reset Filters
+                  </button>
+                ) : (
+                  <button
+                    onClick={onCreateNew}
+                    className="inline-flex items-center gap-2 bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-xl text-xs font-bold transition-all shadow-md shadow-blue-500/20"
+                  >
+                    <Plus size={16} />
+                    Create Quotation Now
+                  </button>
+                )}
+              </>
             )}
           </div>
         ) : (
@@ -995,9 +1118,17 @@ export const QuotationList: React.FC<Props> = ({
               return (
                 <div
                   key={quote.id}
-                  onClick={() => onSelectQuotation(quote.id)}
+                  onClick={() => {
+                    if (statusFilter === 'trash') {
+                      handleRestoreQuote({ stopPropagation: () => {} } as any, quote);
+                    } else {
+                      onSelectQuotation(quote.id);
+                    }
+                  }}
                   className={`p-4 sm:p-5 hover:bg-slate-50/90 transition-all cursor-pointer flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 sm:gap-4 group border-l-4 ${
-                    quote.status === 'approved' || quote.status === 'invoiced'
+                    statusFilter === 'trash'
+                      ? 'border-l-rose-400 bg-rose-50/20'
+                      : quote.status === 'approved' || quote.status === 'invoiced'
                       ? 'border-l-emerald-500'
                       : quote.status === 'sent'
                       ? 'border-l-blue-500'
@@ -1013,7 +1144,9 @@ export const QuotationList: React.FC<Props> = ({
                         {getClientInitials(quote.client?.name)}
                       </div>
                       <span className={`absolute -bottom-0.5 -right-0.5 w-3 h-3 rounded-full border-2 border-white ${
-                        quote.status === 'approved' || quote.status === 'invoiced'
+                        statusFilter === 'trash'
+                          ? 'bg-rose-500'
+                          : quote.status === 'approved' || quote.status === 'invoiced'
                           ? 'bg-emerald-500'
                           : quote.status === 'sent'
                           ? 'bg-blue-500'
@@ -1026,43 +1159,61 @@ export const QuotationList: React.FC<Props> = ({
                     <div className="space-y-1.5 min-w-0 flex-1">
                       {/* Row 1: Quote #, Badges & Expiry */}
                       <div className="flex items-center gap-2 flex-wrap">
-                        <span className="font-extrabold text-slate-900 text-sm font-mono tracking-tight group-hover:text-blue-600 transition-colors">
+                        <span className={`font-extrabold text-slate-900 text-sm font-mono tracking-tight group-hover:text-blue-600 transition-colors ${
+                          statusFilter === 'trash' ? 'line-through text-slate-500' : ''
+                        }`}>
                           {quote.quotationNumber}
                         </span>
 
-                        {quote.revisionNumber && quote.revisionNumber > 1 ? (
-                          <span className="inline-flex items-center gap-0.5 text-[10px] font-bold px-2 py-0.5 rounded-full bg-indigo-50 text-indigo-700 border border-indigo-200" title={quote.parentQuoteNumber ? `Revised from ${quote.parentQuoteNumber}` : undefined}>
-                            <Layers size={10} />
-                            Rev R{quote.revisionNumber}
-                          </span>
-                        ) : null}
-
-                        {getStatusBadge(quote.status)}
-
-                        {quote.clientSignature && (
-                          <span className="inline-flex items-center gap-0.5 text-[10px] font-bold px-2 py-0.5 rounded-full bg-emerald-50 text-emerald-700 border border-emerald-200" title={`Signed by ${quote.clientSignature.signerName || 'Client'}`}>
-                            <CheckCircle2 size={10} />
-                            Signed
-                          </span>
-                        )}
-
-                        {(() => {
-                          const exp = getQuotationExpiryStatus(quote.validUntil);
-                          return (
-                            <span className={`inline-flex items-center gap-1 text-[10px] font-bold px-2 py-0.5 rounded-full border ${exp.badgeClass}`}>
-                              <Clock size={10} />
-                              {exp.label}
+                        {statusFilter === 'trash' ? (
+                          <>
+                            <span className="inline-flex items-center gap-1 text-[11px] font-bold px-2.5 py-0.5 rounded-full bg-rose-100 text-rose-700 border border-rose-200">
+                              <Trash2 size={11} />
+                              In Trash · {getDaysRemainingInTrash(quote.deletedAt)} days left
                             </span>
-                          );
-                        })()}
+                            {quote.deletedAt && (
+                              <span className="text-xs text-slate-400">
+                                • Deleted on: {new Date(quote.deletedAt).toLocaleDateString('en-IN', { day: '2-digit', month: 'short', year: 'numeric' })}
+                              </span>
+                            )}
+                          </>
+                        ) : (
+                          <>
+                            {quote.revisionNumber && quote.revisionNumber > 1 ? (
+                              <span className="inline-flex items-center gap-0.5 text-[10px] font-bold px-2 py-0.5 rounded-full bg-indigo-50 text-indigo-700 border border-indigo-200" title={quote.parentQuoteNumber ? `Revised from ${quote.parentQuoteNumber}` : undefined}>
+                                <Layers size={10} />
+                                Rev R{quote.revisionNumber}
+                              </span>
+                            ) : null}
 
-                        <span className="text-xs text-slate-400">• Date: {quote.quotationDate}</span>
+                            {getStatusBadge(quote.status)}
 
-                        {quote.eventDate && (
-                          <span className="text-xs text-blue-700 font-semibold bg-blue-50 border border-blue-200/60 px-2 py-0.5 rounded-md flex items-center gap-1">
-                            <Calendar size={11} className="text-blue-600" />
-                            Event: {quote.eventDate}
-                          </span>
+                            {quote.clientSignature && (
+                              <span className="inline-flex items-center gap-0.5 text-[10px] font-bold px-2 py-0.5 rounded-full bg-emerald-50 text-emerald-700 border border-emerald-200" title={`Signed by ${quote.clientSignature.signerName || 'Client'}`}>
+                                <CheckCircle2 size={10} />
+                                Signed
+                              </span>
+                            )}
+
+                            {(() => {
+                              const exp = getQuotationExpiryStatus(quote.validUntil);
+                              return (
+                                <span className={`inline-flex items-center gap-1 text-[10px] font-bold px-2 py-0.5 rounded-full border ${exp.badgeClass}`}>
+                                  <Clock size={10} />
+                                  {exp.label}
+                                </span>
+                              );
+                            })()}
+
+                            <span className="text-xs text-slate-400">• Date: {quote.quotationDate}</span>
+
+                            {quote.eventDate && (
+                              <span className="text-xs text-blue-700 font-semibold bg-blue-50 border border-blue-200/60 px-2 py-0.5 rounded-md flex items-center gap-1">
+                                <Calendar size={11} className="text-blue-600" />
+                                Event: {quote.eventDate}
+                              </span>
+                            )}
+                          </>
                         )}
                       </div>
 
@@ -1101,70 +1252,96 @@ export const QuotationList: React.FC<Props> = ({
                       <div className="text-[11px] text-slate-400 font-medium">Total payable</div>
                     </div>
 
-                    <div className="flex items-center gap-1 bg-slate-50/80 p-1 rounded-xl border border-slate-200/60 group-hover:bg-white group-hover:shadow-xs transition-all">
-                      <button
-                        title="Send 1-Click WhatsApp Follow-up Reminder"
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          const url = generateWhatsAppReminderUrl(quote);
-                          window.open(url, '_blank');
-                          toast.info(`Opening WhatsApp follow-up reminder for ${quote.quotationNumber}`);
-                        }}
-                        className="p-2 text-amber-600 hover:bg-amber-50 hover:text-amber-700 rounded-lg transition-colors cursor-pointer"
-                      >
-                        <Bell size={16} />
-                      </button>
-
-                      <button
-                        title="Share Quotation (PDF or WhatsApp Text)"
-                        onClick={(e) => handleOpenShare(e, quote)}
-                        className="p-2 text-emerald-600 hover:bg-emerald-50 hover:text-emerald-700 rounded-lg transition-colors cursor-pointer"
-                      >
-                        <Share2 size={16} />
-                      </button>
-
-                      <button
-                        title="Download PDF"
-                        disabled={exportingId === quote.id}
-                        onClick={(e) => handleQuickDownload(e, quote)}
-                        className="p-2 text-blue-600 hover:bg-blue-50 hover:text-blue-700 rounded-lg transition-colors disabled:opacity-50 cursor-pointer"
-                      >
-                        <Download size={16} />
-                      </button>
-
-                      <button
-                        title="Duplicate Quotation"
-                        onClick={(e) => handleDuplicateQuote(e, quote)}
-                        className="p-2 text-slate-600 hover:bg-slate-100 hover:text-slate-900 rounded-lg transition-colors cursor-pointer"
-                      >
-                        <Copy size={16} />
-                      </button>
-
-                      {canDelete ? (
+                    {statusFilter === 'trash' ? (
+                      <div className="flex items-center gap-2">
                         <button
-                          title="Delete Quotation"
-                          onClick={(e) => handleDeleteQuote(e, quote)}
-                          className="p-2 text-rose-500 hover:bg-rose-50 hover:text-rose-600 rounded-lg transition-colors cursor-pointer"
+                          type="button"
+                          title="Restore Quotation to Active Quotes"
+                          onClick={(e) => handleRestoreQuote(e, quote)}
+                          className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-bold bg-emerald-600 hover:bg-emerald-500 text-white transition-all shadow-xs cursor-pointer"
                         >
-                          <Trash2 size={16} />
+                          <RotateCcw size={13} />
+                          <span>Restore</span>
                         </button>
-                      ) : (
+
+                        {canDelete && (
+                          <button
+                            type="button"
+                            title="Permanently Delete (Cannot be undone)"
+                            onClick={(e) => handlePermanentDeleteQuote(e, quote)}
+                            className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-bold bg-rose-50 hover:bg-rose-100 text-rose-700 border border-rose-200 transition-all shadow-2xs cursor-pointer"
+                          >
+                            <Trash2 size={13} />
+                            <span className="hidden sm:inline">Delete Forever</span>
+                          </button>
+                        )}
+                      </div>
+                    ) : (
+                      <div className="flex items-center gap-1 bg-slate-50/80 p-1 rounded-xl border border-slate-200/60 group-hover:bg-white group-hover:shadow-xs transition-all">
                         <button
-                          title="Locked: Only Super Admin can delete records"
+                          title="Send 1-Click WhatsApp Follow-up Reminder"
                           onClick={(e) => {
                             e.stopPropagation();
-                            toast.warning('Locked: Only Super Admin can delete quotation records.');
+                            const url = generateWhatsAppReminderUrl(quote);
+                            window.open(url, '_blank');
+                            toast.info(`Opening WhatsApp follow-up reminder for ${quote.quotationNumber}`);
                           }}
-                          className="p-2 text-slate-300 hover:text-slate-400 hover:bg-slate-50 rounded-lg transition-colors cursor-not-allowed"
+                          className="p-2 text-amber-600 hover:bg-amber-50 hover:text-amber-700 rounded-lg transition-colors cursor-pointer"
                         >
-                          <Lock size={15} />
+                          <Bell size={16} />
                         </button>
-                      )}
 
-                      <div className="pl-1 text-slate-300 group-hover:text-blue-600 group-hover:translate-x-1 transition-all hidden sm:block">
-                        <ArrowRight size={18} />
+                        <button
+                          title="Share Quotation (PDF or WhatsApp Text)"
+                          onClick={(e) => handleOpenShare(e, quote)}
+                          className="p-2 text-emerald-600 hover:bg-emerald-50 hover:text-emerald-700 rounded-lg transition-colors cursor-pointer"
+                        >
+                          <Share2 size={16} />
+                        </button>
+
+                        <button
+                          title="Download PDF"
+                          disabled={exportingId === quote.id}
+                          onClick={(e) => handleQuickDownload(e, quote)}
+                          className="p-2 text-blue-600 hover:bg-blue-50 hover:text-blue-700 rounded-lg transition-colors disabled:opacity-50 cursor-pointer"
+                        >
+                          <Download size={16} />
+                        </button>
+
+                        <button
+                          title="Duplicate Quotation"
+                          onClick={(e) => handleDuplicateQuote(e, quote)}
+                          className="p-2 text-slate-600 hover:bg-slate-100 hover:text-slate-900 rounded-lg transition-colors cursor-pointer"
+                        >
+                          <Copy size={16} />
+                        </button>
+
+                        {canDelete ? (
+                          <button
+                            title="Move to Trash"
+                            onClick={(e) => handleDeleteQuote(e, quote)}
+                            className="p-2 text-rose-500 hover:bg-rose-50 hover:text-rose-600 rounded-lg transition-colors cursor-pointer"
+                          >
+                            <Trash2 size={16} />
+                          </button>
+                        ) : (
+                          <button
+                            title="Locked: Only Super Admin can delete records"
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              toast.warning('Locked: Only Super Admin can delete quotation records.');
+                            }}
+                            className="p-2 text-slate-300 hover:text-slate-400 hover:bg-slate-50 rounded-lg transition-colors cursor-not-allowed"
+                          >
+                            <Lock size={15} />
+                          </button>
+                        )}
+
+                        <div className="pl-1 text-slate-300 group-hover:text-blue-600 group-hover:translate-x-1 transition-all hidden sm:block">
+                          <ArrowRight size={18} />
+                        </div>
                       </div>
-                    </div>
+                    )}
                   </div>
                 </div>
               );

@@ -70,6 +70,8 @@ export const cloudSync = {
           allowCustomerEditQrAmount: quote.allowCustomerEditQrAmount,
           isRevised: quote.isRevised,
           originalQuotationNumber: quote.originalQuotationNumber,
+          isDeleted: Boolean(quote.isDeleted),
+          deletedAt: quote.deletedAt || null,
         },
         line_items: quote.lineItems,
         discount_amount: quote.discountAmount || 0,
@@ -78,7 +80,7 @@ export const cloudSync = {
         shipping_charges: quote.shippingCharges || 0,
         notes: quote.notes || null,
         payment_terms: quote.paymentTerms || null,
-        updated_at: new Date().toISOString(),
+        updated_at: quote.updatedAt || new Date().toISOString(),
       };
 
       const { error } = await supabase.from('quotations').upsert(row);
@@ -166,7 +168,42 @@ export const cloudSync = {
       ]);
 
       if (quotesRes.data) {
+        const localQuotesList = await idb.getAllQuotations();
+        const localMap = new Map<string, Quotation>();
+        for (const lq of localQuotesList) {
+          localMap.set(lq.id, lq);
+        }
+
         for (const row of quotesRes.data) {
+          const localExisting = localMap.get(row.id);
+
+          let isDeleted = row.client?.isDeleted !== undefined
+            ? Boolean(row.client.isDeleted)
+            : (row.is_deleted !== undefined ? Boolean(row.is_deleted) : false);
+          let deletedAt = row.client?.deletedAt || row.deleted_at || undefined;
+
+          // Check timestamp comparison to avoid stale cloud state overriding fresh local state
+          const localUpdatedTime = localExisting?.updatedAt ? new Date(localExisting.updatedAt).getTime() : 0;
+          const cloudUpdatedTime = row.updated_at ? new Date(row.updated_at).getTime() : 0;
+
+          if (localExisting && localUpdatedTime > cloudUpdatedTime) {
+            isDeleted = Boolean(localExisting.isDeleted);
+            deletedAt = localExisting.deletedAt;
+            setTimeout(() => {
+              cloudSync.syncQuotation({ ...localExisting }).catch(console.warn);
+            }, 100);
+          } else if (localExisting?.isDeleted && !isDeleted) {
+            // Extra safety guard: if local was marked in trash and cloud hasn't recorded it yet
+            const localDelTime = localExisting.deletedAt ? new Date(localExisting.deletedAt).getTime() : 0;
+            if (localDelTime >= cloudUpdatedTime - 10000) {
+              isDeleted = true;
+              deletedAt = localExisting.deletedAt;
+              setTimeout(() => {
+                cloudSync.syncQuotation({ ...localExisting, isDeleted: true, deletedAt }).catch(console.warn);
+              }, 100);
+            }
+          }
+
           const q: Quotation = {
             id: row.id,
             quotationNumber: row.quotation_number,
@@ -191,6 +228,8 @@ export const cloudSync = {
             allowCustomerEditQrAmount: row.client?.allowCustomerEditQrAmount || false,
             isRevised: row.client?.isRevised || false,
             originalQuotationNumber: row.client?.originalQuotationNumber || undefined,
+            isDeleted,
+            deletedAt,
             lineItems: row.line_items || [],
             discountAmount: Number(row.discount_amount || 0),
             taxScheme: row.tax_scheme,

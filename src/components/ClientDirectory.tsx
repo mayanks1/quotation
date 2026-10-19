@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Users, Search, Plus, Phone, Mail, Building, FileText, Trash2 } from 'lucide-react';
+import { Users, Search, Plus, Phone, Mail, Building, FileText, Trash2, Pencil, X, Save } from 'lucide-react';
 import { ClientProfile } from '../types/quotation';
 import { useToast, useConfirm } from '../context/ToastContext';
 
@@ -20,6 +20,8 @@ export const ClientDirectory: React.FC<Props> = ({
   const { confirm } = useConfirm();
   const [search, setSearch] = useState('');
   const [isAdding, setIsAdding] = useState(false);
+  const [editingClient, setEditingClient] = useState<ClientProfile | null>(null);
+
   const [newClient, setNewClient] = useState<ClientProfile>({
     name: '',
     company: '',
@@ -34,7 +36,8 @@ export const ClientDirectory: React.FC<Props> = ({
     return (
       c.name.toLowerCase().includes(term) ||
       (c.company || '').toLowerCase().includes(term) ||
-      (c.phone || '').toLowerCase().includes(term)
+      (c.phone || '').toLowerCase().includes(term) ||
+      (c.gstin || '').toLowerCase().includes(term)
     );
   });
 
@@ -42,7 +45,6 @@ export const ClientDirectory: React.FC<Props> = ({
     e.preventDefault();
     if (!newClient.name.trim()) return;
     onSaveClient(newClient);
-    toast.success(`Client "${newClient.name}" saved to directory`);
     setNewClient({
       name: '',
       company: '',
@@ -52,6 +54,13 @@ export const ClientDirectory: React.FC<Props> = ({
       gstin: '',
     });
     setIsAdding(false);
+  };
+
+  const handleEditSubmit = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!editingClient || !editingClient.name.trim()) return;
+    onSaveClient(editingClient);
+    setEditingClient(null);
   };
 
   const handleDeleteClientContact = async (client: ClientProfile) => {
@@ -101,7 +110,10 @@ export const ClientDirectory: React.FC<Props> = ({
           </div>
 
           <button
-            onClick={() => setIsAdding(!isAdding)}
+            onClick={() => {
+              setIsAdding(!isAdding);
+              setEditingClient(null);
+            }}
             className="flex items-center gap-1.5 bg-blue-600 hover:bg-blue-700 text-white px-3.5 py-2 rounded-lg text-xs font-bold transition-all shadow-sm shrink-0"
           >
             <Plus size={15} />
@@ -158,6 +170,15 @@ export const ClientDirectory: React.FC<Props> = ({
               />
             </div>
             <div className="sm:col-span-2">
+              <label className="text-slate-600 font-medium block mb-1">GSTIN (Optional)</label>
+              <input
+                value={newClient.gstin || ''}
+                onChange={(e) => setNewClient({ ...newClient, gstin: e.target.value.toUpperCase() })}
+                className="w-full bg-slate-50 border border-slate-200 rounded-lg p-2 font-mono uppercase focus:outline-blue-500"
+                placeholder="07AAAAA0000A1Z5"
+              />
+            </div>
+            <div className="sm:col-span-2">
               <label className="text-slate-600 font-medium block mb-1">Billing Address</label>
               <textarea
                 rows={2}
@@ -187,6 +208,113 @@ export const ClientDirectory: React.FC<Props> = ({
         </form>
       )}
 
+      {/* Edit Client Modal */}
+      {editingClient && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm p-4 animate-in fade-in duration-150">
+          <div className="bg-white rounded-2xl shadow-2xl max-w-lg w-full flex flex-col overflow-hidden border border-slate-100 animate-in zoom-in-95 duration-150">
+            {/* Modal Header */}
+            <div className="flex items-center justify-between px-6 py-4 bg-slate-900 text-white">
+              <div className="flex items-center gap-2.5">
+                <div className="w-8 h-8 rounded-lg bg-blue-500/20 text-blue-400 flex items-center justify-center">
+                  <Pencil size={16} />
+                </div>
+                <div>
+                  <h3 className="text-sm font-bold">Edit Client Contact</h3>
+                  <p className="text-[11px] text-slate-400">Update details for {editingClient.name || 'this client'}</p>
+                </div>
+              </div>
+              <button
+                type="button"
+                onClick={() => setEditingClient(null)}
+                className="text-slate-400 hover:text-white p-1 rounded-lg hover:bg-slate-800 transition-colors"
+              >
+                <X size={18} />
+              </button>
+            </div>
+
+            {/* Modal Form */}
+            <form onSubmit={handleEditSubmit} className="p-6 space-y-4">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 text-xs">
+                <div>
+                  <label className="text-slate-700 font-semibold block mb-1">Contact Name *</label>
+                  <input
+                    required
+                    value={editingClient.name}
+                    onChange={(e) => setEditingClient({ ...editingClient, name: e.target.value })}
+                    className="w-full bg-slate-50 border border-slate-200 rounded-lg p-2.5 font-semibold focus:outline-blue-500 focus:bg-white transition-all text-xs"
+                    placeholder="e.g. Rahul Sharma"
+                  />
+                </div>
+                <div>
+                  <label className="text-slate-700 font-semibold block mb-1">Company / Agency Name</label>
+                  <input
+                    value={editingClient.company}
+                    onChange={(e) => setEditingClient({ ...editingClient, company: e.target.value })}
+                    className="w-full bg-slate-50 border border-slate-200 rounded-lg p-2.5 focus:outline-blue-500 focus:bg-white transition-all text-xs"
+                    placeholder="e.g. Apex Event Solutions"
+                  />
+                </div>
+                <div>
+                  <label className="text-slate-700 font-semibold block mb-1">Phone Number (WhatsApp)</label>
+                  <input
+                    value={editingClient.phone}
+                    onChange={(e) => setEditingClient({ ...editingClient, phone: e.target.value })}
+                    className="w-full bg-slate-50 border border-slate-200 rounded-lg p-2.5 focus:outline-blue-500 focus:bg-white transition-all text-xs"
+                    placeholder="+91 9876543210"
+                  />
+                </div>
+                <div>
+                  <label className="text-slate-700 font-semibold block mb-1">Email Address</label>
+                  <input
+                    type="email"
+                    value={editingClient.email}
+                    onChange={(e) => setEditingClient({ ...editingClient, email: e.target.value })}
+                    className="w-full bg-slate-50 border border-slate-200 rounded-lg p-2.5 focus:outline-blue-500 focus:bg-white transition-all text-xs"
+                    placeholder="client@apexevents.com"
+                  />
+                </div>
+                <div className="sm:col-span-2">
+                  <label className="text-slate-700 font-semibold block mb-1">GSTIN (Optional)</label>
+                  <input
+                    value={editingClient.gstin || ''}
+                    onChange={(e) => setEditingClient({ ...editingClient, gstin: e.target.value.toUpperCase() })}
+                    className="w-full bg-slate-50 border border-slate-200 rounded-lg p-2.5 uppercase font-mono focus:outline-blue-500 focus:bg-white transition-all text-xs"
+                    placeholder="e.g. 07AAAAA0000A1Z5"
+                  />
+                </div>
+                <div className="sm:col-span-2">
+                  <label className="text-slate-700 font-semibold block mb-1">Billing / Venue Address</label>
+                  <textarea
+                    rows={3}
+                    value={editingClient.address}
+                    onChange={(e) => setEditingClient({ ...editingClient, address: e.target.value })}
+                    className="w-full bg-slate-50 border border-slate-200 rounded-lg p-2.5 focus:outline-blue-500 focus:bg-white transition-all text-xs"
+                    placeholder="Street address, City, State, PIN"
+                  />
+                </div>
+              </div>
+
+              <div className="flex items-center justify-end gap-2.5 pt-3 border-t border-slate-100">
+                <button
+                  type="button"
+                  onClick={() => setEditingClient(null)}
+                  className="px-4 py-2 rounded-xl border border-slate-200 text-xs font-semibold text-slate-600 hover:bg-slate-50 transition-colors"
+                >
+                  Cancel
+                </button>
+                <button
+                  type="submit"
+                  className="flex items-center gap-1.5 bg-blue-600 hover:bg-blue-700 text-white px-5 py-2 rounded-xl text-xs font-bold shadow-sm transition-all"
+                >
+                  <Save size={14} />
+                  <span>Save Changes</span>
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+
       {/* Clients Grid */}
       {filtered.length === 0 ? (
         <div className="bg-white p-12 rounded-2xl border border-slate-200 text-center">
@@ -204,36 +332,53 @@ export const ClientDirectory: React.FC<Props> = ({
               className="bg-white p-5 rounded-2xl border border-slate-200/80 shadow-sm hover:shadow-md transition-shadow flex flex-col justify-between space-y-4"
             >
               <div className="space-y-2">
-                <div className="flex items-start justify-between">
-                  <div>
-                    <h3 className="font-bold text-sm text-slate-900">{client.name}</h3>
+                <div className="flex items-start justify-between gap-2">
+                  <div className="min-w-0 flex-1">
+                    <h3 className="font-bold text-sm text-slate-900 truncate" title={client.name}>{client.name}</h3>
                     {client.company && (
-                      <div className="text-xs font-medium text-slate-500 flex items-center gap-1 mt-0.5">
-                        <Building size={12} />
-                        <span>{client.company}</span>
+                      <div className="text-xs font-medium text-slate-500 flex items-center gap-1 mt-0.5 truncate" title={client.company}>
+                        <Building size={12} className="shrink-0" />
+                        <span className="truncate">{client.company}</span>
                       </div>
                     )}
                   </div>
-                  <button
-                    onClick={() => handleDeleteClientContact(client)}
-                    className="text-slate-300 hover:text-rose-500 p-1.5 rounded-lg hover:bg-rose-50 transition-colors"
-                    title="Delete contact"
-                  >
-                    <Trash2 size={14} />
-                  </button>
+                  <div className="flex items-center gap-1 shrink-0">
+                    <button
+                      type="button"
+                      onClick={() => setEditingClient({ ...client })}
+                      className="text-slate-400 hover:text-blue-600 p-1.5 rounded-lg hover:bg-blue-50 transition-colors"
+                      title="Edit client details"
+                    >
+                      <Pencil size={14} />
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => handleDeleteClientContact(client)}
+                      className="text-slate-400 hover:text-rose-500 p-1.5 rounded-lg hover:bg-rose-50 transition-colors"
+                      title="Delete contact"
+                    >
+                      <Trash2 size={14} />
+                    </button>
+                  </div>
                 </div>
 
                 <div className="space-y-1 text-xs text-slate-600 pt-1">
                   {client.phone && (
                     <div className="flex items-center gap-1.5">
-                      <Phone size={12} className="text-slate-400" />
+                      <Phone size={12} className="text-slate-400 shrink-0" />
                       <span>{client.phone}</span>
                     </div>
                   )}
                   {client.email && (
                     <div className="flex items-center gap-1.5">
-                      <Mail size={12} className="text-slate-400" />
+                      <Mail size={12} className="text-slate-400 shrink-0" />
                       <span className="truncate">{client.email}</span>
+                    </div>
+                  )}
+                  {client.gstin && (
+                    <div className="flex items-center gap-1.5 text-[11px] font-mono text-slate-500">
+                      <span className="px-1.5 py-0.2 bg-slate-100 rounded text-[10px] font-bold text-slate-600 border border-slate-200/60">GSTIN</span>
+                      <span>{client.gstin}</span>
                     </div>
                   )}
                   {client.address && (
@@ -244,14 +389,25 @@ export const ClientDirectory: React.FC<Props> = ({
                 </div>
               </div>
 
-              <button
-                type="button"
-                onClick={() => handleCreateQuote(client)}
-                className="w-full flex items-center justify-center gap-1.5 bg-blue-50 hover:bg-blue-100 text-blue-700 text-xs font-bold py-2 rounded-lg transition-colors border border-blue-200"
-              >
-                <FileText size={14} />
-                <span>Create Quote for Client</span>
-              </button>
+              {/* Action buttons */}
+              <div className="flex items-center gap-2 pt-2 border-t border-slate-100">
+                <button
+                  type="button"
+                  onClick={() => setEditingClient({ ...client })}
+                  className="flex-1 flex items-center justify-center gap-1.5 bg-slate-50 hover:bg-slate-100 text-slate-700 text-xs font-semibold py-2 rounded-lg transition-colors border border-slate-200"
+                >
+                  <Pencil size={13} />
+                  <span>Edit</span>
+                </button>
+                <button
+                  type="button"
+                  onClick={() => handleCreateQuote(client)}
+                  className="flex-[2] flex items-center justify-center gap-1.5 bg-blue-50 hover:bg-blue-100 text-blue-700 text-xs font-bold py-2 rounded-lg transition-colors border border-blue-200"
+                >
+                  <FileText size={13} />
+                  <span>Create Quote</span>
+                </button>
+              </div>
             </div>
           ))}
         </div>

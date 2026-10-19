@@ -109,7 +109,7 @@ export const storage = {
   }> {
     if (isInitialized) {
       return {
-        quotations: memoryQuotations,
+        quotations: storage.getAllQuotations(),
         clients: memoryClients,
         company: memoryCompany,
       };
@@ -180,14 +180,37 @@ export const storage = {
         }
       }
 
+      // Auto-harvest clients from existing quotations so they are always available
+      const existingNames = new Set(memoryClients.map((c) => (c.name || '').toLowerCase().trim()));
+      for (const q of memoryQuotations) {
+        if (q.isDeleted) continue;
+        const clientName = (q.client?.name || '').trim();
+        const norm = clientName.toLowerCase();
+        if (clientName && norm !== 'event organizer / client name' && !existingNames.has(norm)) {
+          existingNames.add(norm);
+          const newClient: ClientProfile = {
+            id: `client-q-${q.id}`,
+            name: q.client.name,
+            company: q.client.company || '',
+            address: q.client.address || '',
+            phone: q.client.phone || '',
+            email: q.client.email || '',
+            gstin: q.client.gstin || '',
+          };
+          memoryClients.push(newClient);
+          idb.saveClient(newClient).catch(console.error);
+        }
+      }
+
       isInitialized = true;
+      storage.purgeExpiredTrash();
     } catch (err) {
       console.error('IndexedDB initialization failed, falling back:', err);
     }
 
     return {
-      quotations: memoryQuotations,
-      clients: memoryClients,
+      quotations: storage.getAllQuotations(),
+      clients: storage.getAllClients(),
       company: memoryCompany,
     };
   },
@@ -229,8 +252,31 @@ export const storage = {
     }
   },
 
-  getAllQuotations(): Quotation[] {
-    return memoryQuotations;
+  purgeExpiredTrash(): void {
+    const THIRTY_DAYS_MS = 30 * 24 * 60 * 60 * 1000;
+    const now = Date.now();
+    const expiredIds: string[] = [];
+
+    memoryQuotations = memoryQuotations.filter((q) => {
+      if (q.isDeleted && q.deletedAt) {
+        const deletedTime = new Date(q.deletedAt).getTime();
+        if (now - deletedTime > THIRTY_DAYS_MS) {
+          expiredIds.push(q.id);
+          return false;
+        }
+      }
+      return true;
+    });
+
+    for (const id of expiredIds) {
+      idb.deleteQuotation(id).catch(console.error);
+      cloudSync.deleteQuotation(id).catch(console.error);
+    }
+  },
+
+  getAllQuotations(includeDeleted = false): Quotation[] {
+    if (includeDeleted) return memoryQuotations;
+    return memoryQuotations.filter((q) => !q.isDeleted);
   },
 
   saveQuotation(quotation: Quotation): void {
@@ -250,9 +296,67 @@ export const storage = {
 
     // Background cloud sync
     cloudSync.syncQuotation(updated).catch(console.error);
+
+    // Auto-save client profile when quotation has client name
+    if (quotation.client?.name) {
+      const clientName = quotation.client.name.trim();
+      if (clientName && clientName.toLowerCase() !== 'event organizer / client name') {
+        storage.saveClient({
+          name: quotation.client.name,
+          company: quotation.client.company || '',
+          address: quotation.client.address || '',
+          phone: quotation.client.phone || '',
+          email: quotation.client.email || '',
+          gstin: quotation.client.gstin || '',
+        });
+      }
+    }
   },
 
-  deleteQuotation(id: string): void {
+  getTrashedQuotations(): Quotation[] {
+    return memoryQuotations.filter((q) => Boolean(q.isDeleted));
+  },
+
+  moveToTrash(id: string): Quotation | null {
+    const existing = memoryQuotations.find((q) => q.id === id);
+    if (!existing) return null;
+
+    const trashed: Quotation = {
+      ...existing,
+      isDeleted: true,
+      deletedAt: new Date().toISOString(),
+      updatedAt: new Date().toISOString(),
+    };
+
+    memoryQuotations = memoryQuotations.map((q) => (q.id === id ? trashed : q));
+
+    if (storage.getActiveQuotationId() === id) {
+      localStorage.removeItem(STORAGE_KEYS.ACTIVE_QUOTATION_ID);
+    }
+
+    idb.saveQuotation(trashed).catch(console.error);
+    cloudSync.syncQuotation(trashed).catch(console.error);
+    return trashed;
+  },
+
+  restoreFromTrash(id: string): Quotation | null {
+    const existing = memoryQuotations.find((q) => q.id === id);
+    if (!existing) return null;
+
+    const restored: Quotation = {
+      ...existing,
+      isDeleted: false,
+      deletedAt: undefined,
+      updatedAt: new Date().toISOString(),
+    };
+
+    memoryQuotations = memoryQuotations.map((q) => (q.id === id ? restored : q));
+    idb.saveQuotation(restored).catch(console.error);
+    cloudSync.syncQuotation(restored).catch(console.error);
+    return restored;
+  },
+
+  permanentlyDelete(id: string): void {
     memoryQuotations = memoryQuotations.filter((q) => q.id !== id);
     if (storage.getActiveQuotationId() === id) {
       localStorage.removeItem(STORAGE_KEYS.ACTIVE_QUOTATION_ID);
@@ -260,6 +364,20 @@ export const storage = {
 
     idb.deleteQuotation(id).catch(console.error);
     cloudSync.deleteQuotation(id).catch(console.error);
+  },
+
+  emptyTrash(): void {
+    const trashed = memoryQuotations.filter((q) => q.isDeleted);
+    memoryQuotations = memoryQuotations.filter((q) => !q.isDeleted);
+    for (const q of trashed) {
+      idb.deleteQuotation(q.id).catch(console.error);
+      cloudSync.deleteQuotation(q.id).catch(console.error);
+    }
+  },
+
+  deleteQuotation(id: string): void {
+    // Default deletion moves to 30-day trash for safety
+    storage.moveToTrash(id);
   },
 
   duplicateQuotation(source: Quotation): Quotation {
@@ -327,7 +445,30 @@ export const storage = {
   },
 
   getAllClients(): ClientProfile[] {
-    return storage.deduplicateClients();
+    const clients = storage.deduplicateClients();
+    if (clients.length === 0 && memoryQuotations.length > 0) {
+      const seen = new Set<string>();
+      for (const q of memoryQuotations) {
+        const name = (q.client?.name || '').trim();
+        const norm = name.toLowerCase();
+        if (name && norm !== 'event organizer / client name' && !seen.has(norm)) {
+          seen.add(norm);
+          const c: ClientProfile = {
+            id: `client-${q.id}`,
+            name: q.client.name,
+            company: q.client.company || '',
+            address: q.client.address || '',
+            phone: q.client.phone || '',
+            email: q.client.email || '',
+            gstin: q.client.gstin || '',
+          };
+          memoryClients.push(c);
+          clients.push(c);
+          idb.saveClient(c).catch(console.error);
+        }
+      }
+    }
+    return clients;
   },
 
   saveClient(client: ClientProfile): void {

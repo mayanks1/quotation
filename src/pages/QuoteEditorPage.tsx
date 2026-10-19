@@ -87,10 +87,32 @@ export const QuoteEditorPage: React.FC<Props> = ({
     );
   }
 
+  const availableClients = React.useMemo(() => {
+    const list = clients && clients.length > 0 ? [...clients] : storage.getAllClients();
+    const seen = new Set(list.map((c) => (c.name || '').toLowerCase().trim()));
+    quotations.forEach((q) => {
+      const name = (q.client?.name || '').trim();
+      const norm = name.toLowerCase();
+      if (name && norm !== 'event organizer / client name' && !seen.has(norm)) {
+        seen.add(norm);
+        list.push({
+          id: `client-quote-${q.id}`,
+          name: q.client.name,
+          company: q.client.company || '',
+          address: q.client.address || '',
+          phone: q.client.phone || '',
+          email: q.client.email || '',
+          gstin: q.client.gstin || '',
+        });
+      }
+    });
+    return list;
+  }, [clients, quotations]);
+
   return (
     <QuotationEditor
       quotation={quote}
-      savedClients={clients}
+      savedClients={availableClients}
       onChange={onUpdateQuotation}
       onBack={() => navigate('/quotes')}
       onDuplicate={(source) => {

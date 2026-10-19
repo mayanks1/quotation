@@ -59,6 +59,17 @@ export const idb = {
     });
   },
 
+  async getQuotation(id: string): Promise<Quotation | null> {
+    const db = await openDB();
+    return new Promise((resolve, reject) => {
+      const tx = db.transaction(STORES.QUOTATIONS, 'readonly');
+      const store = tx.objectStore(STORES.QUOTATIONS);
+      const request = store.get(id);
+      request.onsuccess = () => resolve(request.result || null);
+      request.onerror = () => reject(request.error);
+    });
+  },
+
   async saveQuotation(quote: Quotation): Promise<void> {
     const db = await openDB();
     return new Promise((resolve, reject) => {

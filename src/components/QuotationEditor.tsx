@@ -2,7 +2,7 @@ import React, { useState, useRef, useEffect } from 'react';
 import { 
   ArrowLeft, Download, Printer, Share2, Copy, Plus, 
   Trash2, Image as ImageIcon, Calculator, BookOpen, 
-  Settings, UserCheck, Calendar, Zap, FileText, Receipt,
+  Settings, UserCheck, UserPlus, Calendar, Zap, FileText, Receipt,
   QrCode, CreditCard, CheckCircle2, GitBranch, ChevronDown, ChevronUp,
   Smartphone, PenLine, PenTool, Clock
 } from 'lucide-react';
@@ -16,7 +16,8 @@ import { generateUpiQrDataUrl } from '../services/upiQr';
 import { amountToWordsIndian } from '../utils/numberToWords';
 import { computeGstTaxBreakdown } from '../utils/gstTaxBreakdown';
 import { TERMS_PRESETS } from '../config/termsPresets';
-import { getQuotationExpiryStatus } from '../utils/quotationExpiry';
+import { getQuotationExpiryStatus, parseDateStr } from '../utils/quotationExpiry';
+import { storage } from '../services/storage';
 import { LedCalculatorModal } from './LedCalculatorModal';
 import { CatalogPickerModal } from './CatalogPickerModal';
 import { ShareQuotationModal } from './ShareQuotationModal';
@@ -377,6 +378,31 @@ export const QuotationEditor: React.FC<Props> = ({
     toast.success(`Created Revision R${nextRev}: ${nextQuoteNumber}`);
   };
 
+  // Helper to check if event date is earlier than validUntil. If so, align validUntil to event date.
+  const handleEventDateChange = (newEventDate: string) => {
+    let updatedValidUntil = quotation.validUntil;
+    if (newEventDate && newEventDate.length === 10) {
+      const eventDateObj = parseDateStr(newEventDate);
+      const validUntilObj = parseDateStr(quotation.validUntil);
+      if (eventDateObj && validUntilObj && eventDateObj.getTime() < validUntilObj.getTime()) {
+        updatedValidUntil = newEventDate;
+        toast.info(`Valid Until set to ${newEventDate} to match earlier Event Date.`);
+      }
+    }
+    onChange({ ...quotation, eventDate: newEventDate, validUntil: updatedValidUntil });
+  };
+
+  // If quotation has an eventDate earlier than validUntil, auto-sync validUntil
+  useEffect(() => {
+    if (quotation.eventDate && quotation.validUntil) {
+      const eventDateObj = parseDateStr(quotation.eventDate);
+      const validUntilObj = parseDateStr(quotation.validUntil);
+      if (eventDateObj && validUntilObj && eventDateObj.getTime() < validUntilObj.getTime()) {
+        onChange({ ...quotation, validUntil: quotation.eventDate });
+      }
+    }
+  }, [quotation.eventDate]);
+
   const handleSelectSavedClient = (clientIdOrName: string) => {
     const found = savedClients.find((c) => c.id === clientIdOrName || c.name === clientIdOrName);
     if (found) {
@@ -394,6 +420,23 @@ export const QuotationEditor: React.FC<Props> = ({
       });
       toast.success(`Client details autofilled for ${found.name}`);
     }
+  };
+
+  const handleSaveCurrentClient = () => {
+    const name = (quotation.client.name || '').trim();
+    if (!name || name.toLowerCase() === 'event organizer / client name') {
+      toast.error('Please enter a client name first.');
+      return;
+    }
+    storage.saveClient({
+      name: quotation.client.name,
+      company: quotation.client.company || '',
+      address: quotation.client.address || '',
+      phone: quotation.client.phone || '',
+      email: quotation.client.email || '',
+      gstin: quotation.client.gstin || '',
+    });
+    toast.success(`"${name}" saved to Client Directory!`);
   };
 
   return (
@@ -854,12 +897,12 @@ export const QuotationEditor: React.FC<Props> = ({
                       maxLength={10}
                       onChange={(e) => {
                         const formatted = formatDMYInput(e.target.value, quotation.eventDate || '');
-                        onChange({ ...quotation, eventDate: formatted });
+                        handleEventDateChange(formatted);
                       }}
                       onBlur={(e) => {
                         const validated = validateDMY(e.target.value);
                         if (validated !== e.target.value) {
-                          onChange({ ...quotation, eventDate: validated });
+                          handleEventDateChange(validated);
                         }
                       }}
                       className="font-bold text-blue-600 w-36 text-right pr-5 border-0 border-b border-transparent hover:border-slate-300 focus:border-blue-500 focus:outline-none placeholder:text-blue-300 placeholder:font-normal"
@@ -885,7 +928,7 @@ export const QuotationEditor: React.FC<Props> = ({
                       onChange={(e) => {
                         if (e.target.value) {
                           const [y, m, d] = e.target.value.split('-');
-                          onChange({ ...quotation, eventDate: `${d}-${m}-${y}` });
+                          handleEventDateChange(`${d}-${m}-${y}`);
                         }
                       }}
                     />
@@ -904,23 +947,49 @@ export const QuotationEditor: React.FC<Props> = ({
               <div className="flex flex-wrap items-center justify-between gap-1.5 mb-1">
                 <span className="text-xs font-bold uppercase tracking-wider text-slate-500">Bill To (Client Details)</span>
                 
-                {savedClients.length > 0 && (
-                  <div className="flex items-center gap-1 text-[11px] text-blue-600 bg-white px-2 py-0.5 rounded border border-slate-200 shadow-2xs">
-                    <UserCheck size={13} />
-                    <select
-                      onChange={(e) => handleSelectSavedClient(e.target.value)}
-                      defaultValue=""
-                      className="bg-transparent text-xs text-blue-600 font-semibold cursor-pointer focus:outline-none max-w-[170px] truncate"
+                <div className="flex items-center gap-1.5">
+                  {savedClients.length > 0 ? (
+                    <div className="flex items-center gap-1 text-[11px] text-blue-600 bg-white px-2 py-0.5 rounded border border-slate-200 shadow-2xs hover:border-blue-300 transition-colors">
+                      <UserCheck size={13} className="text-blue-600 shrink-0" />
+                      <select
+                        onChange={(e) => {
+                          if (e.target.value) {
+                            handleSelectSavedClient(e.target.value);
+                          }
+                        }}
+                        defaultValue=""
+                        className="bg-transparent text-xs text-blue-600 font-semibold cursor-pointer focus:outline-none max-w-[170px] truncate"
+                      >
+                        <option value="" disabled>Load Saved Client ({savedClients.length})...</option>
+                        {savedClients.map((c) => (
+                          <option key={c.id || c.name} value={c.id || c.name}>
+                            {c.name} {c.company ? `(${c.company})` : ''}
+                          </option>
+                        ))}
+                      </select>
+                    </div>
+                  ) : (
+                    <div
+                      title="Clients are auto-saved as you type names, or add in Clients directory"
+                      className="flex items-center gap-1 text-[11px] text-slate-500 bg-white px-2 py-0.5 rounded border border-slate-200 shadow-2xs"
                     >
-                      <option value="" disabled>Load Saved Client...</option>
-                      {savedClients.map((c) => (
-                        <option key={c.id || c.name} value={c.name}>
-                          {c.name} {c.company ? `(${c.company})` : ''}
-                        </option>
-                      ))}
-                    </select>
-                  </div>
-                )}
+                      <UserCheck size={13} className="text-slate-400 shrink-0" />
+                      <span>Load Client (0 saved)</span>
+                    </div>
+                  )}
+
+                  {quotation.client.name.trim() && quotation.client.name.trim().toLowerCase() !== 'event organizer / client name' && (
+                    <button
+                      type="button"
+                      onClick={handleSaveCurrentClient}
+                      title="Save / Update client in directory"
+                      className="flex items-center gap-1 text-[11px] text-emerald-700 bg-emerald-50 hover:bg-emerald-100 border border-emerald-200 px-2 py-0.5 rounded transition-colors font-medium shadow-2xs cursor-pointer"
+                    >
+                      <UserPlus size={12} className="text-emerald-600 shrink-0" />
+                      <span className="hidden sm:inline">Save</span>
+                    </button>
+                  )}
+                </div>
               </div>
 
               <input

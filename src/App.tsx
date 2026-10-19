@@ -13,7 +13,36 @@ import { ForgotPasswordPage } from './pages/ForgotPasswordPage';
 import { PublicQuoteView } from './pages/PublicQuoteView';
 import { QuoteEditorPage } from './pages/QuoteEditorPage';
 import { UsersPage } from './pages/UsersPage';
+import { PaymentLedgerPage } from './pages/PaymentLedgerPage';
 import { useToast } from './context/ToastContext';
+import { useAuth } from './context/AuthContext';
+import { Lock } from 'lucide-react';
+
+function LedgerRouteGuard() {
+  const { isSuperAdmin, hasPermission, isPaymentLedgerEnabled } = useAuth();
+
+  if (!isPaymentLedgerEnabled) {
+    return <Navigate to="/quotes" replace />;
+  }
+
+  if (!isSuperAdmin && !hasPermission('canViewPaymentLedger')) {
+    return (
+      <div className="max-w-md mx-auto my-16 bg-white p-8 rounded-2xl border border-slate-200/80 shadow-sm text-center space-y-4">
+        <div className="w-12 h-12 bg-amber-50 text-amber-600 rounded-2xl flex items-center justify-center mx-auto">
+          <Lock size={24} />
+        </div>
+        <div>
+          <h3 className="font-bold text-slate-800 text-base">Payment Ledger Locked</h3>
+          <p className="text-xs text-slate-500 mt-1 leading-relaxed">
+            You do not have permission to access the Payment Ledger. Access is regulated by the Super Admin in the Team &amp; Role Management Permissions Matrix.
+          </p>
+        </div>
+      </div>
+    );
+  }
+
+  return <PaymentLedgerPage />;
+}
 
 export function App() {
   const toast = useToast();
@@ -91,8 +120,8 @@ export function App() {
   };
 
   const handleDelete = (id: string) => {
-    storage.deleteQuotation(id);
-    const remaining = quotations.filter((q) => q.id !== id);
+    storage.moveToTrash(id);
+    const remaining = storage.getAllQuotations();
     setQuotations(remaining);
     if (activeQuoteId === id) {
       if (remaining.length > 0) {
@@ -104,7 +133,25 @@ export function App() {
         navigate('/quotes');
       }
     }
-    toast.info('Quotation deleted.');
+    toast.info('Quotation moved to Trash (retained for 30 days).');
+  };
+
+  const handleRestoreQuotation = (id: string) => {
+    storage.restoreFromTrash(id);
+    setQuotations(storage.getAllQuotations());
+    toast.success('Quotation restored from Trash successfully!');
+  };
+
+  const handlePermanentlyDelete = (id: string) => {
+    storage.permanentlyDelete(id);
+    setQuotations(storage.getAllQuotations());
+    toast.success('Quotation permanently deleted.');
+  };
+
+  const handleEmptyTrash = () => {
+    storage.emptyTrash();
+    setQuotations(storage.getAllQuotations());
+    toast.success('Trash emptied permanently.');
   };
 
   const handleSaveCompany = async (updated: CompanyProfile) => {
@@ -168,14 +215,14 @@ export function App() {
       <Route
         element={
           <ProtectedRoute>
-            <div className="min-h-screen bg-slate-100 flex flex-col font-sans">
+            <div className={`min-h-screen ${location.pathname.startsWith('/ledger') ? 'bg-[#070a13]' : 'bg-slate-100'} flex flex-col font-sans`}>
               <HeaderNav
                 onOpenSettings={() => setIsSettingsOpen(true)}
                 onCreateNew={handleCreateNew}
                 hasActiveQuote={!!activeQuoteId}
                 activeQuoteId={activeQuoteId}
               />
-              <main className="flex-1 p-3 sm:p-6 md:p-8">
+              <main className={`flex-1 ${location.pathname.startsWith('/ledger') ? 'p-0' : 'p-3 sm:p-6 md:p-8'}`}>
                 <Outlet />
               </main>
               <CompanySettingsModal
@@ -200,6 +247,9 @@ export function App() {
               onDuplicate={handleDuplicate}
               onDelete={handleDelete}
               onRestoreBackup={handleRestoreBackup}
+              onRestoreQuotation={handleRestoreQuotation}
+              onPermanentDelete={handlePermanentlyDelete}
+              onEmptyTrash={handleEmptyTrash}
             />
           }
         />
@@ -228,6 +278,7 @@ export function App() {
             />
           }
         />
+        <Route path="/ledger" element={<LedgerRouteGuard />} />
         <Route path="/team" element={<UsersPage />} />
         <Route path="*" element={<Navigate to="/quotes" replace />} />
       </Route>

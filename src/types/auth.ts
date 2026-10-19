@@ -10,6 +10,7 @@ export interface UserPermissions {
   canApplyDiscounts: boolean;  // Apply manual line item or overall discounts
   canManageClients: boolean;   // Edit or delete clients in directory
   canExportData: boolean;      // Download CSV & bulk audit logs
+  canViewPaymentLedger?: boolean; // Access & view Payment Ledger dashboard
 }
 
 export interface SaaSUser {
@@ -84,6 +85,9 @@ export interface AuthContextType {
   updateUserById: (id: string, updates: Partial<SaaSUser>) => Promise<{ success: boolean; error?: string }>;
   deleteUserById: (id: string) => Promise<{ success: boolean; error?: string }>;
   hasPermission: (perm: keyof UserPermissions) => boolean;
+  // Module System Switches
+  isPaymentLedgerEnabled: boolean;
+  setPaymentLedgerEnabled: (enabled: boolean) => Promise<void>;
 }
 
 export const DEFAULT_PERMISSIONS_BY_ROLE: Record<UserRole, UserPermissions> = {
@@ -95,6 +99,7 @@ export const DEFAULT_PERMISSIONS_BY_ROLE: Record<UserRole, UserPermissions> = {
     canApplyDiscounts: true,
     canManageClients: true,
     canExportData: true,
+    canViewPaymentLedger: true,
   },
   admin: {
     canEditBankDetails: false,
@@ -104,6 +109,7 @@ export const DEFAULT_PERMISSIONS_BY_ROLE: Record<UserRole, UserPermissions> = {
     canApplyDiscounts: true,
     canManageClients: true,
     canExportData: true,
+    canViewPaymentLedger: true,
   },
   manager: {
     canEditBankDetails: false,
@@ -113,6 +119,7 @@ export const DEFAULT_PERMISSIONS_BY_ROLE: Record<UserRole, UserPermissions> = {
     canApplyDiscounts: true,
     canManageClients: true,
     canExportData: true,
+    canViewPaymentLedger: true,
   },
   member: {
     canEditBankDetails: false,
@@ -122,5 +129,6 @@ export const DEFAULT_PERMISSIONS_BY_ROLE: Record<UserRole, UserPermissions> = {
     canApplyDiscounts: false,
     canManageClients: false,
     canExportData: false,
+    canViewPaymentLedger: false,
   },
 };

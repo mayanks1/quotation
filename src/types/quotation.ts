@@ -115,9 +115,11 @@ export interface Quotation {
   // Client Sign-off & Digital Signature
   clientSignature?: ClientSignature;
 
-  // Timestamps
+  // Timestamps & Trash Management (30-day retention)
   createdAt: string;
   updatedAt: string;
+  isDeleted?: boolean;
+  deletedAt?: string; // ISO date string when moved to trash
 }
 
 export interface ClientSignature {
