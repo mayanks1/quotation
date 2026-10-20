@@ -1924,9 +1924,25 @@ export const QuotationEditor: React.FC<Props> = ({
                           type="number"
                           min={0}
                           max={100}
-                          value={advancePercentage}
+                          value={advancePercentage === 0 ? '' : advancePercentage}
+                          placeholder="0"
+                          onFocus={(e) => e.target.select()}
                           onChange={(e) => {
-                            const val = Math.min(100, Math.max(0, parseInt(e.target.value, 10) || 0));
+                            const raw = e.target.value;
+                            if (raw === '') {
+                              onChange({
+                                ...quotation,
+                                advancePercentage: 0,
+                                advanceAmount: 0,
+                                paymentTerms: quotation.paymentTerms,
+                                qrAmountType: 'advance',
+                                customQrAmount: undefined,
+                                allowCustomerEditQrAmount: false,
+                              });
+                              return;
+                            }
+                            const parsed = parseInt(raw, 10);
+                            const val = isNaN(parsed) ? 0 : Math.min(100, Math.max(0, parsed));
                             const amt = Math.round((grandTotal * val) / 100);
                             onChange({
                               ...quotation,
@@ -1956,6 +1972,7 @@ export const QuotationEditor: React.FC<Props> = ({
                         min={0}
                         value={quotation.paidAmount === 0 ? '' : (quotation.paidAmount ?? '')}
                         placeholder="0"
+                        onFocus={(e) => e.target.select()}
                         onChange={(e) => {
                           const val = e.target.value === '' ? 0 : parseFloat(e.target.value) || 0;
                           const newStatus: PaymentStatus = val >= grandTotal && grandTotal > 0
@@ -2038,6 +2055,7 @@ export const QuotationEditor: React.FC<Props> = ({
                     min={0}
                     value={quotation.discountAmount === 0 ? '' : quotation.discountAmount}
                     placeholder="0"
+                    onFocus={(e) => e.target.select()}
                     onChange={(e) =>
                       onChange({ ...quotation, discountAmount: e.target.value === '' ? 0 : parseFloat(e.target.value) || 0 })
                     }
@@ -2076,6 +2094,7 @@ export const QuotationEditor: React.FC<Props> = ({
                         min={0}
                         value={quotation.taxRate === 0 ? '' : quotation.taxRate}
                         placeholder="18"
+                        onFocus={(e) => e.target.select()}
                         onChange={(e) =>
                           onChange({ ...quotation, taxRate: e.target.value === '' ? 0 : parseFloat(e.target.value) || 0 })
                         }
@@ -2094,6 +2113,7 @@ export const QuotationEditor: React.FC<Props> = ({
                     min={0}
                     value={quotation.shippingCharges === 0 ? '' : quotation.shippingCharges}
                     placeholder="0"
+                    onFocus={(e) => e.target.select()}
                     onChange={(e) =>
                       onChange({ ...quotation, shippingCharges: e.target.value === '' ? 0 : parseFloat(e.target.value) || 0 })
                     }
@@ -2108,6 +2128,7 @@ export const QuotationEditor: React.FC<Props> = ({
                     type="number"
                     value={quotation.adjustmentAmount === 0 || quotation.adjustmentAmount === undefined ? '' : quotation.adjustmentAmount}
                     placeholder="0"
+                    onFocus={(e) => e.target.select()}
                     onChange={(e) =>
                       onChange({ ...quotation, adjustmentAmount: e.target.value === '' ? 0 : parseFloat(e.target.value) || 0 })
                     }

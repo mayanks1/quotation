@@ -1,5 +1,5 @@
 import { supabase, isSupabaseConfigured } from './supabaseClient';
-import { Quotation, ClientProfile, CompanyProfile } from '../types/quotation';
+import { Quotation, ClientProfile, CompanyProfile, CatalogItem } from '../types/quotation';
 import { SaaSOrganization } from '../types/auth';
 import { idb } from './indexedDb';
 
@@ -623,6 +623,39 @@ export const cloudSync = {
     } catch (err: any) {
       return { success: false, error: err?.message || 'Failed saving organizations.' };
     }
+  },
+
+  async syncCatalogItems(items: CatalogItem[]): Promise<void> {
+    if (!cloudSync.isEnabled() || !supabase) return;
+    try {
+      await supabase.from('company_settings').upsert({
+        id: 'catalog_items',
+        profile: {
+          items,
+          updated_at: new Date().toISOString(),
+        },
+        updated_at: new Date().toISOString(),
+      });
+    } catch (err) {
+      console.warn('Failed syncing catalog to cloud:', err);
+    }
+  },
+
+  async pullCatalogFromCloud(): Promise<CatalogItem[] | null> {
+    if (!cloudSync.isEnabled() || !supabase) return null;
+    try {
+      const { data, error } = await supabase
+        .from('company_settings')
+        .select('profile, updated_at')
+        .eq('id', 'catalog_items')
+        .single();
+      if (!error && data?.profile?.items && Array.isArray(data.profile.items)) {
+        return data.profile.items as CatalogItem[];
+      }
+    } catch (err) {
+      console.warn('Failed pulling catalog from cloud:', err);
+    }
+    return null;
   },
 
   subscribeToCloudChanges(callback: (payload: { table: string; eventType: string }) => void): () => void {

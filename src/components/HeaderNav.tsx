@@ -3,13 +3,14 @@ import { NavLink, useNavigate, useLocation } from 'react-router-dom';
 import {
   FileText, Settings, Check, Plus, Users, Edit3,
   LogOut, Shield, ChevronDown, User, Sparkles, Building2,
-  Lock, Crown, Briefcase, UserCheck, CreditCard
+  Lock, Crown, Briefcase, UserCheck, CreditCard, Package
 } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
 import { useToast } from '../context/ToastContext';
 
 interface Props {
   onOpenSettings: () => void;
+  onOpenCatalog: () => void;
   onCreateNew: () => void;
   hasActiveQuote: boolean;
   activeQuoteId?: string;
@@ -17,6 +18,7 @@ interface Props {
 
 export const HeaderNav: React.FC<Props> = ({
   onOpenSettings,
+  onOpenCatalog,
   onCreateNew,
   hasActiveQuote,
   activeQuoteId,
@@ -175,17 +177,6 @@ export const HeaderNav: React.FC<Props> = ({
               <span className="sm:hidden">New</span>
             </button>
 
-            <button
-              onClick={onOpenSettings}
-              title={canEditBank ? 'Company & Bank Settings' : 'Company Settings (Bank locked by Super Admin)'}
-              className="p-1.5 sm:p-2 text-neutral-400 hover:text-white hover:bg-neutral-800 active:scale-95 rounded-lg transition-colors relative"
-            >
-              <Settings size={18} />
-              {!canEditBank && (
-                <span className="absolute -top-0.5 -right-0.5 w-2 h-2 bg-amber-500 rounded-full" />
-              )}
-            </button>
-
             {/* SaaS User Profile & Workspace Dropdown */}
             {user && (
               <div className="relative" ref={menuRef}>
@@ -267,6 +258,18 @@ export const HeaderNav: React.FC<Props> = ({
                           <span>Team &amp; Role Management</span>
                         </button>
                       )}
+
+                      <button
+                        type="button"
+                        onClick={() => {
+                          setIsUserMenuOpen(false);
+                          onOpenCatalog();
+                        }}
+                        className="w-full flex items-center gap-2.5 px-3.5 py-2 text-xs hover:bg-neutral-800/80 transition-colors text-left text-blue-300 font-semibold"
+                      >
+                        <Package size={14} className="text-blue-400" />
+                        <span>Equipment &amp; Services Catalog</span>
+                      </button>
 
                       <button
                         type="button"

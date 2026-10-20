@@ -1,6 +1,5 @@
 import { Quotation, CompanyProfile, ClientProfile, LineItem, CatalogItem } from '../types/quotation';
-import { DEFAULT_COMPANY, DEFAULT_TERMS_AND_CONDITIONS, DEFAULT_PAYMENT_TERMS } from '../config/defaults';
-import { CATALOG_PRESETS } from '../config/catalog';
+import { DEFAULT_COMPANY, DEFAULT_TERMS_AND_CONDITIONS, DEFAULT_PAYMENT_TERMS, CATALOG_PRESETS } from '../config/defaults';
 import { idb } from './indexedDb';
 import { cloudSync } from './cloudSync';
 
@@ -160,7 +159,14 @@ export const storage = {
       memoryQuotations = idbQuotes;
       memoryClients = idbClients;
       memoryCompany = normalizeCompany(idbCompany);
-      memoryCustomCatalog = idbCatalog || [];
+      if (Array.isArray(idbCatalog) && idbCatalog.length > 0) {
+        // Merge any new default presets that don't exist yet in the stored catalog
+        const existingIds = new Set(idbCatalog.map((c) => c.id));
+        const missingPresets = CATALOG_PRESETS.filter((p) => !existingIds.has(p.id));
+        memoryCustomCatalog = [...idbCatalog, ...missingPresets];
+      } else {
+        memoryCustomCatalog = [...CATALOG_PRESETS];
+      }
 
       // 3. Cloud sync: pull from cloud if available
       if (cloudSync.isEnabled()) {
@@ -176,6 +182,14 @@ export const storage = {
             if (cloudData.company) {
               memoryCompany = normalizeCompany(cloudData.company);
             }
+          }
+          const cloudCatalog = await cloudSync.pullCatalogFromCloud();
+          if (cloudCatalog && Array.isArray(cloudCatalog) && cloudCatalog.length > 0) {
+            // Merge with local presets if any are missing
+            const existingIds = new Set(cloudCatalog.map((c) => c.id));
+            const missingPresets = CATALOG_PRESETS.filter((p) => !existingIds.has(p.id));
+            memoryCustomCatalog = [...cloudCatalog, ...missingPresets];
+            await idb.saveSetting('custom_catalog_items', memoryCustomCatalog);
           }
         } catch (e) {
           console.warn('Cloud sync pull notice:', e);
@@ -526,14 +540,16 @@ export const storage = {
   },
 
   getAllCatalogItems(): CatalogItem[] {
-    return [...memoryCustomCatalog, ...CATALOG_PRESETS];
+    if (memoryCustomCatalog.length === 0) {
+      return [...CATALOG_PRESETS];
+    }
+    return memoryCustomCatalog;
   },
 
   saveCatalogItem(item: CatalogItem): void {
     const itemWithId: CatalogItem = {
       ...item,
       id: item.id || `custom-cat-${Date.now()}`,
-      isCustom: true,
     };
 
     const existingIdx = memoryCustomCatalog.findIndex((c) => c.id === itemWithId.id);
@@ -544,11 +560,20 @@ export const storage = {
     }
 
     idb.saveSetting('custom_catalog_items', memoryCustomCatalog).catch(console.error);
+    cloudSync.syncCatalogItems(memoryCustomCatalog).catch(console.error);
   },
 
   deleteCatalogItem(id: string): void {
     memoryCustomCatalog = memoryCustomCatalog.filter((c) => c.id !== id);
     idb.saveSetting('custom_catalog_items', memoryCustomCatalog).catch(console.error);
+    cloudSync.syncCatalogItems(memoryCustomCatalog).catch(console.error);
+  },
+
+  resetCatalogToDefaults(): CatalogItem[] {
+    memoryCustomCatalog = [...CATALOG_PRESETS];
+    idb.saveSetting('custom_catalog_items', memoryCustomCatalog).catch(console.error);
+    cloudSync.syncCatalogItems(memoryCustomCatalog).catch(console.error);
+    return memoryCustomCatalog;
   },
 
   // 1-Click Backup Export

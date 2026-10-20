@@ -371,7 +371,7 @@ export function buildQuotationHTML(quotation: Quotation, upiQrDataUrl?: string):
         <div style="width:230px;display:flex;flex-direction:column;gap:12px;">
           <!-- Company Signatory -->
           <div style="text-align:center;padding-top:4px;">
-            <div style="font-size:10.5px;font-weight:700;color:#1e3a8a;margin-bottom:2px;">For ${esc(company.name)}</div>
+            <div style="font-size:10.5px;font-weight:700;color:#1e3a8a;margin-bottom:2px;">${esc(company.name)}</div>
             ${company.signature ? `
             <img src="${company.signature}" style="height:40px;max-width:140px;object-fit:contain;margin:2px auto;display:block;" />
             ` : `

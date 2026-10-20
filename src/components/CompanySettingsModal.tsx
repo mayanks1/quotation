@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { X, Building2, Save, Image as ImageIcon, CreditCard, Download, Upload, Cloud, HardDrive, CheckCircle2, RefreshCw, AlertCircle, Trash2, PenTool } from 'lucide-react';
+import { X, Building2, Save, Image as ImageIcon, CreditCard, Download, Upload, Cloud, HardDrive, CheckCircle2, RefreshCw, AlertCircle, Trash2, PenTool, Package } from 'lucide-react';
 import { CompanyProfile } from '../types/quotation';
 import { storage } from '../services/storage';
 import { DEFAULT_COMPANY } from '../config/defaults';
@@ -16,6 +16,7 @@ interface Props {
   company: CompanyProfile;
   onSave: (updated: CompanyProfile) => Promise<void> | void;
   onRestoreBackup?: () => void;
+  onOpenCatalog?: () => void;
 }
 
 const ensureCompanyProfile = (c?: Partial<CompanyProfile> | null): CompanyProfile => {
@@ -34,7 +35,8 @@ export const CompanySettingsModal: React.FC<Props> = ({
   onClose, 
   company, 
   onSave, 
-  onRestoreBackup 
+  onRestoreBackup,
+  onOpenCatalog
 }) => {
   const toast = useToast();
   const { confirm } = useConfirm();
@@ -129,6 +131,31 @@ export const CompanySettingsModal: React.FC<Props> = ({
 
         <form onSubmit={handleSubmit} className="overflow-y-auto flex-1 p-6 space-y-6">
           
+          {/* Quick link to Equipment Catalog */}
+          {onOpenCatalog && (
+            <div className="bg-gradient-to-r from-blue-50 to-indigo-50 border border-blue-100 rounded-xl p-3.5 flex items-center justify-between gap-3 shadow-xs">
+              <div className="flex items-center gap-3">
+                <div className="w-9 h-9 rounded-lg bg-blue-600 text-white flex items-center justify-center shrink-0 shadow-sm shadow-blue-500/30">
+                  <Package size={18} />
+                </div>
+                <div>
+                  <div className="text-xs font-bold text-slate-800">Equipment &amp; Services Catalog</div>
+                  <div className="text-[11px] text-slate-500">Configure presets (55" LED TV / Standee, LED walls, processors, sound) &amp; custom rates</div>
+                </div>
+              </div>
+              <button
+                type="button"
+                onClick={() => {
+                  onClose();
+                  onOpenCatalog();
+                }}
+                className="px-3 py-1.5 bg-white border border-blue-200 hover:border-blue-300 text-blue-700 text-xs font-bold rounded-lg hover:bg-blue-50 transition-all shadow-xs shrink-0 cursor-pointer"
+              >
+                Manage Catalog
+              </button>
+            </div>
+          )}
+
           {/* Logo, Stamp & Basic Info */}
           <div>
             <h4 className="text-xs font-bold text-slate-500 uppercase tracking-wider mb-3">Company Details &amp; Branding</h4>

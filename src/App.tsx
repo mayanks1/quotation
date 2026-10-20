@@ -6,6 +6,7 @@ import { HeaderNav } from './components/HeaderNav';
 import { QuotationList } from './components/QuotationList';
 import { ClientDirectory } from './components/ClientDirectory';
 import { CompanySettingsModal } from './components/CompanySettingsModal';
+import { CatalogPickerModal } from './components/CatalogPickerModal';
 import { ProtectedRoute } from './components/ProtectedRoute';
 import { LoginPage } from './pages/LoginPage';
 import { RegisterPage } from './pages/RegisterPage';
@@ -54,6 +55,7 @@ export function App() {
   const [activeQuoteId, setActiveQuoteId] = useState<string>(() => storage.getActiveQuotationId() || '');
   const [clients, setClients] = useState<ClientProfile[]>(() => storage.getAllClients());
   const [isSettingsOpen, setIsSettingsOpen] = useState(false);
+  const [isCatalogOpen, setIsCatalogOpen] = useState(false);
 
   useEffect(() => {
     storage.initialize().then(({ quotations: qList, clients: cList, company: comp }) => {
@@ -218,6 +220,7 @@ export function App() {
             <div className={`min-h-screen ${location.pathname.startsWith('/ledger') ? 'bg-[#070a13]' : 'bg-slate-100'} flex flex-col font-sans`}>
               <HeaderNav
                 onOpenSettings={() => setIsSettingsOpen(true)}
+                onOpenCatalog={() => setIsCatalogOpen(true)}
                 onCreateNew={handleCreateNew}
                 hasActiveQuote={!!activeQuoteId}
                 activeQuoteId={activeQuoteId}
@@ -231,6 +234,12 @@ export function App() {
                 company={company}
                 onSave={handleSaveCompany}
                 onRestoreBackup={handleRestoreBackup}
+                onOpenCatalog={() => setIsCatalogOpen(true)}
+              />
+              <CatalogPickerModal
+                isOpen={isCatalogOpen}
+                onClose={() => setIsCatalogOpen(false)}
+                mode="manage"
               />
             </div>
           </ProtectedRoute>
