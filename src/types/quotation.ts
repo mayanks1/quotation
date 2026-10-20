@@ -48,6 +48,7 @@ export interface CompanyProfile {
   gstin?: string;
   pan?: string;
   bankDetails: BankDetails;
+  signature?: string; // Base64 or URL for official company stamp & signature
 }
 
 export interface ClientProfile {

@@ -14,9 +14,11 @@ const STORAGE_KEYS = {
 
 export const normalizeCompany = (raw: any): CompanyProfile => {
   if (!raw || typeof raw !== 'object') return DEFAULT_COMPANY;
+  const isBrokenSig = typeof raw.signature === 'string' && raw.signature.startsWith('data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCA0NjAgMjUwIiB3aWR0aD0iNDYwIiBoZWlnaHQ9IjI1MCI+CiAgPGRlZnM+');
   return {
     ...DEFAULT_COMPANY,
     ...raw,
+    signature: (isBrokenSig || !raw.signature) ? DEFAULT_COMPANY.signature : raw.signature,
     bankDetails: {
       ...DEFAULT_COMPANY.bankDetails,
       ...(raw.bankDetails || {}),

@@ -1,4 +1,5 @@
 import { CompanyProfile } from '../types/quotation';
+import { OFFICIAL_TISHA_STAMP } from './officialStamp';
 
 export const DEFAULT_COMPANY: CompanyProfile = {
   name: 'Tisha led walls',
@@ -19,6 +20,7 @@ export const DEFAULT_COMPANY: CompanyProfile = {
     branch: 'Sector 46, Gurugram',
     upiId: '9716681122@sbi',
   },
+  signature: OFFICIAL_TISHA_STAMP,
 };
 
 export const DEFAULT_TERMS_AND_CONDITIONS = `1. Confirmation: 70% advance payment required to block equipment and confirm booking date.

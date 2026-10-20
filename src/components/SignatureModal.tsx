@@ -108,7 +108,17 @@ export const SignatureModal: React.FC<Props> = ({
       setUploadedImage(null);
     }
 
+    ctx.strokeStyle = '#1e3a8a';
+    ctx.fillStyle = '#1e3a8a';
     const { x, y } = getCoordinates(e);
+
+    // Draw an immediate circular dot so single clicks or taps (e.g. dot on 'i' or period) draw cleanly
+    const dotRadius = Math.max(1.8, ctx.lineWidth / 1.5);
+    ctx.beginPath();
+    ctx.arc(x, y, dotRadius, 0, Math.PI * 2);
+    ctx.fill();
+
+    // Start line path from the dot coordinate
     ctx.beginPath();
     ctx.moveTo(x, y);
     setIsDrawing(true);
@@ -193,7 +203,7 @@ export const SignatureModal: React.FC<Props> = ({
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-4 bg-slate-900/60 backdrop-blur-xs animate-in fade-in duration-200">
       <div 
-        className="bg-white w-full max-w-lg rounded-2xl shadow-2xl border border-slate-200 overflow-hidden flex flex-col max-h-[92vh]"
+        className="bg-white text-slate-900 w-full max-w-lg rounded-2xl shadow-2xl border border-slate-200 overflow-hidden flex flex-col max-h-[92vh]"
         onClick={(e) => e.stopPropagation()}
       >
         {/* Header */}
@@ -220,7 +230,7 @@ export const SignatureModal: React.FC<Props> = ({
           {/* Signer Details */}
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
             <div>
-              <label className="text-[11px] font-bold uppercase tracking-wider text-slate-500 block mb-1">
+              <label className="text-[11px] font-bold uppercase tracking-wider text-slate-700 block mb-1">
                 Authorized Signer Name
               </label>
               <input
@@ -228,11 +238,11 @@ export const SignatureModal: React.FC<Props> = ({
                 value={signerName}
                 onChange={(e) => setSignerName(e.target.value)}
                 placeholder="e.g. Rahul Sharma"
-                className="w-full text-xs font-semibold px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl focus:bg-white focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500"
+                className="w-full text-xs font-bold text-slate-900 placeholder:text-slate-400 placeholder:font-normal px-3 py-2.5 bg-white border border-slate-300 rounded-xl focus:bg-white focus:text-slate-900 focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-600 transition-all shadow-2xs"
               />
             </div>
             <div>
-              <label className="text-[11px] font-bold uppercase tracking-wider text-slate-500 block mb-1">
+              <label className="text-[11px] font-bold uppercase tracking-wider text-slate-700 block mb-1">
                 Designation / Contact Phone
               </label>
               <input
@@ -240,7 +250,7 @@ export const SignatureModal: React.FC<Props> = ({
                 value={signerPhone}
                 onChange={(e) => setSignerPhone(e.target.value)}
                 placeholder="e.g. Event Director / 9876543210"
-                className="w-full text-xs font-semibold px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl focus:bg-white focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500"
+                className="w-full text-xs font-bold text-slate-900 placeholder:text-slate-400 placeholder:font-normal px-3 py-2.5 bg-white border border-slate-300 rounded-xl focus:bg-white focus:text-slate-900 focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-600 transition-all shadow-2xs"
               />
             </div>
           </div>

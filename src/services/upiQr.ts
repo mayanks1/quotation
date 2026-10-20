@@ -1,7 +1,8 @@
 import QRCode from 'qrcode';
 
 export interface UpiPaymentDetails {
-  upiId: string;
+  upiId?: string;
+  payeeVpa?: string;
   payeeName: string;
   amount?: number;
   transactionNote?: string;
@@ -12,7 +13,8 @@ export interface UpiPaymentDetails {
  * Builds the NPCI-compliant standard UPI payment link string
  */
 export function buildUpiPaymentUrl(details: UpiPaymentDetails): string {
-  const { upiId, payeeName, amount, transactionNote, referenceId } = details;
+  const upiId = details.upiId || details.payeeVpa || '';
+  const { payeeName, amount, transactionNote, referenceId } = details;
   if (!upiId) return '';
 
   const cleanUpi = upiId.trim();

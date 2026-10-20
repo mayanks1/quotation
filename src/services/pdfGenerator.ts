@@ -210,7 +210,7 @@ export function buildQuotationHTML(quotation: Quotation, upiQrDataUrl?: string):
             <img src="${upiQrDataUrl}" style="width:86px;height:86px;display:block;margin:0 auto;" />
             ${!quotation.allowCustomerEditQrAmount ? `
             <div style="font-size:8.5px;font-weight:800;color:#1e3a8a;margin-top:3px;text-transform:uppercase;letter-spacing:0.4px;">
-              Scan &amp; Pay: ${fmt(quotation.customQrAmount && quotation.customQrAmount > 0 && quotation.qrAmountType === 'custom' ? quotation.customQrAmount : (quotation.qrAmountType === 'advance' && quotation.enablePaymentLedger ? Math.round(grandTotal * (advancePercentage / 100)) : grandTotal))}
+              Scan &amp; Pay: ${fmt(quotation.customQrAmount && quotation.customQrAmount > 0 && quotation.qrAmountType === 'custom' ? Math.min(quotation.customQrAmount, grandTotal) : (quotation.qrAmountType === 'advance' && quotation.enablePaymentLedger ? Math.round(grandTotal * (advancePercentage / 100)) : grandTotal))}
             </div>
             <div style="font-size:7.5px;color:#64748b;margin-top:1px;">
               PhonePe &bull; GPay &bull; Paytm
@@ -371,9 +371,14 @@ export function buildQuotationHTML(quotation: Quotation, upiQrDataUrl?: string):
         <div style="width:230px;display:flex;flex-direction:column;gap:12px;">
           <!-- Company Signatory -->
           <div style="text-align:center;padding-top:4px;">
-            <div style="font-size:11px;font-weight:700;color:#1e3a8a;margin-bottom:30px;">For ${esc(company.name)}</div>
-            <div style="border-top:1px solid #94a3b8;width:85%;margin:0 auto;padding-top:4px;">
-              <span style="font-size:9.5px;color:#64748b;font-weight:600;">Authorized Signatory</span>
+            <div style="font-size:10.5px;font-weight:700;color:#1e3a8a;margin-bottom:2px;">For ${esc(company.name)}</div>
+            ${company.signature ? `
+            <img src="${company.signature}" style="height:40px;max-width:140px;object-fit:contain;margin:2px auto;display:block;" />
+            ` : `
+            <div style="height:32px;"></div>
+            `}
+            <div style="border-top:1px solid #94a3b8;width:85%;margin:2px auto 0;padding-top:3px;">
+              <span style="font-size:9px;color:#64748b;font-weight:600;">Authorized Signatory</span>
             </div>
           </div>
 
@@ -440,7 +445,7 @@ export async function generateQuotationPDFDoc(quotation: Quotation): Promise<{ p
     const qrTargetAmount = quotation.allowCustomerEditQrAmount
       ? undefined
       : (quotation.customQrAmount !== undefined && quotation.customQrAmount > 0 && quotation.qrAmountType === 'custom'
-          ? quotation.customQrAmount
+          ? Math.min(quotation.customQrAmount, grandTotal)
           : (quotation.qrAmountType === 'advance' && quotation.enablePaymentLedger
               ? effectiveAdvanceAmt
               : grandTotal));

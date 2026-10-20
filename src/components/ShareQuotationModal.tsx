@@ -2,12 +2,13 @@ import React, { useState } from 'react';
 import {
   X, Share2, FileText, Download, Copy, Check,
   MessageSquare, ExternalLink, Loader2, Smartphone,
-  AlertCircle, ChevronDown, ChevronUp, IndianRupee, Bell, Clock
+  AlertCircle, ChevronDown, ChevronUp, IndianRupee, Bell, Clock, Truck
 } from 'lucide-react';
 import { Quotation, getItemAmount } from '../types/quotation';
 import { formatQuotationWhatsAppText, generateWhatsAppShareUrl, generateWhatsAppPdfNoticeUrl } from '../services/whatsapp';
 import { generateQuotationPDFFile, exportQuotationPDF } from '../services/pdfGenerator';
 import { getQuotationExpiryStatus, formatQuotationReminderText, generateWhatsAppReminderUrl } from '../utils/quotationExpiry';
+import { DeliveryChallanModal } from './DeliveryChallanModal';
 import { useToast } from '../context/ToastContext';
 
 interface Props {
@@ -29,6 +30,7 @@ export const ShareQuotationModal: React.FC<Props> = ({
   const [showReminderPreview, setShowReminderPreview] = useState<boolean>(false);
   const [copied, setCopied] = useState<boolean>(false);
   const [reminderCopied, setReminderCopied] = useState<boolean>(false);
+  const [isGatePassOpen, setIsGatePassOpen] = useState<boolean>(false);
 
   // Sync phone from quotation when opened
   React.useEffect(() => {
@@ -435,6 +437,37 @@ export const ShareQuotationModal: React.FC<Props> = ({
             </div>
           </div>
 
+          {/* Option E: Delivery Challan & Venue Gate Pass */}
+          <div className="p-3.5 sm:p-4 rounded-xl border border-amber-200 bg-amber-50/40 hover:bg-amber-50/70 transition-all space-y-2.5">
+            <div className="flex items-start gap-3">
+              <div className="w-9 h-9 rounded-lg bg-amber-600 text-white flex items-center justify-center shrink-0 shadow-sm shadow-amber-500/30">
+                <Truck size={18} />
+              </div>
+              <div className="flex-1 min-w-0">
+                <div className="flex items-center gap-1.5 flex-wrap">
+                  <h4 className="font-extrabold text-sm text-slate-900">Delivery Challan &amp; Venue Gate Pass</h4>
+                  <span className="text-[9px] font-extrabold px-1.5 py-0.2 rounded bg-amber-600 text-white uppercase tracking-wider">
+                    Logistics
+                  </span>
+                </div>
+                <p className="text-xs text-slate-600 mt-0.5 leading-relaxed">
+                  Generate official returnable equipment gate pass with vehicle, driver, technician, and hardware manifest for venue security entry.
+                </p>
+              </div>
+            </div>
+
+            <div className="pt-1">
+              <button
+                type="button"
+                onClick={() => setIsGatePassOpen(true)}
+                className="w-full flex items-center justify-center gap-1.5 bg-amber-600 hover:bg-amber-700 active:scale-95 text-white py-2 px-3 rounded-lg text-xs font-bold transition-all shadow-md shadow-amber-500/20"
+              >
+                <Truck size={14} />
+                <span>Create Venue Gate Pass / Delivery Challan</span>
+              </button>
+            </div>
+          </div>
+
           {/* Collapsible Text Preview */}
           <div className="border border-slate-200 rounded-xl overflow-hidden">
             <button
@@ -469,6 +502,14 @@ export const ShareQuotationModal: React.FC<Props> = ({
         </div>
 
       </div>
+
+      {quotation && (
+        <DeliveryChallanModal
+          isOpen={isGatePassOpen}
+          onClose={() => setIsGatePassOpen(false)}
+          quotation={quotation}
+        />
+      )}
     </div>
   );
 };

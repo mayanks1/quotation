@@ -8,7 +8,7 @@ import {
 import { storage } from '../services/storage';
 import { Quotation, getItemAmount } from '../types/quotation';
 import { exportQuotationPDF } from '../services/pdfGenerator';
-import { generateUpiQrDataUrl } from '../services/upiQr';
+import { generateUpiQrDataUrl, buildUpiPaymentUrl } from '../services/upiQr';
 import { getQuotationExpiryStatus } from '../utils/quotationExpiry';
 import { SignatureModal } from '../components/SignatureModal';
 import { useToast } from '../context/ToastContext';
@@ -20,6 +20,7 @@ export const PublicQuoteView: React.FC = () => {
   const [quotation, setQuotation] = useState<Quotation | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [qrCodeDataUrl, setQrCodeDataUrl] = useState<string>('');
+  const [upiDeepLink, setUpiDeepLink] = useState<string>('');
   const [isSignModalOpen, setIsSignModalOpen] = useState(false);
   const toast = useToast();
 
@@ -95,19 +96,38 @@ export const PublicQuoteView: React.FC = () => {
       return Math.round(taxable + tax + shipping + adjustment);
     };
 
+    const totalPayable = calculateTotal();
+    const effectiveAdvance = quotation.advancePercentage
+      ? Math.round((totalPayable * quotation.advancePercentage) / 100)
+      : (quotation.advanceAmount || 0);
+
+    const isCustom = quotation.qrAmountType === 'custom' && quotation.customQrAmount !== undefined && quotation.customQrAmount > 0;
+    const isAdvance = quotation.qrAmountType === 'advance' && quotation.enablePaymentLedger && effectiveAdvance > 0;
+
     const targetAmount = quotation.allowCustomerEditQrAmount
       ? undefined
-      : quotation.customQrAmount !== undefined && quotation.customQrAmount > 0
-      ? quotation.customQrAmount
-      : calculateTotal();
+      : isCustom
+      ? Math.min(quotation.customQrAmount!, totalPayable > 0 ? totalPayable : quotation.customQrAmount!)
+      : isAdvance
+      ? effectiveAdvance
+      : totalPayable;
 
     const payeeUpi = quotation.company?.bankDetails?.upiId || 'mayanksaini99-1@okhdfcbank';
-    const payeeName = quotation.company?.name || 'Tisha LED Walls';
+    const payeeName = quotation.company?.bankDetails?.accountName || quotation.company?.name || 'Tisha LED Walls';
+    const effectiveAmount = targetAmount && targetAmount > 0 ? targetAmount : undefined;
+
+    const link = buildUpiPaymentUrl({
+      upiId: payeeUpi,
+      payeeName: payeeName,
+      amount: effectiveAmount,
+      transactionNote: `Payment for ${quotation.quotationNumber}`,
+    });
+    setUpiDeepLink(link);
 
     generateUpiQrDataUrl({
-      payeeVpa: payeeUpi,
+      upiId: payeeUpi,
       payeeName: payeeName,
-      amount: targetAmount,
+      amount: effectiveAmount,
       transactionNote: `Payment for ${quotation.quotationNumber}`,
     }).then(setQrCodeDataUrl).catch(console.error);
   }, [quotation]);
@@ -365,7 +385,7 @@ export const PublicQuoteView: React.FC = () => {
                   {upiId}
                 </div>
                 <a
-                  href={`upi://pay?pa=${upiId}&pn=${encodeURIComponent(companyName)}&am=${grandTotal}&cu=INR`}
+                  href={upiDeepLink || `upi://pay?pa=${upiId}&pn=${encodeURIComponent(companyName)}&cu=INR`}
                   className="inline-flex items-center gap-1 text-[11px] font-bold text-blue-600 hover:underline pt-1"
                 >
                   <span>Open in Mobile UPI App</span>
@@ -438,9 +458,20 @@ export const PublicQuoteView: React.FC = () => {
               <div className="p-4 bg-slate-50 rounded-xl border border-slate-200 text-xs">
                 <div className="font-bold text-slate-800">{companyName}</div>
                 <div className="text-slate-500 mt-1">Authorized Representative</div>
-                <div className="mt-4 pt-4 border-t border-dashed border-slate-300 font-serif italic text-slate-400 text-center">
-                  Official Signature &amp; Stamp
-                </div>
+                {quotation.company?.signature ? (
+                  <div className="mt-3 pt-3 border-t border-slate-200 flex flex-col items-center">
+                    <img
+                      src={quotation.company.signature}
+                      alt="Official Stamp & Signature"
+                      className="h-16 w-auto max-w-[200px] object-contain"
+                    />
+                    <div className="text-[10px] text-slate-400 font-medium mt-1">Official Digital Stamp &amp; Signature</div>
+                  </div>
+                ) : (
+                  <div className="mt-4 pt-4 border-t border-dashed border-slate-300 font-serif italic text-slate-400 text-center">
+                    Official Signature &amp; Stamp
+                  </div>
+                )}
               </div>
             </div>
 

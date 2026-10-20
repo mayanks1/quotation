@@ -1,10 +1,10 @@
 import React, { useState, useRef, useEffect } from 'react';
 import { 
-  ArrowLeft, Download, Printer, Share2, Copy, Plus, 
+  ArrowLeft, Download, Share2, Copy, Plus, 
   Trash2, Image as ImageIcon, Calculator, BookOpen, 
   Settings, UserCheck, UserPlus, Calendar, Zap, FileText, Receipt,
   QrCode, CreditCard, CheckCircle2, GitBranch, ChevronDown, ChevronUp,
-  Smartphone, PenLine, PenTool, Clock
+  Smartphone, PenLine, PenTool, Clock, Truck, MoreHorizontal, Check, ExternalLink, Building2
 } from 'lucide-react';
 import { 
   Quotation, LineItem, QuotationStatus, TaxScheme, ClientProfile, 
@@ -22,6 +22,9 @@ import { LedCalculatorModal } from './LedCalculatorModal';
 import { CatalogPickerModal } from './CatalogPickerModal';
 import { ShareQuotationModal } from './ShareQuotationModal';
 import { SignatureModal } from './SignatureModal';
+import { CompanyStampModal } from './CompanyStampModal';
+import { DeliveryChallanModal } from './DeliveryChallanModal';
+import { OFFICIAL_TISHA_STAMP } from '../config/officialStamp';
 import { useToast } from '../context/ToastContext';
 
 interface Props {
@@ -173,8 +176,61 @@ export const QuotationEditor: React.FC<Props> = ({
   const [isCatalogOpen, setIsCatalogOpen] = useState(false);
   const [isShareModalOpen, setIsShareModalOpen] = useState(false);
   const [isSignatureModalOpen, setIsSignatureModalOpen] = useState(false);
+  const [isCompanyStampModalOpen, setIsCompanyStampModalOpen] = useState(false);
+  const [isGatePassOpen, setIsGatePassOpen] = useState(false);
+  const [isActionsMenuOpen, setIsActionsMenuOpen] = useState(false);
+  const actionsMenuRef = useRef<HTMLDivElement>(null);
+  const [isStatusMenuOpen, setIsStatusMenuOpen] = useState(false);
+  const statusMenuRef = useRef<HTMLDivElement>(null);
   const [autoCalc, setAutoCalc] = useState<boolean>(false);
   const [liveQrUrl, setLiveQrUrl] = useState<string>('');
+
+  // Close menus on click outside
+  useEffect(() => {
+    function handleClickOutside(e: MouseEvent) {
+      if (actionsMenuRef.current && !actionsMenuRef.current.contains(e.target as Node)) {
+        setIsActionsMenuOpen(false);
+      }
+      if (statusMenuRef.current && !statusMenuRef.current.contains(e.target as Node)) {
+        setIsStatusMenuOpen(false);
+      }
+    }
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => document.removeEventListener('mousedown', handleClickOutside);
+  }, []);
+
+  const STATUS_CONFIG: Record<QuotationStatus, { label: string; dotColor: string; badgeCls: string; description: string }> = {
+    draft: {
+      label: 'Draft',
+      dotColor: 'bg-slate-400',
+      badgeCls: 'bg-slate-100 text-slate-700 border-slate-200 hover:bg-slate-200/80',
+      description: 'Draft quotation in progress',
+    },
+    sent: {
+      label: 'Sent',
+      dotColor: 'bg-blue-500',
+      badgeCls: 'bg-blue-50 text-blue-700 border-blue-200 hover:bg-blue-100/80',
+      description: 'Shared with client for review',
+    },
+    approved: {
+      label: 'Approved',
+      dotColor: 'bg-emerald-500',
+      badgeCls: 'bg-emerald-50 text-emerald-700 border-emerald-200 hover:bg-emerald-100/80',
+      description: 'Client confirmed & booked',
+    },
+    invoiced: {
+      label: 'Invoiced',
+      dotColor: 'bg-purple-500',
+      badgeCls: 'bg-purple-50 text-purple-700 border-purple-200 hover:bg-purple-100/80',
+      description: 'Formal Tax Invoice generated',
+    },
+    rejected: {
+      label: 'Rejected',
+      dotColor: 'bg-rose-500',
+      badgeCls: 'bg-rose-50 text-rose-700 border-rose-200 hover:bg-rose-100/80',
+      description: 'Quotation cancelled or rejected',
+    },
+  };
 
   // Date picker refs
   const eventDatePickerRef = useRef<HTMLInputElement>(null);
@@ -216,7 +272,7 @@ export const QuotationEditor: React.FC<Props> = ({
   const targetQrAmount = allowCustomerEditQrAmount
     ? 0
     : (isCustomQr
-        ? quotation.customQrAmount!
+        ? Math.min(quotation.customQrAmount!, grandTotal > 0 ? grandTotal : quotation.customQrAmount!)
         : (qrAmountType === 'advance' && isLedgerEnabled && effectiveAdvanceAmount > 0
             ? effectiveAdvanceAmount
             : grandTotal));
@@ -334,6 +390,31 @@ export const QuotationEditor: React.FC<Props> = ({
     reader.readAsDataURL(file);
   };
 
+  const handleSaveCompanyStamp = (stampDataUrl: string) => {
+    const updatedCompany = { ...quotation.company, signature: stampDataUrl };
+    onChange({
+      ...quotation,
+      company: updatedCompany,
+    });
+    storage.saveCompanyProfile(updatedCompany);
+    if (stampDataUrl) {
+      toast.success('Official Stamp & Signature saved to Company Profile!');
+    } else {
+      toast.info('Official Stamp & Signature cleared');
+    }
+  };
+
+  const handleCompanyStampUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    const reader = new FileReader();
+    reader.onloadend = () => {
+      const sigData = reader.result as string;
+      handleSaveCompanyStamp(sigData);
+    };
+    reader.readAsDataURL(file);
+  };
+
   const handleExportPDF = async () => {
     setExporting(true);
     toast.info(`Preparing PDF for ${quotation.quotationNumber}...`);
@@ -346,10 +427,6 @@ export const QuotationEditor: React.FC<Props> = ({
     } finally {
       setExporting(false);
     }
-  };
-
-  const handleNativePrint = () => {
-    window.print();
   };
 
   const handleOpenShare = () => {
@@ -403,6 +480,19 @@ export const QuotationEditor: React.FC<Props> = ({
     }
   }, [quotation.eventDate]);
 
+  // Auto-apply official company stamp & signature if quotation doesn't have one yet or has old broken string
+  useEffect(() => {
+    const isOldBroken = Boolean(
+      quotation.company?.signature &&
+      quotation.company.signature.startsWith('data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCA0NjAgMjUwIiB3aWR0aD0iNDYwIiBoZWlnaHQ9IjI1MCI+CiAgPGRlZnM+')
+    );
+    if (!quotation.company?.signature || isOldBroken) {
+      const updatedComp = { ...quotation.company, signature: OFFICIAL_TISHA_STAMP };
+      onChange({ ...quotation, company: updatedComp });
+      storage.saveCompanyProfile(updatedComp);
+    }
+  }, [quotation.company?.signature]);
+
   const handleSelectSavedClient = (clientIdOrName: string) => {
     const found = savedClients.find((c) => c.id === clientIdOrName || c.name === clientIdOrName);
     if (found) {
@@ -442,136 +532,225 @@ export const QuotationEditor: React.FC<Props> = ({
   return (
     <div className="max-w-5xl mx-auto space-y-6 pb-16">
       
-      {/* Top Controller Bar */}
-      <div className="no-print bg-white p-3.5 sm:p-4 rounded-xl sm:rounded-2xl border border-slate-200/80 shadow-sm flex flex-col md:flex-row items-stretch md:items-center justify-between gap-3 sm:gap-4 relative md:sticky md:top-4 z-40">
+      {/* Top Controller Bar - Ultra-Premium Executive SaaS Command Bar */}
+      <div className="no-print bg-white/95 backdrop-blur-md px-3 sm:px-4 py-2 rounded-2xl border border-slate-200/90 shadow-[0_4px_20px_-4px_rgba(15,23,42,0.06),0_1px_3px_rgba(15,23,42,0.03)] ring-1 ring-slate-900/[0.03] flex items-center justify-between gap-2 sm:gap-3 relative md:sticky md:top-3 z-40">
         
-        {/* Back and Status */}
-        <div className="flex items-center gap-2 sm:gap-3 w-full md:w-auto justify-between md:justify-start">
+        {/* Left: Navigation, Document ID, Mode Switcher & Status */}
+        <div className="flex items-center gap-1.5 sm:gap-2.5 min-w-0">
+          {/* Back Button */}
           <button
             onClick={onBack}
-            className="flex items-center gap-1.5 text-xs font-bold text-slate-700 hover:text-slate-900 bg-slate-100 hover:bg-slate-200 px-3 py-2 rounded-lg transition-colors active:scale-95"
+            className="group flex items-center gap-1.5 text-xs font-semibold text-slate-600 hover:text-slate-950 bg-slate-100 hover:bg-slate-200/70 px-2.5 py-1.5 rounded-xl transition-all active:scale-95 shrink-0"
+            title="Return to Quotation List"
           >
-            <ArrowLeft size={16} />
-            <span>All Quotes</span>
+            <ArrowLeft size={13} className="text-slate-400 group-hover:-translate-x-0.5 transition-transform" />
+            <span className="hidden sm:inline">Quotes</span>
           </button>
 
-          <div className="flex items-center gap-1.5 sm:gap-2">
-            <span className="text-xs font-semibold text-slate-400">Status:</span>
-            <select
-              value={quotation.status}
-              onChange={(e) => onChange({ ...quotation, status: e.target.value as QuotationStatus })}
-              className={`text-xs font-bold px-2.5 sm:px-3 py-1.5 rounded-lg border focus:outline-none transition-colors ${
-                quotation.status === 'approved'
-                  ? 'bg-emerald-50 text-emerald-700 border-emerald-300'
-                  : quotation.status === 'sent'
-                  ? 'bg-blue-50 text-blue-700 border-blue-300'
-                  : quotation.status === 'invoiced'
-                  ? 'bg-purple-50 text-purple-700 border-purple-300'
-                  : quotation.status === 'rejected'
-                  ? 'bg-rose-50 text-rose-700 border-rose-300'
-                  : 'bg-slate-100 text-slate-700 border-slate-300'
+          {/* Breadcrumb slash & Quote Number */}
+          <div className="hidden md:flex items-center gap-1.5 shrink-0">
+            <span className="text-slate-300 font-light text-xs">/</span>
+            <div className="flex items-center gap-1">
+              <span className="font-mono text-xs font-bold text-slate-800 tracking-tight">
+                {isInvoice ? (quotation.invoiceNumber || quotation.quotationNumber) : quotation.quotationNumber}
+              </span>
+              {quotation.revisionNumber && quotation.revisionNumber > 1 && (
+                <span className="text-[10px] font-mono font-bold px-1.5 py-0.2 bg-blue-50 text-blue-700 rounded-md border border-blue-200/70">
+                  R{quotation.revisionNumber}
+                </span>
+              )}
+            </div>
+          </div>
+
+          <div className="h-4 w-px bg-slate-200 shrink-0" />
+
+          {/* Mode Switcher: Quotation vs Tax Invoice (Apple Segmented Style) */}
+          <div className="inline-flex items-center bg-slate-100/90 p-1 rounded-xl border border-slate-200/70 shadow-inner shrink-0">
+            <button
+              type="button"
+              onClick={() => {
+                if (isInvoice) {
+                  onChange({ ...quotation, documentType: 'quotation' });
+                  toast.info('Switched to Quotation mode');
+                }
+              }}
+              className={`flex items-center gap-1.5 px-3 py-1 rounded-lg text-xs font-bold transition-all ${
+                !isInvoice
+                  ? 'bg-white text-slate-900 shadow-xs'
+                  : 'text-slate-500 hover:text-slate-900'
               }`}
             >
-              <option value="draft">Draft</option>
-              <option value="sent">Sent to Client</option>
-              <option value="approved">Approved</option>
-              <option value="invoiced">Invoiced</option>
-              <option value="rejected">Rejected</option>
-            </select>
+              <FileText size={12} className={!isInvoice ? 'text-blue-600' : 'text-slate-400'} />
+              <span>Quotation</span>
+            </button>
+
+            <button
+              type="button"
+              onClick={() => {
+                const invoiceNum = quotation.invoiceNumber || `INV-${quotation.quotationNumber.replace(/^Q-?/, '') || Date.now()}`;
+                onChange({
+                  ...quotation,
+                  documentType: 'invoice',
+                  invoiceNumber: invoiceNum,
+                  invoiceDate: quotation.invoiceDate || quotation.quotationDate,
+                  status: quotation.status === 'draft' ? 'invoiced' : quotation.status,
+                });
+                toast.success(`Converted to Tax Invoice #${invoiceNum}`);
+              }}
+              className={`flex items-center gap-1.5 px-3 py-1 rounded-lg text-xs font-bold transition-all ${
+                isInvoice
+                  ? 'bg-blue-600 text-white shadow-xs'
+                  : 'text-slate-500 hover:text-slate-900'
+              }`}
+            >
+              <Receipt size={12} className={isInvoice ? 'text-white' : 'text-slate-400'} />
+              <span>Tax Invoice</span>
+            </button>
+          </div>
+
+          <div className="h-4 w-px bg-slate-200 shrink-0 hidden sm:block" />
+
+          {/* Interactive Custom Status Dropdown Badge */}
+          <div className="relative shrink-0" ref={statusMenuRef}>
+            {(() => {
+              const currentCfg = STATUS_CONFIG[quotation.status] || STATUS_CONFIG.draft;
+              return (
+                <>
+                  <button
+                    type="button"
+                    onClick={() => setIsStatusMenuOpen(!isStatusMenuOpen)}
+                    className={`flex items-center gap-1.5 text-xs font-bold px-2.5 py-1.5 rounded-xl border transition-all active:scale-95 shadow-2xs ${currentCfg.badgeCls}`}
+                  >
+                    <span className={`w-2 h-2 rounded-full ${currentCfg.dotColor} shrink-0`} />
+                    <span>{currentCfg.label}</span>
+                    <ChevronDown size={11} className={`text-slate-400 transition-transform ${isStatusMenuOpen ? 'rotate-180' : ''}`} />
+                  </button>
+
+                  {isStatusMenuOpen && (
+                    <div className="absolute left-0 top-full mt-1.5 w-48 bg-white rounded-xl shadow-xl border border-slate-200 py-1.5 z-50 animate-modal-in">
+                      {(['draft', 'sent', 'approved', 'invoiced', 'rejected'] as QuotationStatus[]).map((st) => {
+                        const cfg = STATUS_CONFIG[st];
+                        const isCurrent = quotation.status === st;
+                        return (
+                          <button
+                            key={st}
+                            type="button"
+                            onClick={() => {
+                              onChange({ ...quotation, status: st });
+                              setIsStatusMenuOpen(false);
+                              toast.success(`Status updated to ${cfg.label}`);
+                            }}
+                            className={`w-full px-3 py-2 text-left flex items-center justify-between text-xs transition-colors ${
+                              isCurrent ? 'bg-slate-50 font-bold text-slate-900' : 'text-slate-600 hover:bg-slate-50 hover:text-slate-900'
+                            }`}
+                          >
+                            <div className="flex items-center gap-2">
+                              <span className={`w-2 h-2 rounded-full ${cfg.dotColor} shrink-0`} />
+                              <div>
+                                <div>{cfg.label}</div>
+                                <div className="text-[10px] text-slate-400 font-normal leading-tight">{cfg.description}</div>
+                              </div>
+                            </div>
+                            {isCurrent && <Check size={13} className="text-blue-600 shrink-0 ml-2" />}
+                          </button>
+                        );
+                      })}
+                    </div>
+                  )}
+                </>
+              );
+            })()}
           </div>
         </div>
 
-        {/* Document Type Switcher: Quotation vs Tax Invoice */}
-        <div className="flex items-center bg-slate-100 p-1 rounded-xl border border-slate-200/90 self-stretch sm:self-center justify-center">
+        {/* Right: Tools & Actions */}
+        <div className="flex items-center gap-1.5 sm:gap-2 shrink-0">
+          {/* Gate Pass Button */}
           <button
-            type="button"
-            onClick={() => {
-              if (isInvoice) {
-                onChange({ ...quotation, documentType: 'quotation' });
-                toast.info('Switched view to Quotation mode');
-              }
-            }}
-            className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-bold transition-all ${
-              !isInvoice
-                ? 'bg-white text-slate-900 shadow-sm'
-                : 'text-slate-500 hover:text-slate-900'
-            }`}
+            onClick={() => setIsGatePassOpen(true)}
+            title="Generate Returnable Gate Pass / Equipment Delivery Challan"
+            className="flex items-center gap-1.5 px-3 py-1.5 text-xs font-semibold text-slate-700 bg-white hover:bg-slate-50 hover:text-slate-950 border border-slate-200/90 hover:border-slate-300 rounded-xl transition-all active:scale-95 shadow-2xs hover:shadow-xs"
           >
-            <FileText size={13} className={!isInvoice ? 'text-blue-600' : ''} />
-            <span>Quotation</span>
+            <Truck size={13} className="text-amber-500" />
+            <span className="hidden sm:inline">Gate Pass</span>
           </button>
 
-          <button
-            type="button"
-            onClick={() => {
-              const invoiceNum = quotation.invoiceNumber || `INV-${quotation.quotationNumber.replace(/^Q-?/, '') || Date.now()}`;
-              onChange({
-                ...quotation,
-                documentType: 'invoice',
-                invoiceNumber: invoiceNum,
-                invoiceDate: quotation.invoiceDate || quotation.quotationDate,
-                status: quotation.status === 'draft' ? 'invoiced' : quotation.status,
-              });
-              toast.success(`Converted to Tax Invoice #${invoiceNum}`);
-            }}
-            className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-bold transition-all ${
-              isInvoice
-                ? 'bg-blue-600 text-white shadow-sm'
-                : 'text-slate-500 hover:text-slate-900'
-            }`}
-          >
-            <Receipt size={13} />
-            <span>Tax Invoice</span>
-          </button>
-        </div>
+          {/* More Actions Dropdown (Duplicate, Revise, Print, Copy Link) */}
+          <div className="relative" ref={actionsMenuRef}>
+            <button
+              onClick={() => setIsActionsMenuOpen(!isActionsMenuOpen)}
+              title="More Actions"
+              className={`flex items-center justify-center w-8 h-8 rounded-xl border transition-all active:scale-95 shadow-2xs hover:shadow-xs ${
+                isActionsMenuOpen 
+                  ? 'bg-slate-100 text-slate-900 border-slate-300' 
+                  : 'bg-white hover:bg-slate-50 text-slate-700 border-slate-200/90 hover:border-slate-300'
+              }`}
+            >
+              <MoreHorizontal size={15} className="text-slate-600" />
+            </button>
 
-        {/* Action CTAs: Responsive Grid on Mobile, Flex on Desktop */}
-        <div className="grid grid-cols-2 sm:flex sm:items-center gap-2 w-full md:w-auto">
-          <button
-            onClick={handleCreateNewRevision}
-            title="Create a new version (e.g. R1, R2) preserving this quote"
-            className="flex items-center justify-center gap-1.5 px-3 py-2 text-xs font-semibold text-blue-700 bg-blue-50 hover:bg-blue-100 active:scale-95 rounded-lg transition-colors border border-blue-200"
-          >
-            <GitBranch size={14} />
-            <span>Revise (R{(quotation.revisionNumber || 1) + 1})</span>
-          </button>
+            {isActionsMenuOpen && (
+              <div className="absolute right-0 top-full mt-1.5 w-56 bg-white rounded-xl shadow-xl border border-slate-200 py-1.5 z-50 animate-modal-in">
+                <button
+                  type="button"
+                  onClick={() => {
+                    setIsActionsMenuOpen(false);
+                    onDuplicate(quotation);
+                    toast.success(`Quotation duplicated as new draft`);
+                  }}
+                  className="w-full px-3 py-2 text-left text-xs font-medium text-slate-700 hover:bg-slate-50 hover:text-slate-900 flex items-center gap-2.5 transition-colors"
+                >
+                  <Copy size={13} className="text-slate-500" />
+                  <span>Duplicate as New Quote</span>
+                </button>
 
-          <button
-            onClick={() => {
-              onDuplicate(quotation);
-              toast.success(`Quotation ${quotation.quotationNumber} duplicated as new draft`);
-            }}
-            title="Duplicate as new quote"
-            className="flex items-center justify-center gap-1.5 px-3 py-2 text-xs font-semibold text-slate-700 bg-slate-100 hover:bg-slate-200 active:scale-95 rounded-lg transition-colors"
-          >
-            <Copy size={14} />
-            <span>Duplicate</span>
-          </button>
+                <button
+                  type="button"
+                  onClick={() => {
+                    setIsActionsMenuOpen(false);
+                    handleCreateNewRevision();
+                  }}
+                  className="w-full px-3 py-2 text-left text-xs font-medium text-slate-700 hover:bg-slate-50 hover:text-slate-900 flex items-center gap-2.5 transition-colors"
+                >
+                  <GitBranch size={13} className="text-blue-600" />
+                  <span>Create Revision (R{(quotation.revisionNumber || 1) + 1})</span>
+                </button>
 
-          <button
-            onClick={handleNativePrint}
-            title="Print or Save as Vector PDF"
-            className="flex items-center justify-center gap-1.5 px-3 py-2 text-xs font-semibold text-slate-700 bg-slate-100 hover:bg-slate-200 active:scale-95 rounded-lg transition-colors"
-          >
-            <Printer size={14} />
-            <span>Print</span>
-          </button>
+                <button
+                  type="button"
+                  onClick={() => {
+                    setIsActionsMenuOpen(false);
+                    const link = `${window.location.origin}/quote/${quotation.id}/view`;
+                    navigator.clipboard.writeText(link);
+                    toast.success('Public review link copied to clipboard!');
+                  }}
+                  className="w-full px-3 py-2 text-left text-xs font-medium text-slate-700 hover:bg-slate-50 hover:text-slate-900 flex items-center gap-2.5 transition-colors"
+                >
+                  <ExternalLink size={13} className="text-indigo-500" />
+                  <span>Copy Public Review Link</span>
+                </button>
+              </div>
+            )}
+          </div>
 
+          <div className="h-4 w-px bg-slate-200 hidden xs:block" />
+
+          {/* Primary Action Buttons */}
           <button
             onClick={handleOpenShare}
-            title="Share quotation as official PDF document or WhatsApp text"
-            className="flex items-center justify-center gap-1.5 px-3 py-2 text-xs font-bold text-white bg-emerald-600 hover:bg-emerald-700 active:scale-95 rounded-lg transition-colors shadow-sm"
+            title="Share quotation via WhatsApp or Client Portal link"
+            className="flex items-center gap-1.5 px-3.5 py-1.5 text-xs font-bold text-white bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-500 hover:to-teal-500 active:scale-95 rounded-xl transition-all shadow-sm shadow-emerald-600/20 hover:shadow-emerald-600/30"
           >
-            <Share2 size={14} />
+            <Share2 size={13} />
             <span>Share</span>
           </button>
 
           <button
             onClick={handleExportPDF}
             disabled={exporting}
-            className="flex items-center justify-center gap-1.5 bg-blue-600 hover:bg-blue-700 active:scale-95 disabled:opacity-50 text-white px-3.5 py-2 rounded-lg text-xs font-bold transition-all shadow-md shadow-blue-500/20"
+            className="flex items-center gap-1.5 bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-500 hover:to-indigo-500 active:scale-95 disabled:opacity-50 text-white px-3.5 sm:px-4 py-1.5 rounded-xl text-xs font-bold transition-all shadow-sm shadow-blue-500/25 hover:shadow-md hover:shadow-blue-500/35"
           >
-            <Download size={14} />
+            <Download size={13} />
             <span className="truncate">{exporting ? 'Generating…' : 'PDF'}</span>
           </button>
         </div>
@@ -831,7 +1010,18 @@ export const QuotationEditor: React.FC<Props> = ({
                     </div>
 
                     <div className="flex items-center justify-between md:justify-end gap-2">
-                      <span className="text-slate-500 font-semibold">Valid Until:</span>
+                      <div className="flex items-center gap-1.5">
+                        {(() => {
+                          const exp = getQuotationExpiryStatus(quotation.validUntil);
+                          return (
+                            <span className={`inline-flex items-center gap-0.5 text-[9px] px-1.5 py-0.5 rounded border ${exp.badgeClass}`}>
+                              <Clock size={9} />
+                              {exp.label}
+                            </span>
+                          );
+                        })()}
+                        <span className="text-slate-500 font-semibold">Valid Until:</span>
+                      </div>
                       <div className="relative flex items-center">
                         <input
                           value={quotation.validUntil}
@@ -875,15 +1065,6 @@ export const QuotationEditor: React.FC<Props> = ({
                           }}
                         />
                       </div>
-                      {(() => {
-                        const exp = getQuotationExpiryStatus(quotation.validUntil);
-                        return (
-                          <span className={`inline-flex items-center gap-0.5 text-[9px] px-1.5 py-0.5 rounded border ${exp.badgeClass}`}>
-                            <Clock size={9} />
-                            {exp.label}
-                          </span>
-                        );
-                      })()}
                     </div>
                   </>
                 )}
@@ -1585,9 +1766,23 @@ export const QuotationEditor: React.FC<Props> = ({
                               <input
                                 type="number"
                                 min={0}
-                                value={isCustomQr ? quotation.customQrAmount : (targetQrAmount > 0 ? targetQrAmount : '')}
+                                max={grandTotal > 0 ? grandTotal : undefined}
+                                value={isCustomQr ? Math.min(quotation.customQrAmount ?? 0, grandTotal > 0 ? grandTotal : (quotation.customQrAmount ?? 0)) : (targetQrAmount > 0 ? targetQrAmount : '')}
                                 onChange={(e) => {
-                                  const val = e.target.value === '' ? undefined : parseFloat(e.target.value) || 0;
+                                  if (e.target.value === '') {
+                                    onChange({
+                                      ...quotation,
+                                      customQrAmount: undefined,
+                                      qrAmountType: 'total',
+                                    });
+                                    return;
+                                  }
+                                  let val = parseFloat(e.target.value);
+                                  if (isNaN(val) || val < 0) val = 0;
+                                  if (grandTotal > 0 && val > grandTotal) {
+                                    val = grandTotal;
+                                    toast.warning(`Amount restricted to Total Payable: ₹${grandTotal.toLocaleString('en-IN')}`);
+                                  }
                                   onChange({
                                     ...quotation,
                                     customQrAmount: val,
@@ -1595,7 +1790,7 @@ export const QuotationEditor: React.FC<Props> = ({
                                   });
                                 }}
                                 className="w-full text-center font-black text-xs text-slate-900 bg-transparent focus:outline-none [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
-                                title="Edit fixed QR payment amount manually"
+                                title={`Edit fixed QR payment amount (Max: ₹${grandTotal.toLocaleString('en-IN')})`}
                               />
                               <PenLine size={11} className="text-slate-400 shrink-0 ml-0.5" />
                             </div>
@@ -1707,7 +1902,11 @@ export const QuotationEditor: React.FC<Props> = ({
                               advancePercentage: pct,
                               advanceAmount: amt,
                               paymentTerms: `${pct}% Advance with Confirmation | ${100 - pct}% Prior to Event Setup`,
+                              qrAmountType: 'advance',
+                              customQrAmount: undefined,
+                              allowCustomerEditQrAmount: false,
                             });
+                            toast.info(`Advance set to ${pct}% (₹${amt.toLocaleString('en-IN')}) & synced to QR`);
                           }}
                           className={`text-[11px] font-bold py-1 px-2.5 rounded-lg border transition-all ${
                             advancePercentage === pct
@@ -1727,7 +1926,15 @@ export const QuotationEditor: React.FC<Props> = ({
                           onChange={(e) => {
                             const val = Math.min(100, Math.max(0, parseInt(e.target.value, 10) || 0));
                             const amt = Math.round((grandTotal * val) / 100);
-                            onChange({ ...quotation, advancePercentage: val, advanceAmount: amt });
+                            onChange({
+                              ...quotation,
+                              advancePercentage: val,
+                              advanceAmount: amt,
+                              paymentTerms: val > 0 ? `${val}% Advance with Confirmation | ${100 - val}% Prior to Event Setup` : quotation.paymentTerms,
+                              qrAmountType: 'advance',
+                              customQrAmount: undefined,
+                              allowCustomerEditQrAmount: false,
+                            });
                           }}
                           className="w-11 text-right text-xs font-bold text-slate-900 bg-transparent focus:outline-none [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
                         />
@@ -2087,82 +2294,170 @@ export const QuotationEditor: React.FC<Props> = ({
             />
           </div>
 
-          {/* Client Sign-Off & Digital Signature Section */}
-          <div className="border border-slate-200/90 rounded-xl p-4 bg-slate-50/60 space-y-3">
-            <div className="flex items-center justify-between">
-              <div className="flex items-center gap-2">
-                <PenTool size={15} className="text-blue-600" />
-                <h4 className="text-xs font-bold uppercase tracking-wider text-slate-800">
-                  Client Acceptance &amp; Sign-Off
-                </h4>
+          {/* Dual Signatures & Stamps Section */}
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            
+            {/* Left: Company Authorized Signatory & Official Stamp */}
+            <div className="border border-slate-200/90 rounded-xl p-4 bg-slate-50/60 space-y-3">
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-2">
+                  <Building2 size={15} className="text-blue-600" />
+                  <h4 className="text-xs font-bold uppercase tracking-wider text-slate-800">
+                    Authorized Signatory &amp; Stamp
+                  </h4>
+                </div>
+                {quotation.company.signature ? (
+                  <span className="inline-flex items-center gap-1 text-[11px] font-bold px-2.5 py-0.5 rounded-full bg-blue-50 text-blue-700 border border-blue-200">
+                    <CheckCircle2 size={12} />
+                    Stamp Configured
+                  </span>
+                ) : (
+                  <span className="text-[11px] text-amber-600 font-medium">
+                    No Stamp Uploaded
+                  </span>
+                )}
               </div>
-              {quotation.clientSignature ? (
-                <span className="inline-flex items-center gap-1 text-[11px] font-bold px-2.5 py-0.5 rounded-full bg-emerald-50 text-emerald-700 border border-emerald-200">
-                  <CheckCircle2 size={12} />
-                  Digitally Signed &amp; Accepted
-                </span>
+
+              {quotation.company.signature ? (
+                <div className="flex flex-col sm:flex-row items-center sm:items-start justify-between gap-4 p-3.5 bg-white rounded-xl border border-slate-200 shadow-2xs">
+                  <div className="flex items-center gap-3">
+                    <img
+                      src={quotation.company.signature}
+                      alt="Official Stamp & Signature"
+                      className="h-14 max-w-[150px] object-contain bg-slate-50 p-1 rounded border border-slate-200"
+                    />
+                    <div className="text-xs text-slate-700">
+                      <div className="font-bold text-slate-900">{quotation.company.name}</div>
+                      <div className="text-[11px] text-slate-500">Authorized Signatory &amp; Stamp</div>
+                      <div className="text-[10px] text-slate-400 mt-0.5">Embeds automatically into PDF &amp; Public portal</div>
+                    </div>
+                  </div>
+
+                  <div className="flex items-center gap-2 shrink-0">
+                    <button
+                      type="button"
+                      onClick={() => setIsCompanyStampModalOpen(true)}
+                      className="px-3 py-1.5 text-xs font-semibold text-blue-600 hover:bg-blue-50 border border-blue-200 rounded-lg transition-colors"
+                    >
+                      Change
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => {
+                        handleSaveCompanyStamp('');
+                      }}
+                      className="p-1.5 text-slate-400 hover:text-rose-600 hover:bg-rose-50 rounded-lg transition-colors"
+                      title="Remove Stamp"
+                    >
+                      <Trash2 size={15} />
+                    </button>
+                  </div>
+                </div>
               ) : (
-                <span className="text-[11px] text-slate-400">
-                  Awaiting Client Signature
-                </span>
+                <div className="flex flex-col sm:flex-row items-center justify-between gap-3 p-4 bg-white rounded-xl border border-dashed border-slate-300">
+                  <div className="text-xs text-slate-500 text-center sm:text-left">
+                    Official rubber stamp &amp; signature image automatically endorses all quotations, invoices, and PDFs.
+                  </div>
+                  <div className="flex items-center gap-2 shrink-0">
+                    <button
+                      type="button"
+                      onClick={() => handleSaveCompanyStamp(OFFICIAL_TISHA_STAMP)}
+                      className="inline-flex items-center gap-1.5 bg-blue-600 hover:bg-blue-700 active:scale-95 text-white px-3.5 py-2 rounded-lg text-xs font-bold transition-all shadow-sm"
+                    >
+                      <Building2 size={14} />
+                      <span>Use Official Stamp</span>
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => setIsCompanyStampModalOpen(true)}
+                      className="inline-flex items-center gap-1.5 bg-slate-100 hover:bg-slate-200 text-slate-700 px-3 py-2 rounded-lg text-xs font-semibold transition-all"
+                    >
+                      <PenTool size={14} />
+                      <span>Custom / Draw</span>
+                    </button>
+                  </div>
+                </div>
               )}
             </div>
 
-            {quotation.clientSignature ? (
-              <div className="flex flex-col sm:flex-row items-center sm:items-start justify-between gap-4 p-3.5 bg-white rounded-xl border border-slate-200 shadow-2xs">
-                <div className="flex items-center gap-3">
-                  <img
-                    src={quotation.clientSignature.dataUrl}
-                    alt="Client Signature"
-                    className="h-12 max-w-[140px] object-contain bg-slate-50 p-1 rounded border border-slate-200"
-                  />
-                  <div className="text-xs text-slate-700">
-                    <div className="font-bold text-slate-900">{quotation.clientSignature.signerName || 'Client Signatory'}</div>
-                    {quotation.clientSignature.signerPhone && (
-                      <div className="text-[11px] text-slate-500">{quotation.clientSignature.signerPhone}</div>
-                    )}
-                    <div className="text-[10px] text-slate-400 mt-0.5">
-                      Signed on {new Date(quotation.clientSignature.signedAt).toLocaleString('en-IN')}
+            {/* Right: Client Sign-Off & Digital Signature Section */}
+            <div className="border border-slate-200/90 rounded-xl p-4 bg-slate-50/60 space-y-3">
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-2">
+                  <PenTool size={15} className="text-emerald-600" />
+                  <h4 className="text-xs font-bold uppercase tracking-wider text-slate-800">
+                    Client Acceptance &amp; Sign-Off
+                  </h4>
+                </div>
+                {quotation.clientSignature ? (
+                  <span className="inline-flex items-center gap-1 text-[11px] font-bold px-2.5 py-0.5 rounded-full bg-emerald-50 text-emerald-700 border border-emerald-200">
+                    <CheckCircle2 size={12} />
+                    Digitally Signed
+                  </span>
+                ) : (
+                  <span className="text-[11px] text-slate-400">
+                    Awaiting Client
+                  </span>
+                )}
+              </div>
+
+              {quotation.clientSignature ? (
+                <div className="flex flex-col sm:flex-row items-center sm:items-start justify-between gap-4 p-3.5 bg-white rounded-xl border border-slate-200 shadow-2xs">
+                  <div className="flex items-center gap-3">
+                    <img
+                      src={quotation.clientSignature.dataUrl}
+                      alt="Client Signature"
+                      className="h-14 max-w-[150px] object-contain bg-slate-50 p-1 rounded border border-slate-200"
+                    />
+                    <div className="text-xs text-slate-700">
+                      <div className="font-bold text-slate-900">{quotation.clientSignature.signerName || 'Client Signatory'}</div>
+                      {quotation.clientSignature.signerPhone && (
+                        <div className="text-[11px] text-slate-500">{quotation.clientSignature.signerPhone}</div>
+                      )}
+                      <div className="text-[10px] text-slate-400 mt-0.5">
+                        Signed on {new Date(quotation.clientSignature.signedAt).toLocaleString('en-IN')}
+                      </div>
                     </div>
                   </div>
-                </div>
 
-                <div className="flex items-center gap-2">
+                  <div className="flex items-center gap-2 shrink-0">
+                    <button
+                      type="button"
+                      onClick={() => setIsSignatureModalOpen(true)}
+                      className="px-3 py-1.5 text-xs font-semibold text-blue-600 hover:bg-blue-50 border border-blue-200 rounded-lg transition-colors"
+                    >
+                      Change
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => {
+                        onChange({ ...quotation, clientSignature: undefined });
+                        toast.info('Client signature removed');
+                      }}
+                      className="p-1.5 text-slate-400 hover:text-rose-600 hover:bg-rose-50 rounded-lg transition-colors"
+                      title="Remove signature"
+                    >
+                      <Trash2 size={15} />
+                    </button>
+                  </div>
+                </div>
+              ) : (
+                <div className="flex flex-col sm:flex-row items-center justify-between gap-3 p-4 bg-white rounded-xl border border-dashed border-slate-300">
+                  <div className="text-xs text-slate-500 text-center sm:text-left">
+                    Client signs directly on mobile/touchscreen via the public review link, or you can capture their signature here.
+                  </div>
                   <button
                     type="button"
                     onClick={() => setIsSignatureModalOpen(true)}
-                    className="px-3 py-1.5 text-xs font-semibold text-blue-600 hover:bg-blue-50 border border-blue-200 rounded-lg transition-colors"
+                    className="inline-flex items-center gap-1.5 bg-emerald-600 hover:bg-emerald-700 active:scale-95 text-white px-3.5 py-2 rounded-lg text-xs font-bold transition-all shadow-sm shrink-0"
                   >
-                    Change Signature
-                  </button>
-                  <button
-                    type="button"
-                    onClick={() => {
-                      onChange({ ...quotation, clientSignature: undefined });
-                      toast.info('Client signature removed');
-                    }}
-                    className="p-1.5 text-slate-400 hover:text-rose-600 hover:bg-rose-50 rounded-lg transition-colors"
-                    title="Remove signature"
-                  >
-                    <Trash2 size={15} />
+                    <PenTool size={14} />
+                    <span>Capture Signature</span>
                   </button>
                 </div>
-              </div>
-            ) : (
-              <div className="flex flex-col sm:flex-row items-center justify-between gap-3 p-4 bg-white rounded-xl border border-dashed border-slate-300">
-                <div className="text-xs text-slate-500 text-center sm:text-left">
-                  Capture client signature on touchscreen or mouse, or upload a signed sign-off image. Embeds directly into official PDF.
-                </div>
-                <button
-                  type="button"
-                  onClick={() => setIsSignatureModalOpen(true)}
-                  className="inline-flex items-center gap-1.5 bg-blue-600 hover:bg-blue-700 active:scale-95 text-white px-3.5 py-2 rounded-lg text-xs font-bold transition-all shadow-sm shrink-0"
-                >
-                  <PenTool size={14} />
-                  <span>Capture Client Signature</span>
-                </button>
-              </div>
-            )}
+              )}
+            </div>
+
           </div>
 
         </div>
@@ -2208,6 +2503,23 @@ export const QuotationEditor: React.FC<Props> = ({
         existingSignature={quotation.clientSignature}
         clientName={quotation.client?.name}
         clientPhone={quotation.client?.phone}
+      />
+
+      <CompanyStampModal
+        isOpen={isCompanyStampModalOpen}
+        onClose={() => setIsCompanyStampModalOpen(false)}
+        onSave={(stampUrl) => {
+          handleSaveCompanyStamp(stampUrl);
+          setIsCompanyStampModalOpen(false);
+        }}
+        existingStamp={quotation.company?.signature}
+        companyName={quotation.company?.name}
+      />
+
+      <DeliveryChallanModal
+        isOpen={isGatePassOpen}
+        onClose={() => setIsGatePassOpen(false)}
+        quotation={quotation}
       />
 
     </div>
