@@ -4,7 +4,7 @@ import {
   Trash2, Image as ImageIcon, Calculator, BookOpen, 
   Settings, UserCheck, UserPlus, Calendar, Zap, FileText, Receipt,
   QrCode, CreditCard, CheckCircle2, GitBranch, ChevronDown, ChevronUp,
-  Smartphone, PenLine, PenTool, Clock, Truck, MoreHorizontal, Check, ExternalLink, Building2
+  Smartphone, PenLine, PenTool, Clock, Truck, MoreHorizontal, Check, ExternalLink, Building2, Sparkles
 } from 'lucide-react';
 import { 
   Quotation, LineItem, QuotationStatus, TaxScheme, ClientProfile, 
@@ -390,15 +390,17 @@ export const QuotationEditor: React.FC<Props> = ({
     reader.readAsDataURL(file);
   };
 
-  const handleSaveCompanyStamp = (stampDataUrl: string) => {
+  const handleSaveCompanyStamp = (stampDataUrl: string, setAsDefault: boolean = true) => {
     const updatedCompany = { ...quotation.company, signature: stampDataUrl };
     onChange({
       ...quotation,
       company: updatedCompany,
     });
-    storage.saveCompanyProfile(updatedCompany);
+    if (setAsDefault) {
+      storage.saveCompanyProfile(updatedCompany);
+    }
     if (stampDataUrl) {
-      toast.success('Official Stamp & Signature saved to Company Profile!');
+      toast.success(setAsDefault ? 'Stamp saved as Company Default!' : 'Stamp applied to quotation!');
     } else {
       toast.info('Official Stamp & Signature cleared');
     }
@@ -2319,32 +2321,50 @@ export const QuotationEditor: React.FC<Props> = ({
               </div>
 
               {quotation.company.signature ? (
-                <div className="flex flex-col sm:flex-row items-center sm:items-start justify-between gap-4 p-3.5 bg-white rounded-xl border border-slate-200 shadow-2xs">
+                <div className="bg-white rounded-xl border border-slate-200 shadow-2xs p-3.5 space-y-3">
                   <div className="flex items-center gap-3">
-                    <img
-                      src={quotation.company.signature}
-                      alt="Official Stamp & Signature"
-                      className="h-14 max-w-[150px] object-contain bg-slate-50 p-1 rounded border border-slate-200"
-                    />
-                    <div className="text-xs text-slate-700">
-                      <div className="font-bold text-slate-900">{quotation.company.name}</div>
-                      <div className="text-[11px] text-slate-500">Authorized Signatory &amp; Stamp</div>
-                      <div className="text-[10px] text-slate-400 mt-0.5">Embeds automatically into PDF &amp; Public portal</div>
+                    <div className="h-14 w-28 bg-slate-50 p-1 rounded-lg border border-slate-200/80 shrink-0 flex items-center justify-center overflow-hidden">
+                      <img
+                        src={quotation.company.signature}
+                        alt="Official Stamp & Signature"
+                        className="max-h-full max-w-full object-contain"
+                      />
+                    </div>
+                    <div className="min-w-0 flex-1">
+                      <div className="font-bold text-slate-900 text-xs sm:text-sm truncate">
+                        {quotation.company.name || 'Tisha LED Walls'}
+                      </div>
+                      <div className="text-[11px] text-slate-500 font-medium truncate">Authorized Signatory &amp; Stamp</div>
+                      <div className="text-[10px] text-slate-400 mt-0.5 truncate">Auto-embeds into PDF &amp; Public portal</div>
                     </div>
                   </div>
 
-                  <div className="flex items-center gap-2 shrink-0">
-                    <button
-                      type="button"
-                      onClick={() => setIsCompanyStampModalOpen(true)}
-                      className="px-3 py-1.5 text-xs font-semibold text-blue-600 hover:bg-blue-50 border border-blue-200 rounded-lg transition-colors"
-                    >
-                      Change
-                    </button>
+                  <div className="pt-2.5 border-t border-slate-100 flex items-center justify-between gap-2">
+                    <div className="flex items-center gap-2">
+                      <button
+                        type="button"
+                        onClick={() => setIsCompanyStampModalOpen(true)}
+                        className="inline-flex items-center gap-1.5 px-2.5 py-1.5 text-xs font-semibold text-blue-600 hover:text-blue-700 hover:bg-blue-50 border border-blue-200/80 rounded-lg transition-colors"
+                        title="Draw signature or change stamp"
+                      >
+                        <PenTool size={13} />
+                        <span>Draw / Edit</span>
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => handleSaveCompanyStamp(OFFICIAL_TISHA_STAMP, true)}
+                        className="inline-flex items-center gap-1.5 px-2.5 py-1.5 text-xs font-semibold text-slate-700 hover:text-blue-700 bg-slate-100 hover:bg-blue-50 border border-slate-200 rounded-lg transition-colors"
+                        title="Set official Tisha LED Walls preset stamp as default"
+                      >
+                        <Sparkles size={13} className="text-blue-600" />
+                        <span>Set Default</span>
+                      </button>
+                    </div>
+
                     <button
                       type="button"
                       onClick={() => {
-                        handleSaveCompanyStamp('');
+                        handleSaveCompanyStamp('', true);
                       }}
                       className="p-1.5 text-slate-400 hover:text-rose-600 hover:bg-rose-50 rounded-lg transition-colors"
                       title="Remove Stamp"
@@ -2354,26 +2374,26 @@ export const QuotationEditor: React.FC<Props> = ({
                   </div>
                 </div>
               ) : (
-                <div className="flex flex-col sm:flex-row items-center justify-between gap-3 p-4 bg-white rounded-xl border border-dashed border-slate-300">
-                  <div className="text-xs text-slate-500 text-center sm:text-left">
+                <div className="p-4 bg-white rounded-xl border border-dashed border-slate-300 flex flex-col sm:flex-row items-center justify-between gap-3 min-h-[108px]">
+                  <div className="text-xs text-slate-500 leading-relaxed text-center sm:text-left">
                     Official rubber stamp &amp; signature image automatically endorses all quotations, invoices, and PDFs.
                   </div>
                   <div className="flex items-center gap-2 shrink-0">
                     <button
                       type="button"
-                      onClick={() => handleSaveCompanyStamp(OFFICIAL_TISHA_STAMP)}
-                      className="inline-flex items-center gap-1.5 bg-blue-600 hover:bg-blue-700 active:scale-95 text-white px-3.5 py-2 rounded-lg text-xs font-bold transition-all shadow-sm"
+                      onClick={() => handleSaveCompanyStamp(OFFICIAL_TISHA_STAMP, true)}
+                      className="inline-flex items-center gap-1.5 bg-blue-600 hover:bg-blue-700 active:scale-95 text-white px-3 py-2 rounded-lg text-xs font-bold transition-all shadow-sm"
                     >
-                      <Building2 size={14} />
-                      <span>Use Official Stamp</span>
+                      <Sparkles size={13} />
+                      <span>Set Default</span>
                     </button>
                     <button
                       type="button"
                       onClick={() => setIsCompanyStampModalOpen(true)}
                       className="inline-flex items-center gap-1.5 bg-slate-100 hover:bg-slate-200 text-slate-700 px-3 py-2 rounded-lg text-xs font-semibold transition-all"
                     >
-                      <PenTool size={14} />
-                      <span>Custom / Draw</span>
+                      <PenTool size={13} />
+                      <span>Draw / Upload</span>
                     </button>
                   </div>
                 </div>
@@ -2402,32 +2422,38 @@ export const QuotationEditor: React.FC<Props> = ({
               </div>
 
               {quotation.clientSignature ? (
-                <div className="flex flex-col sm:flex-row items-center sm:items-start justify-between gap-4 p-3.5 bg-white rounded-xl border border-slate-200 shadow-2xs">
+                <div className="bg-white rounded-xl border border-slate-200 shadow-2xs p-3.5 space-y-3">
                   <div className="flex items-center gap-3">
-                    <img
-                      src={quotation.clientSignature.dataUrl}
-                      alt="Client Signature"
-                      className="h-14 max-w-[150px] object-contain bg-slate-50 p-1 rounded border border-slate-200"
-                    />
-                    <div className="text-xs text-slate-700">
-                      <div className="font-bold text-slate-900">{quotation.clientSignature.signerName || 'Client Signatory'}</div>
+                    <div className="h-14 w-28 bg-slate-50 p-1 rounded-lg border border-slate-200/80 shrink-0 flex items-center justify-center overflow-hidden">
+                      <img
+                        src={quotation.clientSignature.dataUrl}
+                        alt="Client Signature"
+                        className="max-h-full max-w-full object-contain"
+                      />
+                    </div>
+                    <div className="min-w-0 flex-1">
+                      <div className="font-bold text-slate-900 text-xs sm:text-sm truncate">
+                        {quotation.clientSignature.signerName || 'Client Signatory'}
+                      </div>
                       {quotation.clientSignature.signerPhone && (
-                        <div className="text-[11px] text-slate-500">{quotation.clientSignature.signerPhone}</div>
+                        <div className="text-[11px] text-slate-500 font-medium truncate">{quotation.clientSignature.signerPhone}</div>
                       )}
-                      <div className="text-[10px] text-slate-400 mt-0.5">
+                      <div className="text-[10px] text-slate-400 mt-0.5 truncate">
                         Signed on {new Date(quotation.clientSignature.signedAt).toLocaleString('en-IN')}
                       </div>
                     </div>
                   </div>
 
-                  <div className="flex items-center gap-2 shrink-0">
+                  <div className="pt-2.5 border-t border-slate-100 flex items-center justify-between gap-2">
                     <button
                       type="button"
                       onClick={() => setIsSignatureModalOpen(true)}
-                      className="px-3 py-1.5 text-xs font-semibold text-blue-600 hover:bg-blue-50 border border-blue-200 rounded-lg transition-colors"
+                      className="inline-flex items-center gap-1.5 px-2.5 py-1.5 text-xs font-semibold text-emerald-700 hover:text-emerald-800 hover:bg-emerald-50 border border-emerald-200/80 rounded-lg transition-colors"
                     >
-                      Change
+                      <PenTool size={13} />
+                      <span>Capture / Change</span>
                     </button>
+
                     <button
                       type="button"
                       onClick={() => {
@@ -2442,8 +2468,8 @@ export const QuotationEditor: React.FC<Props> = ({
                   </div>
                 </div>
               ) : (
-                <div className="flex flex-col sm:flex-row items-center justify-between gap-3 p-4 bg-white rounded-xl border border-dashed border-slate-300">
-                  <div className="text-xs text-slate-500 text-center sm:text-left">
+                <div className="p-4 bg-white rounded-xl border border-dashed border-slate-300 flex flex-col sm:flex-row items-center justify-between gap-3 min-h-[108px]">
+                  <div className="text-xs text-slate-500 leading-relaxed text-center sm:text-left">
                     Client signs directly on mobile/touchscreen via the public review link, or you can capture their signature here.
                   </div>
                   <button
@@ -2508,8 +2534,8 @@ export const QuotationEditor: React.FC<Props> = ({
       <CompanyStampModal
         isOpen={isCompanyStampModalOpen}
         onClose={() => setIsCompanyStampModalOpen(false)}
-        onSave={(stampUrl) => {
-          handleSaveCompanyStamp(stampUrl);
+        onSave={(stampUrl, setAsDef) => {
+          handleSaveCompanyStamp(stampUrl, setAsDef ?? true);
           setIsCompanyStampModalOpen(false);
         }}
         existingStamp={quotation.company?.signature}

@@ -213,3 +213,141 @@ export function generateOfficialStampDataUrl(): string {
 
   return canvas.toDataURL('image/png');
 }
+
+// Composite a user-drawn signature onto the official Tisha LED Walls stamp template
+export function compositeDrawnStampDataUrl(
+  drawnCanvas: HTMLCanvasElement,
+  options?: {
+    companyName?: string;
+    location?: string;
+    includeFrame?: boolean;
+    primaryColor?: string;
+  }
+): string {
+  if (typeof document === 'undefined') return '';
+
+  const width = 460;
+  const height = 240;
+
+  if (options?.includeFrame === false) {
+    return drawnCanvas.toDataURL('image/png');
+  }
+
+  const canvas = document.createElement('canvas');
+  canvas.width = width * 2;
+  canvas.height = height * 2;
+  const ctx = canvas.getContext('2d');
+  if (!ctx) return drawnCanvas.toDataURL('image/png');
+
+  ctx.scale(2, 2);
+
+  // Slight natural stamp tilt (-1.5 deg) for realistic stamp look
+  ctx.save();
+  ctx.translate(width / 2, height / 2);
+  ctx.rotate((-1.5 * Math.PI) / 180);
+  ctx.translate(-width / 2, -height / 2);
+
+  const primaryBlue = options?.primaryColor || '#1e3a8a';
+  const accentBlue = '#2563eb';
+
+  // 1. Outer Rounded Rectangle Border
+  ctx.strokeStyle = primaryBlue;
+  ctx.lineWidth = 3.5;
+  ctx.lineCap = 'round';
+  ctx.lineJoin = 'round';
+  ctx.beginPath();
+  if (typeof (ctx as any).roundRect === 'function') {
+    (ctx as any).roundRect(14, 14, 432, 212, 14);
+  } else {
+    ctx.rect(14, 14, 432, 212);
+  }
+  ctx.fillStyle = 'rgba(248, 250, 255, 0.96)';
+  ctx.fill();
+  ctx.stroke();
+
+  // 2. Inner Dashed Rounded Rectangle
+  ctx.strokeStyle = primaryBlue;
+  ctx.lineWidth = 1.4;
+  ctx.setLineDash([7, 4]);
+  ctx.beginPath();
+  if (typeof (ctx as any).roundRect === 'function') {
+    (ctx as any).roundRect(22, 22, 416, 196, 9);
+  } else {
+    ctx.rect(22, 22, 416, 196);
+  }
+  ctx.stroke();
+  ctx.setLineDash([]);
+
+  // 3. Top Header: Company Name
+  ctx.textAlign = 'center';
+  ctx.textBaseline = 'middle';
+  ctx.font = '900 19px -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif';
+  ctx.fillStyle = primaryBlue;
+  ctx.letterSpacing = '2.5px';
+  ctx.fillText((options?.companyName || 'TISHA LED WALLS').toUpperCase(), 230, 52);
+
+  // 4. Sub-location
+  ctx.font = 'bold 10px -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif';
+  ctx.fillStyle = accentBlue;
+  ctx.letterSpacing = '1.2px';
+  ctx.fillText((options?.location || 'GURUGRAM (HARYANA)').toUpperCase(), 230, 72);
+
+  // 5. Left Circular Verified Seal Emblem
+  ctx.save();
+  ctx.translate(68, 138);
+  ctx.beginPath();
+  ctx.arc(0, 0, 32, 0, Math.PI * 2);
+  ctx.fillStyle = '#eff6ff';
+  ctx.fill();
+  ctx.strokeStyle = primaryBlue;
+  ctx.lineWidth = 2;
+  ctx.stroke();
+
+  ctx.beginPath();
+  ctx.arc(0, 0, 26, 0, Math.PI * 2);
+  ctx.strokeStyle = accentBlue;
+  ctx.lineWidth = 1;
+  ctx.setLineDash([3, 2]);
+  ctx.stroke();
+  ctx.setLineDash([]);
+
+  ctx.strokeStyle = primaryBlue;
+  ctx.lineWidth = 2.8;
+  ctx.beginPath();
+  ctx.moveTo(-9, -2);
+  ctx.lineTo(-2, 5);
+  ctx.lineTo(9, -8);
+  ctx.stroke();
+
+  ctx.font = '900 7px sans-serif';
+  ctx.fillStyle = primaryBlue;
+  ctx.letterSpacing = '0.5px';
+  ctx.fillText('VERIFIED', 0, 14);
+  ctx.font = '800 6.5px sans-serif';
+  ctx.fillStyle = accentBlue;
+  ctx.fillText('SEAL', 0, 22);
+  ctx.restore();
+
+  // 6. Draw user's drawn signature
+  ctx.drawImage(drawnCanvas, 0, 0, width, height);
+
+  // 7. Divider Line
+  ctx.strokeStyle = primaryBlue;
+  ctx.lineWidth = 1.2;
+  ctx.setLineDash([4, 3]);
+  ctx.beginPath();
+  ctx.moveTo(42, 186);
+  ctx.lineTo(418, 186);
+  ctx.stroke();
+  ctx.setLineDash([]);
+
+  // 8. Footer: ★ AUTHORIZED SIGNATORY ★
+  ctx.font = '900 12px -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif';
+  ctx.fillStyle = primaryBlue;
+  ctx.letterSpacing = '2px';
+  ctx.fillText('★ AUTHORIZED SIGNATORY ★', 230, 206);
+
+  ctx.restore();
+
+  return canvas.toDataURL('image/png');
+}
