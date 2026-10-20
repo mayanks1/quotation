@@ -71,8 +71,19 @@ export const cloudSync = {
           clientSignature: quote.clientSignature,
           adjustmentAmount: quote.adjustmentAmount,
           advancePercentage: quote.advancePercentage,
+          advanceAmount: quote.advanceAmount,
+          enableUpiQr: quote.enableUpiQr,
+          enablePaymentLedger: quote.enablePaymentLedger,
+          qrAmountType: quote.qrAmountType,
           customQrAmount: quote.customQrAmount,
           allowCustomerEditQrAmount: quote.allowCustomerEditQrAmount,
+          paidAmount: quote.paidAmount,
+          paymentStatus: quote.paymentStatus,
+          paymentMode: quote.paymentMode,
+          transactionRef: quote.transactionRef,
+          paymentDate: quote.paymentDate,
+          revisionNumber: quote.revisionNumber,
+          parentQuoteNumber: quote.parentQuoteNumber,
           isRevised: quote.isRevised,
           originalQuotationNumber: quote.originalQuotationNumber,
           isDeleted: Boolean(quote.isDeleted),
@@ -192,11 +203,12 @@ export const cloudSync = {
           const cloudUpdatedTime = row.updated_at ? new Date(row.updated_at).getTime() : 0;
 
           if (localExisting && localUpdatedTime > cloudUpdatedTime) {
-            isDeleted = Boolean(localExisting.isDeleted);
-            deletedAt = localExisting.deletedAt;
+            // Local is newer: preserve local version and sync to cloud
+            await idb.saveQuotation(localExisting);
             setTimeout(() => {
               cloudSync.syncQuotation({ ...localExisting }).catch(console.warn);
             }, 100);
+            continue;
           } else if (localExisting?.isDeleted && !isDeleted) {
             // Extra safety guard: if local was marked in trash and cloud hasn't recorded it yet
             const localDelTime = localExisting.deletedAt ? new Date(localExisting.deletedAt).getTime() : 0;
@@ -217,6 +229,9 @@ export const cloudSync = {
             eventDate: row.event_date || undefined,
             venue: row.venue || undefined,
             status: row.status,
+            documentType: row.document_type || 'quotation',
+            invoiceNumber: row.invoice_number || undefined,
+            invoiceDate: row.invoice_date || undefined,
             company: row.company,
             client: {
               name: row.client?.name || '',
@@ -226,13 +241,24 @@ export const cloudSync = {
               email: row.client?.email || '',
               gstin: row.client?.gstin || '',
             },
-            clientSignature: row.client?.clientSignature || undefined,
-            adjustmentAmount: row.client?.adjustmentAmount !== undefined ? Number(row.client.adjustmentAmount) : undefined,
-            advancePercentage: row.client?.advancePercentage !== undefined ? Number(row.client.advancePercentage) : undefined,
-            customQrAmount: row.client?.customQrAmount !== undefined ? Number(row.client.customQrAmount) : undefined,
-            allowCustomerEditQrAmount: row.client?.allowCustomerEditQrAmount || false,
-            isRevised: row.client?.isRevised || false,
-            originalQuotationNumber: row.client?.originalQuotationNumber || undefined,
+            clientSignature: row.client?.clientSignature || localExisting?.clientSignature || undefined,
+            adjustmentAmount: row.client?.adjustmentAmount !== undefined ? Number(row.client.adjustmentAmount) : localExisting?.adjustmentAmount,
+            advancePercentage: row.client?.advancePercentage !== undefined ? Number(row.client.advancePercentage) : localExisting?.advancePercentage,
+            advanceAmount: row.client?.advanceAmount !== undefined ? Number(row.client.advanceAmount) : localExisting?.advanceAmount,
+            customQrAmount: row.client?.customQrAmount !== undefined ? Number(row.client.customQrAmount) : localExisting?.customQrAmount,
+            allowCustomerEditQrAmount: row.client?.allowCustomerEditQrAmount !== undefined ? Boolean(row.client.allowCustomerEditQrAmount) : (localExisting?.allowCustomerEditQrAmount ?? false),
+            enableUpiQr: row.client?.enableUpiQr !== undefined ? Boolean(row.client.enableUpiQr) : (localExisting?.enableUpiQr ?? false),
+            enablePaymentLedger: row.client?.enablePaymentLedger !== undefined ? Boolean(row.client.enablePaymentLedger) : (localExisting?.enablePaymentLedger ?? false),
+            qrAmountType: row.client?.qrAmountType || localExisting?.qrAmountType,
+            paidAmount: row.client?.paidAmount !== undefined ? Number(row.client.paidAmount) : localExisting?.paidAmount,
+            paymentStatus: row.client?.paymentStatus || localExisting?.paymentStatus,
+            paymentMode: row.client?.paymentMode || localExisting?.paymentMode,
+            transactionRef: row.client?.transactionRef || localExisting?.transactionRef,
+            paymentDate: row.client?.paymentDate || localExisting?.paymentDate,
+            revisionNumber: row.client?.revisionNumber !== undefined ? Number(row.client.revisionNumber) : localExisting?.revisionNumber,
+            parentQuoteNumber: row.client?.parentQuoteNumber || localExisting?.parentQuoteNumber,
+            isRevised: row.client?.isRevised ?? localExisting?.isRevised ?? false,
+            originalQuotationNumber: row.client?.originalQuotationNumber || localExisting?.originalQuotationNumber,
             isDeleted,
             deletedAt,
             lineItems: row.line_items || [],
