@@ -17,6 +17,62 @@ const COMMON_PRESETS = [
   { w: 30, h: 10, label: '30×10 ft (300 sq.ft)' },
 ];
 
+interface PitchSpec {
+  name: string;
+  cabinetWidthMm: number;
+  cabinetHeightMm: number;
+  cabinetWidthFt: number; // e.g. 576mm / 304.8 = 1.88976 ft
+  cabinetHeightFt: number;
+  cabinetAreaSqFt: number;
+  label: string;
+  indoorAvgWatts: number;
+  indoorMaxWatts: number;
+  outdoorAvgWatts: number;
+  outdoorMaxWatts: number;
+}
+
+const PITCH_SPECS: Record<'P2' | 'P3' | 'P4', PitchSpec> = {
+  P2: {
+    name: 'P2 (Conferences • 500×500mm)',
+    cabinetWidthMm: 500,
+    cabinetHeightMm: 500,
+    cabinetWidthFt: 500 / 304.8, // 1.64042 ft
+    cabinetHeightFt: 500 / 304.8,
+    cabinetAreaSqFt: 2.691,
+    label: '500×500mm',
+    indoorAvgWatts: 75,
+    indoorMaxWatts: 140,
+    outdoorAvgWatts: 100,
+    outdoorMaxWatts: 180,
+  },
+  P3: {
+    name: 'P3 (Stage & Concerts • 500×500mm)',
+    cabinetWidthMm: 500,
+    cabinetHeightMm: 500,
+    cabinetWidthFt: 500 / 304.8, // 1.64042 ft
+    cabinetHeightFt: 500 / 304.8,
+    cabinetAreaSqFt: 2.691,
+    label: '500×500mm',
+    indoorAvgWatts: 85,
+    indoorMaxWatts: 160,
+    outdoorAvgWatts: 120,
+    outdoorMaxWatts: 200,
+  },
+  P4: {
+    name: 'P4 (Outdoor Daylight • 576×576mm)',
+    cabinetWidthMm: 576,
+    cabinetHeightMm: 576,
+    cabinetWidthFt: 576 / 304.8, // 1.88976 ft
+    cabinetHeightFt: 576 / 304.8,
+    cabinetAreaSqFt: 3.571,
+    label: '576×576mm',
+    indoorAvgWatts: 100,
+    indoorMaxWatts: 180,
+    outdoorAvgWatts: 130,
+    outdoorMaxWatts: 240,
+  },
+};
+
 export const LedCalculatorModal: React.FC<Props> = ({ isOpen, onClose, onAddLineItem }) => {
   const [pitch, setPitch] = useState<'P2' | 'P3' | 'P4'>('P3');
   const [type, setType] = useState<'Indoor' | 'Outdoor'>('Indoor');
@@ -37,14 +93,38 @@ export const LedCalculatorModal: React.FC<Props> = ({ isOpen, onClose, onAddLine
   const numRate = typeof ratePerSqFt === 'number' ? ratePerSqFt : (parseFloat(ratePerSqFt) || 0);
   const numDays = typeof days === 'number' ? days : (parseInt(String(days)) || 1);
 
+  const currentSpec = PITCH_SPECS[pitch];
+
   const sqFt = Math.round(numWidth * numHeight * 100) / 100;
   const baseRate = Math.round(sqFt * numRate * numDays);
 
-  // Approximate 500x500mm cabinets (approx 1.64 ft x 1.64 ft)
-  const cabWidth = numWidth > 0 ? Math.ceil(numWidth / 1.64) : 0;
-  const cabHeight = numHeight > 0 ? Math.ceil(numHeight / 1.64) : 0;
+  // Exact cabinet calculations based on true cabinet dimensions (576x576mm for P4, 500x500mm for P2/P3)
+  const cabWidth = numWidth > 0 ? Math.max(1, Math.round(numWidth / currentSpec.cabinetWidthFt)) : 0;
+  const cabHeight = numHeight > 0 ? Math.max(1, Math.round(numHeight / currentSpec.cabinetHeightFt)) : 0;
   const totalCabinets = cabWidth * cabHeight;
-  const estimatedPowerKw = Math.round(totalCabinets * 0.25); // ~250W avg per cab
+
+  // Realistic power calculations based on cabinet specs and environment (Indoor vs Outdoor)
+  const avgWattsPerCab = type === 'Indoor' ? currentSpec.indoorAvgWatts : currentSpec.outdoorAvgWatts;
+  const maxWattsPerCab = type === 'Indoor' ? currentSpec.indoorMaxWatts : currentSpec.outdoorMaxWatts;
+  const totalAvgWatts = totalCabinets * avgWattsPerCab;
+  const totalMaxWatts = totalCabinets * maxWattsPerCab;
+
+  // Running power in kW
+  const estimatedPowerKw = totalAvgWatts > 0
+    ? (totalAvgWatts >= 10000 ? (totalAvgWatts / 1000).toFixed(0) : (totalAvgWatts / 1000).toFixed(1))
+    : '0';
+
+  const peakPowerKw = totalMaxWatts > 0 ? (totalMaxWatts / 1000).toFixed(1) : '0';
+
+  // Practical electrical supply & generator sizing recommendation
+  const powerSupplyRecommend = totalAvgWatts <= 3500
+    ? 'Single-Phase 16A / 5 kVA'
+    : totalAvgWatts <= 7500
+    ? '3-Phase 16A / 10 kVA'
+    : totalAvgWatts <= 15000
+    ? '3-Phase 32A / 15-20 kVA'
+    : '3-Phase GenSet 25+ kVA';
+
   const aspectRatio = numHeight > 0 ? (numWidth / numHeight).toFixed(2) : '1.00';
 
   // Check if current dimensions match a preset
@@ -68,7 +148,7 @@ export const LedCalculatorModal: React.FC<Props> = ({ isOpen, onClose, onAddLine
     const finalSqFt = Math.round(finalWidth * finalHeight * 100) / 100;
     const finalTotal = Math.round(finalSqFt * finalRate * finalDays);
 
-    const desc = `${pitch} ${type} LED Video Wall (${finalWidth}ft × ${finalHeight}ft = ${finalSqFt} Sq.Ft, ${totalCabinets} Panels)${finalDays > 1 ? ` for ${finalDays} Days` : ''}${includeTruss ? ' including Ground Support Truss Setup' : ''}`;
+    const desc = `${pitch} ${type} LED Video Wall (${finalWidth}ft × ${finalHeight}ft = ${finalSqFt} Sq.Ft, ${totalCabinets} Panels @ ${currentSpec.label})${finalDays > 1 ? ` for ${finalDays} Days` : ''}${includeTruss ? ' including Ground Support Truss Setup' : ''}`;
 
     const newItem: LineItem = {
       id: `item-led-${Date.now()}`,
@@ -125,9 +205,9 @@ export const LedCalculatorModal: React.FC<Props> = ({ isOpen, onClose, onAddLine
                 }}
                 className="w-full bg-slate-50 border border-slate-200 rounded-lg p-2.5 text-xs sm:text-sm font-semibold focus:ring-2 focus:ring-blue-500 focus:outline-none"
               >
-                <option value="P2">P2 (Crisp / Conferences)</option>
-                <option value="P3">P3 (Stage &amp; Concerts)</option>
-                <option value="P4">P4 (Outdoor Daylight)</option>
+                <option value="P2">P2 (Indoor Conferences • 500×500mm)</option>
+                <option value="P3">P3 (Stage &amp; Concerts • 500×500mm)</option>
+                <option value="P4">P4 (Outdoor Daylight • 576×576mm)</option>
               </select>
             </div>
             <div>
@@ -166,6 +246,7 @@ export const LedCalculatorModal: React.FC<Props> = ({ isOpen, onClose, onAddLine
               <span className="text-[11px] text-blue-600 font-semibold flex items-center gap-1">
                 <Sliders size={12} />
                 {isCustomMode || !matchedPreset ? 'Custom Dimensions Active' : matchedPreset.label}
+                <span className="text-slate-400 font-normal">({currentSpec.label})</span>
               </span>
             </div>
 
@@ -332,15 +413,17 @@ export const LedCalculatorModal: React.FC<Props> = ({ isOpen, onClose, onAddLine
               <div>
                 <span className="text-slate-500 block font-medium">Cabinet Count</span>
                 <span className="font-bold text-slate-900 text-sm">~{totalCabinets} Panels</span>
-                <span className="text-[10px] text-slate-400">({cabWidth}W × {cabHeight}H)</span>
+                <span className="text-[10px] text-slate-400">({cabWidth}W × {cabHeight}H • {currentSpec.label})</span>
               </div>
             </div>
             <div className="flex items-center gap-2">
               <Zap className="text-amber-600 shrink-0" size={18} />
-              <div>
+              <div className="min-w-0">
                 <span className="text-slate-500 block font-medium">Req. Power</span>
                 <span className="font-bold text-slate-900 text-sm">~{estimatedPowerKw} kW</span>
-                <span className="text-[10px] text-slate-400">3-Phase GenSet</span>
+                <span className="text-[10px] text-slate-400 truncate block" title={`${powerSupplyRecommend} (Peak ~${peakPowerKw} kW)`}>
+                  {powerSupplyRecommend}
+                </span>
               </div>
             </div>
           </div>

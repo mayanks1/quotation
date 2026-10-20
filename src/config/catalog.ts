@@ -23,7 +23,7 @@ export const CATALOG_PRESETS: CatalogItem[] = [
     id: 'cat-p4-outdoor',
     title: 'P4 Outdoor Waterproof LED Wall',
     category: 'Screen',
-    description: 'P4 Outdoor IP65 Weatherproof LED Display with 5500+ nits daylight brightness for Day & Night Outdoor Events',
+    description: 'P4 Outdoor IP65 Weatherproof LED Display (576×576mm Die-Cast Aluminum Cabinets) with 5500+ nits daylight brightness for Day & Night Outdoor Events',
     defaultRate: 95,
     unit: 'Sq.Ft',
     hsnSac: '9973',
