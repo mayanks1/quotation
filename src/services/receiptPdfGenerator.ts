@@ -56,7 +56,7 @@ export function buildReceiptHTML(receipt: PaymentReceipt): string {
             <h1 style="margin: 0; font-size: 24px; font-weight: 800; color: #0f172a; letter-spacing: -0.5px;">${esc(company.name || 'TISHA LED WALLS')}</h1>
           </div>
           <div style="font-size: 11px; font-weight: 700; color: #2563eb; text-transform: uppercase; letter-spacing: 1px; margin-bottom: 6px;">
-            Professional LED Display Systems &amp; Visual Tech
+            Professional Audio-Visual &amp; LED Display Systems
           </div>
           <div style="font-size: 11px; color: #475569; line-height: 1.5;">
             ${company.address ? `${esc(company.address)}<br/>` : ''}
@@ -67,24 +67,40 @@ export function buildReceiptHTML(receipt: PaymentReceipt): string {
         </div>
 
         <div style="text-align: right;">
-          <div style="display: inline-block; background: #0f172a; color: #ffffff; font-size: 13px; font-weight: 800; text-transform: uppercase; letter-spacing: 1.5px; padding: 6px 14px; border-radius: 6px; margin-bottom: 8px;">
-            Official Money Receipt
-          </div>
+          <!-- Official Money Receipt Badge using SVG for guaranteed pixel-perfect centering -->
+          <svg width="204" height="30" viewBox="0 0 204 30" style="display:inline-block;margin-bottom:8px;vertical-align:middle;">
+            <rect width="204" height="30" rx="6" fill="#0f172a"/>
+            <text x="102" y="15" text-anchor="middle" dominant-baseline="central" fill="#ffffff" font-family="-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Helvetica,Arial,sans-serif" font-size="11" font-weight="900" letter-spacing="1.2">
+              OFFICIAL MONEY RECEIPT
+            </text>
+          </svg>
           <table style="margin-left: auto; font-size: 12px; border-collapse: collapse;">
             <tr>
-              <td style="color: #64748b; font-weight: 600; padding: 2px 8px; text-align: right;">Receipt No:</td>
-              <td style="font-weight: 800; font-family: monospace; font-size: 13px; color: #0f172a; padding: 2px 0;">${esc(receiptNumber)}</td>
+              <td style="color: #64748b; font-weight: 600; padding: 2.5px 8px; text-align: right; vertical-align: middle;">Receipt No:</td>
+              <td style="font-weight: 800; font-family: monospace; font-size: 13px; color: #0f172a; padding: 2.5px 0; vertical-align: middle; text-align: right;">${esc(receiptNumber)}</td>
             </tr>
             <tr>
-              <td style="color: #64748b; font-weight: 600; padding: 2px 8px; text-align: right;">Receipt Date:</td>
-              <td style="font-weight: 700; color: #0f172a; padding: 2px 0;">${esc(receiptDate)}</td>
+              <td style="color: #64748b; font-weight: 600; padding: 2.5px 8px; text-align: right; vertical-align: middle;">Receipt Date:</td>
+              <td style="font-weight: 700; color: #0f172a; padding: 2.5px 0; vertical-align: middle; text-align: right;">${esc(receiptDate)}</td>
             </tr>
             <tr>
-              <td style="color: #64748b; font-weight: 600; padding: 2px 8px; text-align: right;">Status:</td>
-              <td style="padding: 2px 0;">
-                <span style="background: #dcfce7; color: #166534; font-size: 10px; font-weight: 800; padding: 2px 8px; border-radius: 12px; text-transform: uppercase; letter-spacing: 0.5px;">
-                  &#10003; Payment Received
-                </span>
+              <td style="color: #64748b; font-weight: 600; padding: 2.5px 8px; text-align: right; vertical-align: middle;">Status:</td>
+              <td style="padding: 2.5px 0; vertical-align: middle; text-align: right;">
+                ${amountPaid > 0 ? `
+                  <svg width="155" height="22" viewBox="0 0 155 22" style="display:inline-block;vertical-align:middle;">
+                    <rect width="155" height="22" rx="11" fill="#dcfce7"/>
+                    <text x="77.5" y="11" text-anchor="middle" dominant-baseline="central" fill="#166534" font-family="-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Helvetica,Arial,sans-serif" font-size="9.5" font-weight="800" letter-spacing="0.5">
+                      &#10003; PAYMENT RECEIVED
+                    </text>
+                  </svg>
+                ` : `
+                  <svg width="175" height="22" viewBox="0 0 175 22" style="display:inline-block;vertical-align:middle;">
+                    <rect width="175" height="22" rx="11" fill="#fef3c7"/>
+                    <text x="87.5" y="11" text-anchor="middle" dominant-baseline="central" fill="#92400e" font-family="-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Helvetica,Arial,sans-serif" font-size="9.5" font-weight="800" letter-spacing="0.5">
+                      PAYMENT DUE / PENDING
+                    </text>
+                  </svg>
+                `}
               </td>
             </tr>
           </table>
@@ -118,11 +134,11 @@ export function buildReceiptHTML(receipt: PaymentReceipt): string {
         <!-- Right: Payment Particulars -->
         <div style="flex: 1; background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 8px; padding: 14px 16px;">
           <div style="font-size: 10px; font-weight: 800; color: #64748b; text-transform: uppercase; letter-spacing: 1px; margin-bottom: 8px; border-bottom: 1px solid #e2e8f0; padding-bottom: 4px;">
-            Payment &amp; Invoice Reference
+            Payment &amp; Booking Particulars
           </div>
           <table style="width: 100%; font-size: 11px; border-collapse: collapse; line-height: 1.7;">
             <tr>
-              <td style="color: #64748b; font-weight: 600; width: 45%;">Related Reference:</td>
+              <td style="color: #64748b; font-weight: 600; width: 45%;">Related Quotation / Ref:</td>
               <td style="font-weight: 700; color: #0f172a; font-family: monospace;">
                 ${esc(invoiceNumber ? `Invoice #${invoiceNumber}` : `Quotation #${quotationNumber}`)}
               </td>
@@ -159,7 +175,7 @@ export function buildReceiptHTML(receipt: PaymentReceipt): string {
           </div>
         </div>
         <div style="text-align: right; border-left: 2px dashed #bbf7d0; padding-left: 20px;">
-          <div style="font-size: 10px; font-weight: 700; color: #64748b; text-transform: uppercase;">Outstanding Balance</div>
+          <div style="font-size: 10px; font-weight: 700; color: #64748b; text-transform: uppercase;">Net Balance Due</div>
           <div style="font-size: 18px; font-weight: 800; color: ${remainingBalance <= 0 ? '#15803d' : '#dc2626'}; margin-top: 2px;">
             ${remainingBalance <= 0 ? '₹0.00 (Fully Paid)' : fmt(remainingBalance)}
           </div>
@@ -171,7 +187,7 @@ export function buildReceiptHTML(receipt: PaymentReceipt): string {
         <table style="width: 100%; border-collapse: collapse; font-size: 12px; text-align: left;">
           <thead>
             <tr style="background: #f1f5f9; color: #475569; font-weight: 700; text-transform: uppercase; font-size: 10px; letter-spacing: 0.5px; border-bottom: 1px solid #e2e8f0;">
-              <th style="padding: 10px 14px;">Description / Particulars</th>
+              <th style="padding: 10px 14px;">Description / Breakdown</th>
               <th style="padding: 10px 14px; text-align: right;">Amount (₹)</th>
             </tr>
           </thead>
@@ -241,20 +257,21 @@ export async function generateReceiptPDFDoc(receipt: PaymentReceipt): Promise<{ 
   const html = buildReceiptHTML(receipt);
 
   const wrapper = document.createElement('div');
-  wrapper.style.position = 'fixed';
-  wrapper.style.left = '-9999px';
-  wrapper.style.top = '0';
-  wrapper.style.width = '800px';
-  wrapper.style.background = '#ffffff';
+  wrapper.style.cssText = 'position:fixed;top:0;left:-9999px;z-index:-1;pointer-events:none;background:#ffffff;width:800px;';
   wrapper.innerHTML = html;
   document.body.appendChild(wrapper);
 
+  const captureEl = (wrapper.firstElementChild as HTMLElement) || wrapper;
+
   try {
-    const canvas = await html2canvas(wrapper, {
-      scale: 2,
+    const canvas = await html2canvas(captureEl, {
+      scale: 2.5,
       useCORS: true,
+      allowTaint: true,
       logging: false,
       backgroundColor: '#ffffff',
+      width: 800,
+      windowWidth: 800,
     });
 
     const imgWidth = 210; // A4 mm

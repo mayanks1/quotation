@@ -197,18 +197,30 @@ export const generateWhatsAppReceiptPdfNoticeUrl = (
   filename: string,
   customPhone?: string
 ): string => {
-  let text = `*OFFICIAL PAYMENT RECEIPT: ${receipt.receiptNumber}*\n`;
+  let text = receipt.amountPaid > 0 
+    ? `*OFFICIAL PAYMENT RECEIPT: ${receipt.receiptNumber}*\n`
+    : `*OFFICIAL BOOKING STATEMENT & PAYMENT REQUEST: ${receipt.receiptNumber}*\n`;
+
   text += `Dear ${receipt.client.name || 'Valued Client'},\n\n`;
-  text += `Please find attached your official payment receipt from *${receipt.company.name}*.\n\n`;
-  text += `• *Amount Received:* ₹${receipt.amountPaid.toLocaleString('en-IN')}\n`;
-  text += `• *Mode:* ${receipt.paymentMode.toUpperCase().replace('_', ' ')}\n`;
-  if (receipt.remainingBalance > 0) {
-    text += `• *Net Balance Due:* ₹${receipt.remainingBalance.toLocaleString('en-IN')}\n`;
+
+  if (receipt.amountPaid > 0) {
+    text += `Please find attached your official payment receipt from *${receipt.company.name}*.\n\n`;
+    text += `• *Amount Received:* ₹${receipt.amountPaid.toLocaleString('en-IN')}\n`;
+    text += `• *Mode:* ${receipt.paymentMode.toUpperCase().replace('_', ' ')}\n`;
+    if (receipt.remainingBalance > 0) {
+      text += `• *Net Balance Due:* ₹${receipt.remainingBalance.toLocaleString('en-IN')}\n`;
+    } else {
+      text += `• *Status:* FULLY CLEARED & PAID (₹0 Balance)\n`;
+    }
   } else {
-    text += `• *Status:* FULLY CLEARED & PAID (₹0 Balance)\n`;
+    text += `Please find attached your official booking statement from *${receipt.company.name}*.\n\n`;
+    text += `• *Total Booking Amount:* ₹${receipt.totalPayable.toLocaleString('en-IN')}\n`;
+    text += `• *Payment Status:* PENDING / PAYMENT DUE\n`;
+    text += `• *Net Amount Payable:* *₹${receipt.totalPayable.toLocaleString('en-IN')}*\n`;
   }
-  text += `\n📄 *Attached PDF Receipt:* ${filename}\n\n`;
-  text += `Thank you for your business!\n*${receipt.company.name}*`;
+
+  text += `\n📄 *Attached PDF:* ${filename}\n\n`;
+  text += `Thank you for choosing ${receipt.company.name}!`;
 
   const targetPhone = customPhone !== undefined ? customPhone : (receipt.client?.phone || '');
   const cleanPhone = targetPhone.replace(/[^0-9]/g, '');

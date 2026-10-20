@@ -768,20 +768,26 @@ Thank you for your continuous business!
                 </div>
 
                 <div className="mobile-card-actions">
-                  {(record.status === 'Received' || record.status === 'Partial' || (record.paidAmount || 0) > 0) && (
-                    <button
-                      onClick={() => onGenerateReceipt && onGenerateReceipt(record)}
-                      className="btn btn-icon-sm"
-                      style={{
-                        background: 'rgba(16, 185, 129, 0.15)',
-                        border: '1px solid rgba(16, 185, 129, 0.35)',
-                        color: '#34d399'
-                      }}
-                      title="Generate Official Money Receipt"
-                    >
-                      <Receipt size={14} />
-                    </button>
-                  )}
+                  <button
+                    onClick={() => onGenerateReceipt && onGenerateReceipt(record)}
+                    className="btn btn-icon-sm"
+                    style={
+                      record.status === 'Pending'
+                        ? {
+                            background: 'rgba(245, 158, 11, 0.15)',
+                            border: '1px solid rgba(245, 158, 11, 0.35)',
+                            color: '#fbbf24'
+                          }
+                        : {
+                            background: 'rgba(16, 185, 129, 0.15)',
+                            border: '1px solid rgba(16, 185, 129, 0.35)',
+                            color: '#34d399'
+                          }
+                    }
+                    title={record.status === 'Pending' ? "Generate Pending Payment Bill / Receipt" : "Generate Official Money Receipt"}
+                  >
+                    <Receipt size={14} />
+                  </button>
                   {record.status !== 'Received' && (
                     <button 
                       onClick={() => handleWhatsAppFollowup(record)}
@@ -937,20 +943,26 @@ Thank you for your continuous business!
                   </td>
                   <td style={{ textAlign: 'right' }}>
                     <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '4px' }}>
-                      {(record.status === 'Received' || record.status === 'Partial' || (record.paidAmount || 0) > 0) && (
-                        <button
-                          onClick={() => onGenerateReceipt && onGenerateReceipt(record)}
-                          className="btn btn-icon-sm"
-                          style={{
-                            background: 'rgba(16, 185, 129, 0.15)',
-                            border: '1px solid rgba(16, 185, 129, 0.35)',
-                            color: '#34d399'
-                          }}
-                          title="Generate Official Money Receipt"
-                        >
-                          <Receipt size={13} />
-                        </button>
-                      )}
+                      <button
+                        onClick={() => onGenerateReceipt && onGenerateReceipt(record)}
+                        className="btn btn-icon-sm"
+                        style={
+                          record.status === 'Pending'
+                            ? {
+                                background: 'rgba(245, 158, 11, 0.15)',
+                                border: '1px solid rgba(245, 158, 11, 0.35)',
+                                color: '#fbbf24'
+                              }
+                            : {
+                                background: 'rgba(16, 185, 129, 0.15)',
+                                border: '1px solid rgba(16, 185, 129, 0.35)',
+                                color: '#34d399'
+                              }
+                        }
+                        title={record.status === 'Pending' ? "Generate Pending Payment Bill / Receipt" : "Generate Official Money Receipt"}
+                      >
+                        <Receipt size={13} />
+                      </button>
                       {record.status !== 'Received' && (
                         <button 
                           onClick={() => handleWhatsAppFollowup(record)}

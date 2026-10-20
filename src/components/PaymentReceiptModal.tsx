@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useRef, useEffect } from 'react';
 import {
   X,
   Download,
@@ -47,17 +47,55 @@ export const PaymentReceiptModal: React.FC<Props> = ({
   const [customPhone, setCustomPhone] = useState(initialReceipt.client?.phone || '');
   const [activeTab, setActiveTab] = useState<'preview' | 'edit'>('preview');
 
+  // Prevent duplicate concurrent generation / freezing
+  const isBusyRef = useRef(false);
+  const cachedPdfRef = useRef<{ key: string; file: File; filename: string } | null>(null);
+
+  useEffect(() => {
+    setReceipt(initialReceipt);
+    setCustomPhone(initialReceipt.client?.phone || '');
+    cachedPdfRef.current = null;
+  }, [initialReceipt, isOpen]);
+
   if (!isOpen) return null;
 
+  const getOrGeneratePdf = async () => {
+    const cacheKey = `${receipt.receiptNumber}_${receipt.amountPaid}_${receipt.remainingBalance}_${receipt.receiptDate}`;
+    if (cachedPdfRef.current && cachedPdfRef.current.key === cacheKey) {
+      return cachedPdfRef.current;
+    }
+    const res = await generateReceiptPDFFile(receipt);
+    cachedPdfRef.current = { key: cacheKey, file: res.file, filename: res.filename };
+    return cachedPdfRef.current;
+  };
+
   const handleDownloadPdf = async () => {
+    if (isBusyRef.current) return;
+    isBusyRef.current = true;
     setIsExporting(true);
+
+    // Yield to let React paint the spinner immediately
+    await new Promise((r) => setTimeout(r, 60));
+
     try {
-      await exportReceiptPDF(receipt);
+      const { file, filename } = await getOrGeneratePdf();
+      const blobUrl = URL.createObjectURL(file);
+      const a = document.createElement('a');
+      a.href = blobUrl;
+      a.download = filename;
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      URL.revokeObjectURL(blobUrl);
+
+      toast.success(`Downloaded "${filename}"`);
       if (onSaveReceipt) onSaveReceipt(receipt);
     } catch (err) {
       console.error('Failed to export receipt PDF', err);
+      toast.error('Failed to download PDF.');
     } finally {
       setIsExporting(false);
+      isBusyRef.current = false;
     }
   };
 
@@ -67,9 +105,15 @@ export const PaymentReceiptModal: React.FC<Props> = ({
   };
 
   const handleWhatsApp = async () => {
+    if (isBusyRef.current) return;
+    isBusyRef.current = true;
     setIsSharingPdf(true);
+
+    // Yield to let React paint the spinner immediately
+    await new Promise((r) => setTimeout(r, 60));
+
     try {
-      const { file, filename } = await generateReceiptPDFFile(receipt);
+      const { file, filename } = await getOrGeneratePdf();
 
       // 1. Mobile & Web Share API support (Android, iOS Safari/Chrome, macOS)
       if (typeof navigator !== 'undefined' && navigator.canShare && navigator.canShare({ files: [file] })) {
@@ -112,6 +156,7 @@ export const PaymentReceiptModal: React.FC<Props> = ({
       toast.error('Failed to generate PDF for WhatsApp.');
     } finally {
       setIsSharingPdf(false);
+      isBusyRef.current = false;
     }
   };
 
@@ -155,9 +200,15 @@ export const PaymentReceiptModal: React.FC<Props> = ({
                 <span className="font-mono text-xs px-2 py-0.5 rounded bg-blue-950 text-blue-300 border border-blue-800">
                   {receipt.receiptNumber}
                 </span>
-                <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-emerald-500/20 text-emerald-300 border border-emerald-500/30 uppercase tracking-wider">
-                  Payment Confirmed
-                </span>
+                {receipt.amountPaid > 0 ? (
+                  <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-emerald-500/20 text-emerald-300 border border-emerald-500/30 uppercase tracking-wider">
+                    {receipt.remainingBalance <= 0 ? 'Payment Confirmed' : 'Partial Payment'}
+                  </span>
+                ) : (
+                  <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-amber-500/20 text-amber-300 border border-amber-500/30 uppercase tracking-wider">
+                    Payment Due (₹{receipt.totalPayable.toLocaleString('en-IN')})
+                  </span>
+                )}
               </div>
               <p className="text-xs text-slate-400 mt-0.5">
                 For Quotation #{receipt.quotationNumber} &bull; {receipt.client?.name}
@@ -340,20 +391,29 @@ export const PaymentReceiptModal: React.FC<Props> = ({
                 </div>
 
                 <div className="text-right">
-                  <div className="inline-block bg-slate-900 text-white text-[11px] font-black uppercase tracking-wider px-3 py-1 rounded-md mb-2 shadow-2xs">
+                  <div className="inline-block bg-slate-900 text-white text-[11px] font-black uppercase tracking-wider h-[26px] leading-[26px] px-4 rounded-lg mb-2 shadow-2xs text-center align-middle">
                     Official Money Receipt
                   </div>
-                  <div className="text-xs space-y-0.5">
-                    <div className="text-slate-500">
-                      Receipt No: <span className="font-mono font-bold text-slate-900">{receipt.receiptNumber}</span>
+                  <div className="text-xs space-y-1">
+                    <div className="text-slate-500 flex items-center justify-end gap-2">
+                      <span>Receipt No:</span>
+                      <span className="font-mono font-bold text-slate-900">{receipt.receiptNumber}</span>
                     </div>
-                    <div className="text-slate-500">
-                      Date: <span className="font-semibold text-slate-800">{receipt.receiptDate}</span>
+                    <div className="text-slate-500 flex items-center justify-end gap-2">
+                      <span>Receipt Date:</span>
+                      <span className="font-semibold text-slate-800">{receipt.receiptDate}</span>
                     </div>
-                    <div className="pt-1">
-                      <span className="bg-emerald-100 text-emerald-800 text-[10px] font-bold px-2 py-0.5 rounded-full uppercase tracking-wider">
-                        &#10003; Payment Received
-                      </span>
+                    <div className="flex items-center justify-end gap-2 pt-0.5">
+                      <span className="text-slate-500 font-medium">Status:</span>
+                      {receipt.amountPaid > 0 ? (
+                        <span className="inline-block bg-emerald-100 text-emerald-800 text-[9.5px] font-bold h-[20px] leading-[20px] px-2.5 rounded-full uppercase tracking-wider text-center align-middle">
+                          &#10003; Payment Received
+                        </span>
+                      ) : (
+                        <span className="inline-block bg-amber-100 text-amber-800 text-[9.5px] font-bold h-[20px] leading-[20px] px-2.5 rounded-full uppercase tracking-wider text-center align-middle">
+                          Payment Due / Pending
+                        </span>
+                      )}
                     </div>
                   </div>
                 </div>
@@ -545,8 +605,8 @@ export const PaymentReceiptModal: React.FC<Props> = ({
             <button
               type="button"
               onClick={handleWhatsApp}
-              disabled={isSharingPdf}
-              className="px-3.5 py-1.5 text-xs font-bold text-white bg-emerald-600 hover:bg-emerald-700 disabled:bg-emerald-400 rounded-lg flex items-center gap-1.5 transition-colors shadow-xs cursor-pointer"
+              disabled={isSharingPdf || isExporting}
+              className="px-3.5 py-1.5 text-xs font-bold text-white bg-emerald-600 hover:bg-emerald-700 disabled:opacity-60 disabled:cursor-not-allowed rounded-lg flex items-center gap-1.5 transition-colors shadow-xs cursor-pointer"
               title="Share Receipt in PDF format on WhatsApp"
             >
               {isSharingPdf ? <Loader2 size={14} className="animate-spin" /> : <Share2 size={14} />}
@@ -556,11 +616,11 @@ export const PaymentReceiptModal: React.FC<Props> = ({
             <button
               type="button"
               onClick={handleDownloadPdf}
-              disabled={isExporting}
-              className="px-4 py-1.5 text-xs font-bold text-white bg-blue-600 hover:bg-blue-700 disabled:bg-blue-400 rounded-lg flex items-center gap-1.5 transition-colors shadow-xs"
+              disabled={isExporting || isSharingPdf}
+              className="px-4 py-1.5 text-xs font-bold text-white bg-blue-600 hover:bg-blue-700 disabled:opacity-60 disabled:cursor-not-allowed rounded-lg flex items-center gap-1.5 transition-colors shadow-xs cursor-pointer"
               title="Download official PDF receipt"
             >
-              <Download size={14} />
+              {isExporting ? <Loader2 size={14} className="animate-spin" /> : <Download size={14} />}
               <span>{isExporting ? 'Generating PDF...' : 'Download PDF'}</span>
             </button>
           </div>
