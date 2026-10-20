@@ -80,6 +80,8 @@ export interface Quotation {
   invoiceDate?: string;
   revisionNumber?: number; // e.g. 1, 2, 3...
   parentQuoteNumber?: string; // original quote number if revised
+  isRevised?: boolean;
+  originalQuotationNumber?: string;
   
   // Parties
   company: CompanyProfile;

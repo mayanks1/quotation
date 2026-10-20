@@ -24,6 +24,8 @@ import { ShareQuotationModal } from './ShareQuotationModal';
 import { SignatureModal } from './SignatureModal';
 import { CompanyStampModal } from './CompanyStampModal';
 import { DeliveryChallanModal } from './DeliveryChallanModal';
+import { PaymentReceiptModal } from './PaymentReceiptModal';
+import { createReceiptFromQuotation } from '../utils/receiptHelper';
 import { OFFICIAL_TISHA_STAMP } from '../config/officialStamp';
 import { useToast } from '../context/ToastContext';
 
@@ -178,6 +180,7 @@ export const QuotationEditor: React.FC<Props> = ({
   const [isSignatureModalOpen, setIsSignatureModalOpen] = useState(false);
   const [isCompanyStampModalOpen, setIsCompanyStampModalOpen] = useState(false);
   const [isGatePassOpen, setIsGatePassOpen] = useState(false);
+  const [isReceiptModalOpen, setIsReceiptModalOpen] = useState(false);
   const [isActionsMenuOpen, setIsActionsMenuOpen] = useState(false);
   const actionsMenuRef = useRef<HTMLDivElement>(null);
   const [isStatusMenuOpen, setIsStatusMenuOpen] = useState(false);
@@ -676,6 +679,19 @@ export const QuotationEditor: React.FC<Props> = ({
             <Truck size={13} className="text-amber-500" />
             <span className="hidden sm:inline">Gate Pass</span>
           </button>
+
+          {/* Money Receipt Button */}
+          {paidAmount > 0 && (
+            <button
+              type="button"
+              onClick={() => setIsReceiptModalOpen(true)}
+              title="Generate & View Official Payment Receipt"
+              className="flex items-center gap-1.5 px-3 py-1.5 text-xs font-semibold text-emerald-800 bg-emerald-50 hover:bg-emerald-100 hover:text-emerald-950 border border-emerald-300/80 rounded-xl transition-all active:scale-95 shadow-2xs hover:shadow-xs"
+            >
+              <Receipt size={13} className="text-emerald-600" />
+              <span className="hidden sm:inline">Receipt</span>
+            </button>
+          )}
 
           {/* More Actions Dropdown (Duplicate, Revise, Print, Copy Link) */}
           <div className="relative" ref={actionsMenuRef}>
@@ -2030,6 +2046,18 @@ export const QuotationEditor: React.FC<Props> = ({
                       className="w-full text-xs font-medium bg-white border border-slate-200 rounded-lg p-2 focus:outline-blue-500 placeholder:text-slate-400"
                     />
                   </div>
+
+                  {/* Generate / View Money Receipt Action */}
+                  <div className="pt-2 border-t border-slate-200/80">
+                    <button
+                      type="button"
+                      onClick={() => setIsReceiptModalOpen(true)}
+                      className="w-full py-2 px-3 bg-emerald-600 hover:bg-emerald-700 active:scale-98 text-white font-bold text-xs rounded-lg flex items-center justify-center gap-2 shadow-xs transition-all cursor-pointer"
+                    >
+                      <Receipt size={14} />
+                      <span>{paidAmount > 0 ? 'View / Print Official Payment Receipt' : 'Generate Advance Payment Receipt'}</span>
+                    </button>
+                  </div>
                 </div>
               ) : null}
 
@@ -2568,6 +2596,25 @@ export const QuotationEditor: React.FC<Props> = ({
         onClose={() => setIsGatePassOpen(false)}
         quotation={quotation}
       />
+
+      {isReceiptModalOpen && (
+        <PaymentReceiptModal
+          isOpen={isReceiptModalOpen}
+          onClose={() => setIsReceiptModalOpen(false)}
+          initialReceipt={createReceiptFromQuotation(quotation)}
+          onSaveReceipt={(updatedReceipt) => {
+            onChange({
+              ...quotation,
+              paidAmount: updatedReceipt.amountPaid,
+              transactionRef: updatedReceipt.transactionRef,
+              paymentMode: updatedReceipt.paymentMode,
+              paymentDate: updatedReceipt.receiptDate,
+              paymentStatus: updatedReceipt.amountPaid >= grandTotal && grandTotal > 0 ? 'paid' : (updatedReceipt.amountPaid > 0 ? 'partial' : quotation.paymentStatus),
+            });
+            toast.success('Payment receipt synchronized with quotation!');
+          }}
+        />
+      )}
 
     </div>
   );

@@ -24,7 +24,6 @@ export function buildQuotationHTML(quotation: Quotation, upiQrDataUrl?: string):
     documentType = 'quotation',
     invoiceNumber,
     advancePercentage = 70,
-    advanceAmount,
     paidAmount = 0,
   } = quotation;
 

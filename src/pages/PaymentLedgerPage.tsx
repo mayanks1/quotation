@@ -18,17 +18,18 @@ import NoteModal from '../components/ledger/NoteModal';
 import ConfirmModal from '../components/ledger/ConfirmModal';
 import { useAuth } from '../context/AuthContext';
 import { useToast } from '../context/ToastContext';
-import { useNavigate } from 'react-router-dom';
-import Navbar from '../components/ledger/Navbar';
-import { Plus, RefreshCw, Calendar, Check, ChevronDown, Layers, FileSpreadsheet } from 'lucide-react';
+import { LedgerAccountingExportModal } from '../components/ledger/LedgerAccountingExportModal';
+import { PaymentReceiptModal } from '../components/PaymentReceiptModal';
+import { storage } from '../services/storage';
+import { PaymentReceipt } from '../types/receipt';
+import { OFFICIAL_TISHA_STAMP } from '../config/officialStamp';
+import { Plus, RefreshCw, Calendar, Check, ChevronDown, FileSpreadsheet } from 'lucide-react';
 import '../components/ledger/ledger.css';
 
 const MONTH_NAMES = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
 
 export const PaymentLedgerPage: React.FC = () => {
-  const { user } = useAuth();
   const toast = useToast();
-  const navigate = useNavigate();
 
   const [records, setRecords] = useState<LedgerRecord[]>([]);
   const [isLoading, setIsLoading] = useState(true);
@@ -54,6 +55,10 @@ export const PaymentLedgerPage: React.FC = () => {
   // Undo Delete state
   const [lastDeletedRecord, setLastDeletedRecord] = useState<any>(null);
   const [undoTimer, setUndoTimer] = useState<any>(null);
+
+  // Accounting Export & Payment Receipt States
+  const [isLedgerExportOpen, setIsLedgerExportOpen] = useState(false);
+  const [receiptModalData, setReceiptModalData] = useState<PaymentReceipt | null>(null);
 
   // Year Dropdown
   const [isYearDropdownOpen, setIsYearDropdownOpen] = useState(false);
@@ -376,6 +381,72 @@ export const PaymentLedgerPage: React.FC = () => {
     }
   };
 
+  const handleGenerateReceiptFromRecord = (record: LedgerRecord) => {
+    const company = storage.getCompanyProfile();
+    const cleanId = (record.id || 'REC').replace(/[^a-zA-Z0-9]/g, '').slice(-4).toUpperCase();
+    const receiptNum = `REC-${getYear(record.date) || new Date().getFullYear()}-${cleanId || '001'}`;
+    const amountPaid = record.status === 'Received' ? (record.amount || 0) : (record.paidAmount || 0);
+    const totalPayable = record.amount || 0;
+    const balanceDue = record.status === 'Received' ? 0 : (record.pendingAmount || Math.max(0, totalPayable - amountPaid));
+
+    let clientPhone = '';
+    let clientEmail = '';
+    let clientAddress = '';
+    try {
+      const allClients = storage.getClients?.() || [];
+      const foundClient = allClients.find(
+        (c: any) => c.name?.toLowerCase() === record.client.toLowerCase() || c.company?.toLowerCase() === record.client.toLowerCase()
+      );
+      if (foundClient) {
+        clientPhone = foundClient.phone || '';
+        clientEmail = foundClient.email || '';
+        clientAddress = foundClient.address || '';
+      } else {
+        const quotes = storage.getAllQuotations?.() || [];
+        const foundQuote = quotes.find(
+          (q: any) => q.client?.name?.toLowerCase() === record.client.toLowerCase() || q.client?.company?.toLowerCase() === record.client.toLowerCase()
+        );
+        if (foundQuote && foundQuote.client?.phone) {
+          clientPhone = foundQuote.client.phone;
+          clientEmail = foundQuote.client.email || '';
+          clientAddress = foundQuote.client.address || '';
+        }
+      }
+    } catch (e) {}
+
+    const rec: PaymentReceipt = {
+      id: `rec-${Date.now()}`,
+      receiptNumber: receiptNum,
+      receiptDate: record.date ? (parseDate(record.date).toISOString().split('T')[0] || new Date().toISOString().split('T')[0]) : new Date().toISOString().split('T')[0],
+      quotationId: record.id,
+      quotationNumber: record.id,
+      client: {
+        name: record.client,
+        company: record.client,
+        phone: clientPhone,
+        email: clientEmail,
+        address: clientAddress,
+      },
+      company: company || {
+        name: 'Tisha LED Walls',
+        address: 'Gurugram, Haryana',
+        phone: '+91 97166 81122',
+        email: 'info@tishaledwalls.com',
+        stampUrl: OFFICIAL_TISHA_STAMP,
+      },
+      amountPaid,
+      paymentMode: 'bank_transfer',
+      paymentMilestone: record.status === 'Received' ? 'full' : (amountPaid > 0 ? 'partial' : 'advance'),
+      totalPayable,
+      previousPaid: 0,
+      remainingBalance: balanceDue,
+      notes: record.note ? `Event: ${record.size || 'LED Screen'}. Note: ${record.note}` : (record.size ? `Event Screen: ${record.size}` : ''),
+      createdAt: new Date().toISOString(),
+    };
+
+    setReceiptModalData(rec);
+  };
+
   return (
     <div className="ledger-module">
       <div className="app-shell">
@@ -474,6 +545,17 @@ export const PaymentLedgerPage: React.FC = () => {
                 </div>
               )}
 
+              {/* Ledger & Tally Accounting Export */}
+              <button
+                type="button"
+                onClick={() => setIsLedgerExportOpen(true)}
+                className="flex items-center gap-1.5 px-3 py-1.5 bg-neutral-800 hover:bg-neutral-700 border border-neutral-700 text-xs font-semibold rounded-lg text-emerald-400 hover:text-emerald-300 transition-all cursor-pointer"
+                title="Export Collections Register (.csv) and Tally Prime Receipt Vouchers (.xml)"
+              >
+                <FileSpreadsheet size={13} className="text-emerald-400" />
+                <span className="hidden sm:inline">Ledger &amp; Tally Export</span>
+              </button>
+
               {/* Sync / Refresh Button */}
               <button
                 type="button"
@@ -538,6 +620,7 @@ export const PaymentLedgerPage: React.FC = () => {
               onDeleteRecord={handlePromptDelete}
               onResetFilters={handleResetFilters}
               onOpenNoteModal={(record: any) => setNoteModalRecord(record)}
+              onGenerateReceipt={handleGenerateReceiptFromRecord}
             />
           </main>
         </div>
@@ -570,6 +653,27 @@ export const PaymentLedgerPage: React.FC = () => {
           record={recordToDelete}
           isDeleting={isDeleting}
         />
+
+        {/* Ledger & Tally Accounting Export Modal */}
+        {isLedgerExportOpen && (
+          <LedgerAccountingExportModal
+            isOpen={isLedgerExportOpen}
+            onClose={() => setIsLedgerExportOpen(false)}
+            records={records}
+            allYears={allYears}
+            allClients={allClients}
+            initialYear={selectedYear}
+          />
+        )}
+
+        {/* Payment Receipt Modal */}
+        {receiptModalData && (
+          <PaymentReceiptModal
+            isOpen={Boolean(receiptModalData)}
+            onClose={() => setReceiptModalData(null)}
+            initialReceipt={receiptModalData}
+          />
+        )}
 
         {/* Floating Action Button (FAB) for mobile - matches Screenshot 3 */}
         <button

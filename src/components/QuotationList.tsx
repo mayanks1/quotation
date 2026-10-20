@@ -17,6 +17,9 @@ import { getQuotationExpiryStatus, generateWhatsAppReminderUrl } from '../utils/
 import { useToast, useConfirm } from '../context/ToastContext';
 import { useAuth } from '../context/AuthContext';
 import { ShareQuotationModal } from './ShareQuotationModal';
+import { GstAccountingExportModal } from './GstAccountingExportModal';
+import { PaymentReceiptModal } from './PaymentReceiptModal';
+import { createReceiptFromQuotation } from '../utils/receiptHelper';
 import { Lock } from 'lucide-react';
 
 interface Props {
@@ -118,6 +121,8 @@ export const QuotationList: React.FC<Props> = ({
   const [statusFilter, setStatusFilter] = useState<string>('all');
   const [exportingId, setExportingId] = useState<string | null>(null);
   const [shareModalQuote, setShareModalQuote] = useState<Quotation | null>(null);
+  const [isGstExportOpen, setIsGstExportOpen] = useState(false);
+  const [receiptModalQuote, setReceiptModalQuote] = useState<Quotation | null>(null);
 
   // Advanced Filters State
   const [isFilterOpen, setIsFilterOpen] = useState(false);
@@ -727,11 +732,22 @@ export const QuotationList: React.FC<Props> = ({
               <button
                 type="button"
                 onClick={handleExportCSV}
-                className="flex items-center gap-1.5 px-3 py-2.5 rounded-xl text-xs font-bold transition-all border bg-white hover:bg-emerald-50 hover:border-emerald-200 text-slate-700 hover:text-emerald-700 shadow-2xs cursor-pointer"
-                title={`Export ${filteredAndSorted.length} quotation(s) to Excel/CSV`}
+                className="flex items-center gap-1.5 px-3 py-2.5 rounded-xl text-xs font-bold transition-all border bg-white hover:bg-slate-50 border-slate-200 text-slate-700 shadow-2xs cursor-pointer"
+                title={`Export ${filteredAndSorted.length} quotation(s) to basic CSV`}
+              >
+                <Download size={14} className="text-slate-500" />
+                <span className="hidden sm:inline">CSV</span>
+              </button>
+
+              {/* GST & Tally Export Button */}
+              <button
+                type="button"
+                onClick={() => setIsGstExportOpen(true)}
+                className="flex items-center gap-1.5 px-3 py-2.5 rounded-xl text-xs font-bold transition-all border bg-white hover:bg-emerald-50 hover:border-emerald-300 text-slate-700 hover:text-emerald-800 shadow-2xs cursor-pointer"
+                title="Export GSTR-1 Excel (.csv) and Tally Prime XML"
               >
                 <FileSpreadsheet size={14} className="text-emerald-600" />
-                <span className="hidden sm:inline">CSV Export</span>
+                <span className="hidden sm:inline">GST &amp; Tally</span>
               </button>
 
               {/* Backup & Restore Menu */}
@@ -1291,6 +1307,20 @@ export const QuotationList: React.FC<Props> = ({
                           <Bell size={16} />
                         </button>
 
+                        {/* Money Receipt Button (when payment is logged) */}
+                        {((quote.paidAmount || 0) > 0 || quote.paymentStatus === 'paid' || quote.paymentStatus === 'partial') && (
+                          <button
+                            title="View / Print Official Payment Receipt"
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              setReceiptModalQuote(quote);
+                            }}
+                            className="p-2 text-emerald-700 bg-emerald-50/80 hover:bg-emerald-100 rounded-lg transition-colors cursor-pointer"
+                          >
+                            <Receipt size={16} />
+                          </button>
+                        )}
+
                         <button
                           title="Share Quotation (PDF or WhatsApp Text)"
                           onClick={(e) => handleOpenShare(e, quote)}
@@ -1462,6 +1492,24 @@ export const QuotationList: React.FC<Props> = ({
         isOpen={!!shareModalQuote}
         onClose={() => setShareModalQuote(null)}
       />
+
+      {/* GST & Tally Accounting Export Modal */}
+      {isGstExportOpen && (
+        <GstAccountingExportModal
+          isOpen={isGstExportOpen}
+          onClose={() => setIsGstExportOpen(false)}
+          quotations={quotations}
+        />
+      )}
+
+      {/* Official Payment Receipt Modal */}
+      {receiptModalQuote && (
+        <PaymentReceiptModal
+          isOpen={!!receiptModalQuote}
+          onClose={() => setReceiptModalQuote(null)}
+          initialReceipt={createReceiptFromQuotation(receiptModalQuote)}
+        />
+      )}
 
     </div>
   );

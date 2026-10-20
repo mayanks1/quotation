@@ -2,12 +2,19 @@ import React, { useState } from 'react';
 import {
   X, Share2, FileText, Download, Copy, Check,
   MessageSquare, ExternalLink, Loader2, Smartphone,
-  AlertCircle, ChevronDown, ChevronUp, IndianRupee, Bell, Clock, Truck
+  AlertCircle, ChevronDown, ChevronUp, IndianRupee, Bell, Clock, Truck, Receipt
 } from 'lucide-react';
 import { Quotation, getItemAmount } from '../types/quotation';
-import { formatQuotationWhatsAppText, generateWhatsAppShareUrl, generateWhatsAppPdfNoticeUrl } from '../services/whatsapp';
+import { 
+  formatQuotationWhatsAppText, 
+  generateWhatsAppShareUrl, 
+  generateWhatsAppPdfNoticeUrl,
+  generateWhatsAppReceiptUrl,
+  generateWhatsAppBalanceReminderUrl
+} from '../services/whatsapp';
 import { generateQuotationPDFFile, exportQuotationPDF } from '../services/pdfGenerator';
 import { getQuotationExpiryStatus, formatQuotationReminderText, generateWhatsAppReminderUrl } from '../utils/quotationExpiry';
+import { createReceiptFromQuotation } from '../utils/receiptHelper';
 import { DeliveryChallanModal } from './DeliveryChallanModal';
 import { useToast } from '../context/ToastContext';
 
@@ -227,7 +234,7 @@ export const ShareQuotationModal: React.FC<Props> = ({
                 placeholder="e.g. 9876543210 (or leave blank to select in WhatsApp)"
                 value={customPhone}
                 onChange={(e) => setCustomPhone(e.target.value)}
-                className="w-full pl-9 pr-3 py-2 text-xs sm:text-sm rounded-xl border border-slate-200 bg-white focus:outline-none focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500 transition-all font-mono"
+                className="w-full pl-9 pr-3 py-2 text-xs sm:text-sm rounded-xl border border-slate-200 bg-white text-slate-900 placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500 transition-all font-mono"
               />
             </div>
             <p className="text-[10px] text-slate-400">
@@ -436,6 +443,81 @@ export const ShareQuotationModal: React.FC<Props> = ({
               </a>
             </div>
           </div>
+
+          {/* Option: Official Money Receipt (Shown if payment is recorded) */}
+          {(quotation.paidAmount || 0) > 0 && (
+            <div className="p-3.5 sm:p-4 rounded-xl border border-emerald-300 bg-emerald-50/60 hover:bg-emerald-50/90 transition-all space-y-2.5">
+              <div className="flex items-start gap-3">
+                <div className="w-9 h-9 rounded-lg bg-emerald-600 text-white flex items-center justify-center shrink-0 shadow-sm shadow-emerald-600/30">
+                  <Receipt size={18} />
+                </div>
+                <div className="flex-1 min-w-0">
+                  <div className="flex items-center gap-1.5 flex-wrap">
+                    <h4 className="font-extrabold text-sm text-slate-900">Official Payment Receipt</h4>
+                    <span className="text-[9px] font-extrabold px-1.5 py-0.2 rounded bg-emerald-600 text-white uppercase tracking-wider">
+                      Confirmed ₹{(quotation.paidAmount || 0).toLocaleString('en-IN')}
+                    </span>
+                  </div>
+                  <p className="text-xs text-slate-600 mt-0.5 leading-relaxed">
+                    Send formal payment acknowledgment with Receipt #, UTR confirmation, and remaining balance summary via WhatsApp.
+                  </p>
+                </div>
+              </div>
+
+              <div className="pt-1">
+                <button
+                  type="button"
+                  onClick={() => {
+                    const r = createReceiptFromQuotation(quotation);
+                    const waUrl = generateWhatsAppReceiptUrl(r, customPhone);
+                    window.open(waUrl, '_blank');
+                    toast.success('Opening WhatsApp with Official Money Receipt!');
+                  }}
+                  className="w-full flex items-center justify-center gap-1.5 bg-emerald-600 hover:bg-emerald-700 active:scale-95 text-white py-2 px-3 rounded-lg text-xs font-bold transition-all shadow-md shadow-emerald-500/20 cursor-pointer"
+                >
+                  <Receipt size={14} />
+                  <span>Send Money Receipt on WhatsApp</span>
+                </button>
+              </div>
+            </div>
+          )}
+
+          {/* Option: Balance Payment Reminder (Shown if there is remaining balance) */}
+          {Math.max(0, grandTotal - (quotation.paidAmount || 0)) > 0 && (
+            <div className="p-3.5 sm:p-4 rounded-xl border border-rose-200 bg-rose-50/40 hover:bg-rose-50/70 transition-all space-y-2.5">
+              <div className="flex items-start gap-3">
+                <div className="w-9 h-9 rounded-lg bg-rose-600 text-white flex items-center justify-center shrink-0 shadow-sm shadow-rose-600/30">
+                  <Clock size={18} />
+                </div>
+                <div className="flex-1 min-w-0">
+                  <div className="flex items-center gap-1.5 flex-wrap">
+                    <h4 className="font-extrabold text-sm text-slate-900">Balance Payment Reminder (T-24h)</h4>
+                    <span className="text-[9px] font-extrabold px-1.5 py-0.2 rounded bg-rose-600 text-white uppercase tracking-wider">
+                      Due: ₹{Math.max(0, grandTotal - (quotation.paidAmount || 0)).toLocaleString('en-IN')}
+                    </span>
+                  </div>
+                  <p className="text-xs text-slate-600 mt-0.5 leading-relaxed">
+                    Polite milestone reminder for upcoming event setup, alerting client to clear outstanding balance with UPI details.
+                  </p>
+                </div>
+              </div>
+
+              <div className="pt-1">
+                <button
+                  type="button"
+                  onClick={() => {
+                    const waUrl = generateWhatsAppBalanceReminderUrl(quotation, customPhone);
+                    window.open(waUrl, '_blank');
+                    toast.info('Opening WhatsApp with Balance Payment Reminder!');
+                  }}
+                  className="w-full flex items-center justify-center gap-1.5 bg-rose-600 hover:bg-rose-700 active:scale-95 text-white py-2 px-3 rounded-lg text-xs font-bold transition-all shadow-md shadow-rose-500/20 cursor-pointer"
+                >
+                  <Clock size={14} />
+                  <span>Send Balance Payment Reminder (WhatsApp)</span>
+                </button>
+              </div>
+            </div>
+          )}
 
           {/* Option E: Delivery Challan & Venue Gate Pass */}
           <div className="p-3.5 sm:p-4 rounded-xl border border-amber-200 bg-amber-50/40 hover:bg-amber-50/70 transition-all space-y-2.5">

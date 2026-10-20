@@ -371,7 +371,9 @@ export const cloudSync = {
 
         const { error: userErr } = await supabase.from('users').upsert(row);
         if (userErr) {
-          await supabase.from('saas_users').upsert(row).catch(() => {});
+          try {
+            await supabase.from('saas_users').upsert(row);
+          } catch (_) {}
         }
       }
 

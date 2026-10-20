@@ -23,7 +23,8 @@ import {
   StickyNote,
   Check,
   MessageCircle,
-  Printer
+  Printer,
+  Receipt
 } from 'lucide-react';
 import { formatDate, parseDate } from '../../services/sheetService';
 
@@ -38,7 +39,8 @@ export default function DataTable({
   onEditRecord,
   onDeleteRecord,
   onResetFilters,
-  onOpenNoteModal
+  onOpenNoteModal,
+  onGenerateReceipt
 }) {
   const [searchTerm, setSearchTerm] = useState('');
   const [statusFilter, setStatusFilter] = useState('ALL'); // 'ALL' | 'Received' | 'Pending'
@@ -766,6 +768,20 @@ Thank you for your continuous business!
                 </div>
 
                 <div className="mobile-card-actions">
+                  {(record.status === 'Received' || record.status === 'Partial' || (record.paidAmount || 0) > 0) && (
+                    <button
+                      onClick={() => onGenerateReceipt && onGenerateReceipt(record)}
+                      className="btn btn-icon-sm"
+                      style={{
+                        background: 'rgba(16, 185, 129, 0.15)',
+                        border: '1px solid rgba(16, 185, 129, 0.35)',
+                        color: '#34d399'
+                      }}
+                      title="Generate Official Money Receipt"
+                    >
+                      <Receipt size={14} />
+                    </button>
+                  )}
                   {record.status !== 'Received' && (
                     <button 
                       onClick={() => handleWhatsAppFollowup(record)}
@@ -921,6 +937,20 @@ Thank you for your continuous business!
                   </td>
                   <td style={{ textAlign: 'right' }}>
                     <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '4px' }}>
+                      {(record.status === 'Received' || record.status === 'Partial' || (record.paidAmount || 0) > 0) && (
+                        <button
+                          onClick={() => onGenerateReceipt && onGenerateReceipt(record)}
+                          className="btn btn-icon-sm"
+                          style={{
+                            background: 'rgba(16, 185, 129, 0.15)',
+                            border: '1px solid rgba(16, 185, 129, 0.35)',
+                            color: '#34d399'
+                          }}
+                          title="Generate Official Money Receipt"
+                        >
+                          <Receipt size={13} />
+                        </button>
+                      )}
                       {record.status !== 'Received' && (
                         <button 
                           onClick={() => handleWhatsAppFollowup(record)}
