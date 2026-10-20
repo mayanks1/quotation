@@ -18,7 +18,7 @@ export const normalizeCompany = (raw: any): CompanyProfile => {
   return {
     ...DEFAULT_COMPANY,
     ...raw,
-    signature: (isBrokenSig || !raw.signature) ? DEFAULT_COMPANY.signature : raw.signature,
+    signature: isBrokenSig ? DEFAULT_COMPANY.signature : (raw.signature !== undefined ? raw.signature : DEFAULT_COMPANY.signature),
     bankDetails: {
       ...DEFAULT_COMPANY.bankDetails,
       ...(raw.bankDetails || {}),

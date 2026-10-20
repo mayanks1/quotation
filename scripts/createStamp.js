@@ -19,16 +19,16 @@ const stampSvg = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 460 250" 
       font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif" 
       font-size="20" 
       font-weight="900" 
-      letter-spacing="2.8">FOR TISHA LED WALLS</text>
+      letter-spacing="2.8">TISHA LED WALLS</text>
 
-    <!-- Subtitle / Location with valid XML entity -->
+    <!-- Subtitle / Location -->
     <text x="230" y="78" 
       text-anchor="middle" 
       fill="#2563eb" 
       font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif" 
       font-size="10.5" 
       font-weight="700" 
-      letter-spacing="1.2">GURUGRAM (HARYANA) &#8226; SECTOR 39</text>
+      letter-spacing="1.2">GURUGRAM (HARYANA)</text>
 
     <!-- Left Badge / Round Official Seal Icon -->
     <g transform="translate(65, 138)">
@@ -39,34 +39,42 @@ const stampSvg = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 460 250" 
       <text x="0" y="23" text-anchor="middle" fill="#2563eb" font-family="-apple-system, BlinkMacSystemFont, sans-serif" font-size="6.5" font-weight="800">SEAL</text>
     </g>
 
-    <!-- Beautiful Cursive Signature "Saini" (Authorized Signatory) -->
-    <g transform="translate(145, 82)">
-      <!-- S -->
-      <path d="M 52 72 C 38 68, 25 58, 26 44 C 27 28, 48 16, 68 15 C 84 14, 96 24, 90 38 C 82 56, 44 76, 32 94 C 20 112, 34 125, 58 123 C 80 121, 98 108, 108 96" 
+    <!-- Beautiful Cursive Signature "TSaini" (First T, then overlaid S, then aini) -->
+    <g transform="translate(138, 80)">
+      <!-- 1. Cursive T: Top Bar and Downward Stem -->
+      <!-- T Top Bar with stylish loop/wave -->
+      <path d="M 32 38 C 44 33, 64 32, 88 33 C 98 34, 104 36, 108 40" 
+        fill="none" stroke="#1e3a8a" stroke-width="3.4" stroke-linecap="round" stroke-linejoin="round" />
+      <!-- T Vertical Stem -->
+      <path d="M 66 34 C 67 52, 64 78, 56 114 C 54 122, 48 125, 42 121" 
+        fill="none" stroke="#1e3a8a" stroke-width="3.2" stroke-linecap="round" stroke-linejoin="round" />
+
+      <!-- 2. Overlaid S: Swoops elegantly right over and across the T -->
+      <path d="M 44 80 C 32 74, 20 60, 22 44 C 24 26, 46 14, 68 13 C 90 12, 104 24, 96 42 C 86 62, 44 82, 32 100 C 20 118, 34 126, 60 123 C 80 120, 100 108, 108 96" 
         fill="none" stroke="#0f172a" stroke-width="3.2" stroke-linecap="round" stroke-linejoin="round" />
       
-      <!-- a -->
-      <path d="M 106 102 C 98 94, 94 104, 96 112 C 98 120, 108 122, 115 116 C 120 112, 122 100, 122 96 L 122 120" 
+      <!-- 3. 'a' -->
+      <path d="M 108 100 C 98 92, 94 102, 96 110 C 98 118, 108 120, 115 114 C 120 110, 122 98, 122 94 L 122 118" 
         fill="none" stroke="#0f172a" stroke-width="2.8" stroke-linecap="round" stroke-linejoin="round" />
 
-      <!-- i -->
-      <path d="M 124 114 L 136 98 L 136 120" 
+      <!-- 4. 'i' -->
+      <path d="M 124 112 L 136 96 L 136 118" 
         fill="none" stroke="#0f172a" stroke-width="2.8" stroke-linecap="round" stroke-linejoin="round" />
       <!-- Dot on first i -->
-      <circle cx="136" cy="88" r="2.8" fill="#0f172a" />
+      <circle cx="136" cy="86" r="2.8" fill="#0f172a" />
 
-      <!-- n -->
-      <path d="M 138 116 L 148 100 L 150 120 M 150 106 C 154 99, 164 98, 168 106 L 168 120" 
+      <!-- 5. 'n' -->
+      <path d="M 138 114 L 148 98 L 150 118 M 150 104 C 154 97, 164 96, 168 104 L 168 118" 
         fill="none" stroke="#0f172a" stroke-width="2.8" stroke-linecap="round" stroke-linejoin="round" />
 
-      <!-- i -->
-      <path d="M 170 114 L 180 98 L 182 120 C 188 122, 206 122, 222 118" 
+      <!-- 6. 'i' -->
+      <path d="M 170 112 L 180 96 L 182 118 C 188 120, 208 120, 224 116" 
         fill="none" stroke="#0f172a" stroke-width="2.8" stroke-linecap="round" stroke-linejoin="round" />
       <!-- Dot on second i -->
-      <circle cx="181" cy="88" r="2.8" fill="#0f172a" />
+      <circle cx="181" cy="86" r="2.8" fill="#0f172a" />
 
-      <!-- Flourish Underline -->
-      <path d="M 28 132 C 65 130, 150 132, 235 125 C 245 124, 252 122, 258 120" 
+      <!-- 7. Flourish Underline -->
+      <path d="M 24 130 C 65 128, 150 130, 238 123 C 248 122, 256 120, 262 118" 
         fill="none" stroke="#1e3a8a" stroke-width="2.2" stroke-linecap="round" />
     </g>
 

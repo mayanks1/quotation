@@ -480,18 +480,18 @@ export const QuotationEditor: React.FC<Props> = ({
     }
   }, [quotation.eventDate]);
 
-  // Auto-apply official company stamp & signature if quotation doesn't have one yet or has old broken string
+  // Migrate old broken SVG signature once on mount if present
   useEffect(() => {
     const isOldBroken = Boolean(
       quotation.company?.signature &&
       quotation.company.signature.startsWith('data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCA0NjAgMjUwIiB3aWR0aD0iNDYwIiBoZWlnaHQ9IjI1MCI+CiAgPGRlZnM+')
     );
-    if (!quotation.company?.signature || isOldBroken) {
+    if (isOldBroken) {
       const updatedComp = { ...quotation.company, signature: OFFICIAL_TISHA_STAMP };
       onChange({ ...quotation, company: updatedComp });
       storage.saveCompanyProfile(updatedComp);
     }
-  }, [quotation.company?.signature]);
+  }, []);
 
   const handleSelectSavedClient = (clientIdOrName: string) => {
     const found = savedClients.find((c) => c.id === clientIdOrName || c.name === clientIdOrName);

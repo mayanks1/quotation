@@ -51,19 +51,19 @@ export function generateOfficialStampDataUrl(): string {
   ctx.stroke();
   ctx.setLineDash([]); // Reset line dash
 
-  // 3. Top Header: FOR TISHA LED WALLS
+  // 3. Top Header: TISHA LED WALLS
   ctx.textAlign = 'center';
   ctx.textBaseline = 'middle';
   ctx.font = '900 19px -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif';
   ctx.fillStyle = primaryBlue;
   ctx.letterSpacing = '2.5px';
-  ctx.fillText('FOR TISHA LED WALLS', 230, 52);
+  ctx.fillText('TISHA LED WALLS', 230, 52);
 
   // 4. Sub-location
   ctx.font = 'bold 10px -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif';
   ctx.fillStyle = accentBlue;
   ctx.letterSpacing = '1.2px';
-  ctx.fillText('GURUGRAM (HARYANA) • SECTOR 39', 230, 72);
+  ctx.fillText('GURUGRAM (HARYANA)', 230, 72);
 
   // 5. Left Circular Verified Seal Emblem
   ctx.save();
@@ -105,35 +105,52 @@ export function generateOfficialStampDataUrl(): string {
   ctx.fillText('SEAL', 0, 22);
   ctx.restore();
 
-  // 6. Cursive Signature: "Saini"
+  // 6. Cursive Signature: "TSaini" (First T, then overlaid S, then aini)
   ctx.save();
-  ctx.translate(140, 80);
-  ctx.strokeStyle = inkDark;
-  ctx.lineWidth = 2.8;
+  ctx.translate(138, 80);
   ctx.lineCap = 'round';
   ctx.lineJoin = 'round';
 
-  // Capital 'S'
+  // 1. Cursive T
+  ctx.strokeStyle = primaryBlue;
+  ctx.lineWidth = 3.4;
   ctx.beginPath();
-  ctx.moveTo(52, 70);
-  ctx.bezierCurveTo(36, 66, 24, 56, 25, 42);
-  ctx.bezierCurveTo(26, 26, 48, 14, 68, 14);
-  ctx.bezierCurveTo(84, 14, 94, 24, 88, 38);
-  ctx.bezierCurveTo(80, 56, 42, 76, 32, 92);
-  ctx.bezierCurveTo(20, 110, 34, 122, 58, 120);
-  ctx.bezierCurveTo(78, 118, 96, 106, 106, 94);
+  ctx.moveTo(32, 38);
+  ctx.bezierCurveTo(44, 33, 64, 32, 88, 33);
+  ctx.bezierCurveTo(98, 34, 104, 36, 108, 40);
   ctx.stroke();
 
-  // 'a'
+  ctx.lineWidth = 3.2;
   ctx.beginPath();
-  ctx.moveTo(106, 100);
+  ctx.moveTo(66, 34);
+  ctx.bezierCurveTo(67, 52, 64, 78, 56, 114);
+  ctx.bezierCurveTo(54, 122, 48, 125, 42, 121);
+  ctx.stroke();
+
+  // 2. Overlaid S: Swoops elegantly right over and across the T
+  ctx.strokeStyle = inkDark;
+  ctx.lineWidth = 3.2;
+  ctx.beginPath();
+  ctx.moveTo(44, 80);
+  ctx.bezierCurveTo(32, 74, 20, 60, 22, 44);
+  ctx.bezierCurveTo(24, 26, 46, 14, 68, 13);
+  ctx.bezierCurveTo(90, 12, 104, 24, 96, 42);
+  ctx.bezierCurveTo(86, 62, 44, 82, 32, 100);
+  ctx.bezierCurveTo(20, 118, 34, 126, 60, 123);
+  ctx.bezierCurveTo(80, 120, 100, 108, 108, 96);
+  ctx.stroke();
+
+  // 3. 'a'
+  ctx.lineWidth = 2.8;
+  ctx.beginPath();
+  ctx.moveTo(108, 100);
   ctx.bezierCurveTo(98, 92, 94, 102, 96, 110);
   ctx.bezierCurveTo(98, 118, 108, 120, 115, 114);
   ctx.bezierCurveTo(120, 110, 122, 98, 122, 94);
   ctx.lineTo(122, 118);
   ctx.stroke();
 
-  // 'i'
+  // 4. 'i'
   ctx.beginPath();
   ctx.moveTo(124, 112);
   ctx.lineTo(136, 96);
@@ -141,11 +158,11 @@ export function generateOfficialStampDataUrl(): string {
   ctx.stroke();
   // Dot on first 'i'
   ctx.beginPath();
-  ctx.arc(136, 86, 2.6, 0, Math.PI * 2);
+  ctx.arc(136, 86, 2.8, 0, Math.PI * 2);
   ctx.fillStyle = inkDark;
   ctx.fill();
 
-  // 'n'
+  // 5. 'n'
   ctx.beginPath();
   ctx.moveTo(138, 114);
   ctx.lineTo(148, 98);
@@ -155,24 +172,24 @@ export function generateOfficialStampDataUrl(): string {
   ctx.lineTo(168, 118);
   ctx.stroke();
 
-  // 'i'
+  // 6. 'i'
   ctx.beginPath();
   ctx.moveTo(170, 112);
   ctx.lineTo(180, 96);
   ctx.lineTo(182, 118);
-  ctx.bezierCurveTo(188, 120, 204, 120, 218, 116);
+  ctx.bezierCurveTo(188, 120, 208, 120, 224, 116);
   ctx.stroke();
   // Dot on second 'i'
   ctx.beginPath();
-  ctx.arc(181, 86, 2.6, 0, Math.PI * 2);
+  ctx.arc(181, 86, 2.8, 0, Math.PI * 2);
   ctx.fill();
 
-  // Signature Flourish Underline
+  // 7. Signature Flourish Underline
   ctx.beginPath();
   ctx.strokeStyle = primaryBlue;
   ctx.lineWidth = 2.2;
-  ctx.moveTo(26, 130);
-  ctx.bezierCurveTo(65, 128, 150, 130, 230, 123);
+  ctx.moveTo(24, 130);
+  ctx.bezierCurveTo(65, 128, 150, 130, 238, 123);
   ctx.stroke();
   ctx.restore();
 
