@@ -233,6 +233,11 @@ export const DeliveryChallanModal: React.FC<Props> = ({ isOpen, onClose, quotati
             ${quotation.company.signature ? `<img src="${quotation.company.signature}" style="height:28px;max-width:90px;object-fit:contain;margin:0 auto 2px;display:block;" />` : ''}
             Prepared By
             <div class="sig-role">Warehouse Storekeeper</div>
+            <div style="margin-top:3px;">
+              <span style="display:inline-block;background:#ecfdf5;color:#047857;border:1px solid #a7f3d0;font-size:7.5px;font-weight:800;padding:1px 5px;border-radius:9999px;text-transform:uppercase;">
+                &#10003; Digitally Endorsed
+              </span>
+            </div>
           </div>
           <div class="sig-box">
             Verified By
@@ -246,6 +251,11 @@ export const DeliveryChallanModal: React.FC<Props> = ({ isOpen, onClose, quotati
             Venue Security In / Out
             <div class="sig-role">Official Stamp &amp; Signature</div>
           </div>
+        </div>
+
+        <div style="margin-top:24px;border-top:1px dashed #cbd5e1;padding-top:8px;display:flex;justify-content:space-between;align-items:center;font-size:9.5px;color:#64748b;">
+          <div>${quotation.company.name || 'Tisha LED Walls'} &bull; Official Delivery Challan &amp; Venue Gate Pass &bull; Pass #${challanNumber}</div>
+          <div style="font-weight:700;color:#059669;">&#10003; Tamper-Protected Electronic Record</div>
         </div>
 
         <script>

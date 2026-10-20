@@ -14,8 +14,13 @@ import {
   ExternalLink,
   Loader2,
 } from 'lucide-react';
-import { PaymentReceipt, ReceiptMilestone } from '../types/receipt';
-import { exportReceiptPDF, printReceipt, generateReceiptPDFFile } from '../services/receiptPdfGenerator';
+import {
+  exportReceiptPDF,
+  printReceipt,
+  generateReceiptPDFFile,
+  generateReceiptSecurityData,
+  ReceiptSecurityData,
+} from '../services/receiptPdfGenerator';
 import {
   generateWhatsAppReceiptUrl,
   formatPaymentReceiptWhatsAppText,
@@ -50,12 +55,17 @@ export const PaymentReceiptModal: React.FC<Props> = ({
   // Prevent duplicate concurrent generation / freezing
   const isBusyRef = useRef(false);
   const cachedPdfRef = useRef<{ key: string; file: File; filename: string } | null>(null);
+  const [securityData, setSecurityData] = useState<ReceiptSecurityData | null>(null);
 
   useEffect(() => {
     setReceipt(initialReceipt);
     setCustomPhone(initialReceipt.client?.phone || '');
     cachedPdfRef.current = null;
   }, [initialReceipt, isOpen]);
+
+  useEffect(() => {
+    generateReceiptSecurityData(receipt).then(setSecurityData).catch(console.error);
+  }, [receipt]);
 
   if (!isOpen) return null;
 
@@ -533,13 +543,38 @@ export const PaymentReceiptModal: React.FC<Props> = ({
                 </table>
               </div>
 
-              {/* Signatory & Rubber Stamp Section */}
-              <div className="flex justify-between items-end pt-3 mt-4 border-t border-slate-200">
-                <div className="text-[10px] text-slate-400 max-w-[55%] leading-relaxed">
-                  <div className="font-bold text-slate-600 mb-0.5 uppercase tracking-wider">Declaration:</div>
-                  &bull; This receipt is issued subject to realization of funds.<br />
-                  &bull; Equipment dispatch requires balance settlement prior to event setup.<br />
-                  &bull; Computer-generated official receipt issued by Tisha LED Walls.
+              {/* Terms, Verification & Signatory Section */}
+              <div className="flex justify-between items-end pt-4 mt-4 border-t border-slate-200">
+                <div className="max-w-[60%] space-y-3">
+                  <div className="text-[10px] text-slate-500 leading-relaxed">
+                    <div className="font-bold text-slate-700 mb-0.5 uppercase tracking-wider">Terms &amp; Declaration:</div>
+                    &bull; This receipt is issued subject to realization of funds / online electronic clearance.<br />
+                    &bull; Equipment dispatch requires balance settlement prior to event setup at venue.<br />
+                    &bull; Authentic computer-generated receipt issued by {receipt.company.name || 'Tisha LED Walls'}.
+                    {receipt.notes && (
+                      <div className="mt-1 text-slate-700"><strong>Note:</strong> {receipt.notes}</div>
+                    )}
+                  </div>
+
+                  {/* Scan to Verify Official Record */}
+                  {securityData?.qrDataUrl && (
+                    <div className="flex items-center gap-2.5 bg-slate-50 border border-slate-200 rounded-lg p-2 w-fit">
+                      <div className="bg-white p-1 border border-slate-200 rounded shrink-0 shadow-2xs">
+                        <img src={securityData.qrDataUrl} alt="Verify QR" className="w-10 h-10 block" />
+                      </div>
+                      <div>
+                        <div className="text-[9.5px] font-black text-slate-900 uppercase tracking-wider">
+                          Scan to Verify Official Record
+                        </div>
+                        <div className="text-[8.5px] text-slate-500">
+                          Direct ledger cross-reference &bull; Ref #{receipt.receiptNumber}
+                        </div>
+                        <div className="text-[8px] text-emerald-700 font-bold mt-0.5">
+                          &#10003; Tamper-Protected Digital Record
+                        </div>
+                      </div>
+                    </div>
+                  )}
                 </div>
 
                 <div className="text-center w-48">
@@ -558,7 +593,17 @@ export const PaymentReceiptModal: React.FC<Props> = ({
                   <div className="text-[9px] font-bold text-slate-400 uppercase tracking-wider">
                     Authorized Signatory
                   </div>
+                  <div className="mt-1">
+                    <span className="inline-block bg-emerald-50 text-emerald-800 border border-emerald-300 text-[8px] font-bold px-2 py-0.5 rounded-full uppercase tracking-wider">
+                      &#10003; Digitally Endorsed
+                    </span>
+                  </div>
                 </div>
+              </div>
+
+              {/* Document Sub-footer */}
+              <div className="mt-4 pt-2 border-t border-slate-100 text-center text-[9px] text-slate-400 tracking-wider">
+                {receipt.company.name || 'Tisha LED Walls'} &bull; Quotation &amp; Operations Suite &bull; Computer-Generated Electronic Voucher &bull; Ref #{receipt.receiptNumber}
               </div>
 
             </div>

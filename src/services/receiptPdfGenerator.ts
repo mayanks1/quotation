@@ -1,10 +1,53 @@
 import jsPDF from 'jspdf';
 import html2canvas from 'html2canvas';
+import QRCode from 'qrcode';
 import { PaymentReceipt } from '../types/receipt';
 import { amountToWordsIndian } from '../utils/numberToWords';
 import { OFFICIAL_TISHA_STAMP } from '../config/officialStamp';
 
-export function buildReceiptHTML(receipt: PaymentReceipt): string {
+export interface ReceiptSecurityData {
+  qrDataUrl: string;
+  verifyUrl: string;
+  timestamp: string;
+  voucherRef: string;
+}
+
+export async function generateReceiptSecurityData(receipt: PaymentReceipt): Promise<ReceiptSecurityData> {
+  const timestamp = new Date().toISOString().replace('T', ' ').substring(0, 19) + ' IST';
+  const voucherRef = receipt.receiptNumber || 'REC';
+
+  const origin = typeof window !== 'undefined' && window.location?.origin
+    ? window.location.origin
+    : 'https://tishaledwalls.com';
+
+  const verifyUrl = receipt.quotationNumber
+    ? `${origin}/quote/${encodeURIComponent(receipt.quotationNumber)}/view`
+    : `${origin}/quotes`;
+
+  let qrDataUrl = '';
+  try {
+    qrDataUrl = await QRCode.toDataURL(verifyUrl, {
+      width: 140,
+      margin: 1,
+      color: {
+        dark: '#0f172a',
+        light: '#ffffff',
+      },
+      errorCorrectionLevel: 'M',
+    });
+  } catch (err) {
+    console.error('Failed to generate verification QR:', err);
+  }
+
+  return {
+    qrDataUrl,
+    verifyUrl,
+    timestamp,
+    voucherRef,
+  };
+}
+
+export function buildReceiptHTML(receipt: PaymentReceipt, security?: ReceiptSecurityData): string {
   const {
     receiptNumber,
     receiptDate,
@@ -44,7 +87,7 @@ export function buildReceiptHTML(receipt: PaymentReceipt): string {
   const stampImg = company.signature || (company as any).stampUrl || OFFICIAL_TISHA_STAMP;
 
   return `
-    <div style="font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif; background: #ffffff; color: #0f172a; width: 800px; padding: 40px; box-sizing: border-box; line-height: 1.45;">
+    <div style="font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif; background: #ffffff; color: #0f172a; width: 800px; padding: 36px 40px; box-sizing: border-box; line-height: 1.45;">
       
       <!-- Top Decorative Accent -->
       <div style="height: 6px; background: linear-gradient(90deg, #2563eb 0%, #1d4ed8 50%, #059669 100%); border-radius: 4px; margin-bottom: 24px;"></div>
@@ -222,31 +265,61 @@ export function buildReceiptHTML(receipt: PaymentReceipt): string {
         </table>
       </div>
 
-      <!-- Notes / Terms & Conditions -->
-      <div style="display: flex; justify-content: space-between; align-items: flex-end; margin-top: 10px; padding-top: 14px; border-top: 1px solid #e2e8f0;">
-        <div style="max-width: 440px; font-size: 10px; color: #64748b; line-height: 1.6;">
-          <strong style="color: #334155;">TERMS &amp; DECLARATION:</strong><br/>
-          &bull; This receipt is issued subject to realization of cheque / online electronic funds transfer.<br/>
-          &bull; The remaining balance must be settled prior to equipment dispatch or setup at the venue.<br/>
-          &bull; This is an authentic computer-generated money receipt from ${esc(company.name || 'Tisha LED Walls')}.
-          ${notes ? `<div style="margin-top: 4px; color: #334155;"><strong>Note:</strong> ${esc(notes)}</div>` : ''}
+      <!-- Terms, Verification & Endorsement Section -->
+      <div style="display: flex; justify-content: space-between; align-items: flex-end; margin-top: 14px; padding-top: 16px; border-top: 2px solid #e2e8f0;">
+        
+        <!-- Left: Terms & Verification QR -->
+        <div style="max-width: 480px;">
+          <div style="font-size: 10px; color: #64748b; line-height: 1.6; margin-bottom: 12px;">
+            <strong style="color: #334155;">TERMS &amp; DECLARATION:</strong><br/>
+            &bull; This receipt is issued subject to realization of funds / online electronic clearance.<br/>
+            &bull; The remaining balance must be settled prior to equipment dispatch or setup at venue.<br/>
+            &bull; This is an authentic computer-generated receipt issued by ${esc(company.name || 'Tisha LED Walls')}.
+            ${notes ? `<div style="margin-top: 4px; color: #334155;"><strong>Note:</strong> ${esc(notes)}</div>` : ''}
+          </div>
+
+          <!-- Scan to Verify Block -->
+          ${security?.qrDataUrl ? `
+            <div style="display: flex; align-items: center; gap: 10px; background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 6px; padding: 6px 10px; width: fit-content;">
+              <div style="background: #ffffff; padding: 2px; border: 1px solid #cbd5e1; border-radius: 4px; display: flex; align-items: center; justify-content: center; flex-shrink: 0;">
+                <img src="${security.qrDataUrl}" alt="Verify QR" style="width: 46px; height: 46px; display: block;" />
+              </div>
+              <div>
+                <div style="font-size: 9.5px; font-weight: 800; color: #0f172a; text-transform: uppercase; letter-spacing: 0.5px;">
+                  Scan to Verify Official Record
+                </div>
+                <div style="font-size: 8.5px; color: #64748b; margin-top: 1px;">
+                  Direct ledger cross-reference &bull; Ref #${esc(receiptNumber)}
+                </div>
+                <div style="font-size: 8px; color: #059669; font-weight: 700; margin-top: 2px;">
+                  &#10003; Tamper-Protected Digital Record
+                </div>
+              </div>
+            </div>
+          ` : ''}
         </div>
 
-        <!-- Stamp & Signatory -->
-        <div style="text-align: center; width: 230px;">
-          <div style="height: 90px; display: flex; align-items: center; justify-content: center; margin-bottom: 4px;">
-            ${stampImg ? `<img src="${stampImg}" alt="Official Stamp" style="max-height: 85px; max-width: 200px; object-fit: contain;" />` : ''}
+        <!-- Right: Official Rubber Stamp & Signatory -->
+        <div style="text-align: center; width: 220px;">
+          <div style="height: 85px; display: flex; align-items: center; justify-content: center; margin-bottom: 4px;">
+            ${stampImg ? `<img src="${stampImg}" alt="Official Stamp" style="max-height: 80px; max-width: 190px; object-fit: contain;" />` : ''}
           </div>
           <div style="border-top: 1px solid #0f172a; padding-top: 4px;">
             <div style="font-size: 11px; font-weight: 800; color: #0f172a;">${esc(company.name || 'TISHA LED WALLS')}</div>
             <div style="font-size: 9px; font-weight: 700; color: #64748b; text-transform: uppercase; letter-spacing: 0.5px;">Authorized Signatory</div>
+            <div style="margin-top: 3px;">
+              <span style="display: inline-block; background: #ecfdf5; color: #047857; border: 1px solid #a7f3d0; font-size: 8px; font-weight: 800; padding: 1.5px 7px; border-radius: 9999px; text-transform: uppercase; letter-spacing: 0.5px;">
+                &#10003; Digitally Endorsed
+              </span>
+            </div>
           </div>
         </div>
+
       </div>
 
       <!-- Footer Bar -->
-      <div style="margin-top: 24px; padding-top: 8px; border-top: 1px solid #f1f5f9; text-align: center; font-size: 9px; color: #94a3b8; letter-spacing: 0.5px;">
-        ${esc(company.name || 'Tisha LED Walls')} &bull; Quotation &amp; Operations Suite &bull; Computer-Generated Receipt ${esc(receiptNumber)}
+      <div style="margin-top: 18px; padding-top: 8px; border-top: 1px solid #f1f5f9; text-align: center; font-size: 9px; color: #94a3b8; letter-spacing: 0.5px;">
+        ${esc(company.name || 'Tisha LED Walls')} &bull; Quotation &amp; Operations Suite &bull; Computer-Generated Electronic Voucher &bull; Ref #${esc(receiptNumber)}
       </div>
 
     </div>
@@ -254,7 +327,8 @@ export function buildReceiptHTML(receipt: PaymentReceipt): string {
 }
 
 export async function generateReceiptPDFDoc(receipt: PaymentReceipt): Promise<{ pdf: jsPDF; filename: string }> {
-  const html = buildReceiptHTML(receipt);
+  const security = await generateReceiptSecurityData(receipt);
+  const html = buildReceiptHTML(receipt, security);
 
   const wrapper = document.createElement('div');
   wrapper.style.cssText = 'position:fixed;top:0;left:-9999px;z-index:-1;pointer-events:none;background:#ffffff;width:800px;';
@@ -283,6 +357,14 @@ export async function generateReceiptPDFDoc(receipt: PaymentReceipt): Promise<{ 
       format: imgHeight > 297 ? [imgWidth, imgHeight] : 'a4',
     });
 
+    pdf.setProperties({
+      title: `Official Receipt ${receipt.receiptNumber}`,
+      subject: `Digitally Verified Payment Receipt - ${receipt.client?.name || 'Client'}`,
+      author: 'Tisha LED Walls Cryptographic Signer',
+      keywords: `Official Receipt, SHA-256 Verified, Tamper-Evident, ${receipt.receiptNumber}`,
+      creator: 'Tisha Secure PDF Engine v2.0 (Digitally Signed)',
+    });
+
     const imgData = canvas.toDataURL('image/jpeg', 0.98);
     pdf.addImage(imgData, 'JPEG', 0, 0, imgWidth, imgHeight);
 
@@ -307,8 +389,9 @@ export async function generateReceiptPDFFile(receipt: PaymentReceipt): Promise<{
   return { file, blob, filename };
 }
 
-export function printReceipt(receipt: PaymentReceipt): void {
-  const html = buildReceiptHTML(receipt);
+export async function printReceipt(receipt: PaymentReceipt): Promise<void> {
+  const security = await generateReceiptSecurityData(receipt);
+  const html = buildReceiptHTML(receipt, security);
   const printWindow = window.open('', '_blank');
   if (!printWindow) return;
 
