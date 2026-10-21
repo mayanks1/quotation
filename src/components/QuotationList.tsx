@@ -1,9 +1,9 @@
-import React, { useState, useMemo, useEffect } from 'react';
+import React, { useState, useMemo, useEffect, useRef } from 'react';
 import { 
   FileText, Plus, Search, Copy, Download, Trash2, 
   Share2, CheckCircle2, Clock, CheckCheck, 
   XCircle, Receipt, ArrowRight, ArrowLeft, IndianRupee,
-  Calendar, Filter, X, ChevronLeft, ChevronRight,
+  Calendar, Filter, X, ChevronLeft, ChevronRight, ChevronDown,
   ChevronsLeft, ChevronsRight, ArrowUpDown, SlidersHorizontal,
   RotateCcw, Sparkles, FileSpreadsheet, Upload, Database, Layers, Bell,
   TrendingUp, MapPin, Building2, Send, FileEdit
@@ -123,6 +123,19 @@ export const QuotationList: React.FC<Props> = ({
   const [shareModalQuote, setShareModalQuote] = useState<Quotation | null>(null);
   const [isGstExportOpen, setIsGstExportOpen] = useState(false);
   const [receiptModalQuote, setReceiptModalQuote] = useState<Quotation | null>(null);
+  const [isMobileToolsOpen, setIsMobileToolsOpen] = useState(false);
+  const mobileToolsRef = useRef<HTMLDivElement>(null);
+
+  // Close mobile tools dropdown on outside click
+  useEffect(() => {
+    const handleClickOutside = (e: MouseEvent) => {
+      if (mobileToolsRef.current && !mobileToolsRef.current.contains(e.target as Node)) {
+        setIsMobileToolsOpen(false);
+      }
+    };
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => document.removeEventListener('mousedown', handleClickOutside);
+  }, []);
 
   // Advanced Filters State
   const [isFilterOpen, setIsFilterOpen] = useState(false);
@@ -567,73 +580,73 @@ export const QuotationList: React.FC<Props> = ({
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4">
         {/* Card 1: Total Quotes */}
         <div className="bg-white p-4 sm:p-5 rounded-2xl border border-slate-200/80 shadow-xs hover:shadow-md hover:border-blue-300/80 hover:-translate-y-0.5 transition-all duration-300 relative overflow-hidden group">
-          <div className="absolute top-0 inset-x-0 h-1 bg-gradient-to-r from-blue-500 to-indigo-500 opacity-80" />
+          <div className="absolute top-0 inset-x-0 h-1 bg-gradient-to-r from-blue-500 via-indigo-500 to-blue-600" />
           <div className="flex items-center justify-between">
             <span className="text-[11px] sm:text-xs font-bold text-slate-500 uppercase tracking-wider">Total Quotes</span>
-            <div className="w-8 h-8 rounded-xl bg-blue-50 text-blue-600 flex items-center justify-center group-hover:scale-110 transition-transform">
+            <div className="w-8 h-8 rounded-xl bg-blue-50 text-blue-600 flex items-center justify-center group-hover:scale-110 transition-transform shadow-2xs">
               <FileText size={16} />
             </div>
           </div>
           <div className="text-2xl sm:text-3xl font-black text-slate-900 mt-2 font-mono tracking-tight">{totalCount}</div>
-          <div className="flex items-center gap-1.5 text-[11px] text-slate-400 mt-1">
-            <span className="w-1.5 h-1.5 rounded-full bg-blue-500" />
-            <span>All-time quotations generated</span>
+          <div className="flex items-center gap-1.5 text-[11px] text-slate-400 mt-1 truncate">
+            <span className="w-1.5 h-1.5 rounded-full bg-blue-500 shrink-0" />
+            <span className="truncate">All-time generated</span>
           </div>
         </div>
 
         {/* Card 2: Approved / Won */}
         <div className="bg-white p-4 sm:p-5 rounded-2xl border border-slate-200/80 shadow-xs hover:shadow-md hover:border-emerald-300/80 hover:-translate-y-0.5 transition-all duration-300 relative overflow-hidden group">
-          <div className="absolute top-0 inset-x-0 h-1 bg-gradient-to-r from-emerald-500 to-teal-500 opacity-80" />
+          <div className="absolute top-0 inset-x-0 h-1 bg-gradient-to-r from-emerald-500 via-teal-500 to-emerald-600" />
           <div className="flex items-center justify-between">
-            <span className="text-[11px] sm:text-xs font-bold text-emerald-600 uppercase tracking-wider">Approved / Won</span>
-            <div className="w-8 h-8 rounded-xl bg-emerald-50 text-emerald-600 flex items-center justify-center group-hover:scale-110 transition-transform">
+            <span className="text-[11px] sm:text-xs font-bold text-emerald-700 uppercase tracking-wider">Approved / Won</span>
+            <div className="w-8 h-8 rounded-xl bg-emerald-50 text-emerald-600 flex items-center justify-center group-hover:scale-110 transition-transform shadow-2xs">
               <CheckCircle2 size={16} />
             </div>
           </div>
           <div className="text-2xl sm:text-3xl font-black text-emerald-700 mt-2 font-mono tracking-tight">{approvedOrInvoicedCount}</div>
-          <div className="flex items-center gap-1.5 text-[11px] text-slate-500 mt-1 font-semibold">
-            <span className="px-1.5 py-0.2 rounded bg-emerald-50 text-emerald-700 font-bold border border-emerald-200 text-[10px]">
+          <div className="flex items-center gap-1.5 text-[11px] text-slate-500 mt-1 font-semibold flex-wrap">
+            <span className="px-1.5 py-0.5 rounded-md bg-emerald-50 text-emerald-700 font-bold border border-emerald-200/80 text-[10px] shrink-0">
               {totalCount > 0 ? Math.round((approvedOrInvoicedCount / totalCount) * 100) : 0}% win rate
             </span>
-            <span className="text-slate-400 text-[10px]">accepted orders</span>
+            <span className="text-slate-400 text-[10px] truncate">accepted orders</span>
           </div>
         </div>
 
         {/* Card 3: Quoted Pipeline */}
         <div className="bg-white p-4 sm:p-5 rounded-2xl border border-slate-200/80 shadow-xs hover:shadow-md hover:border-indigo-300/80 hover:-translate-y-0.5 transition-all duration-300 relative overflow-hidden group">
-          <div className="absolute top-0 inset-x-0 h-1 bg-gradient-to-r from-indigo-500 to-purple-500 opacity-80" />
+          <div className="absolute top-0 inset-x-0 h-1 bg-gradient-to-r from-indigo-500 via-purple-500 to-indigo-600" />
           <div className="flex items-center justify-between">
             <span className="text-[11px] sm:text-xs font-bold text-slate-500 uppercase tracking-wider">Quoted Pipeline</span>
-            <div className="w-8 h-8 rounded-xl bg-indigo-50 text-indigo-600 flex items-center justify-center group-hover:scale-110 transition-transform">
+            <div className="w-8 h-8 rounded-xl bg-indigo-50 text-indigo-600 flex items-center justify-center group-hover:scale-110 transition-transform shadow-2xs">
               <TrendingUp size={16} />
             </div>
           </div>
-          <div className="text-2xl sm:text-3xl font-black text-slate-900 mt-2 font-mono tracking-tight flex items-center">
-            <IndianRupee size={20} className="-mr-0.5 text-slate-700" />
-            {totalValue.toLocaleString('en-IN')}
+          <div className="text-xl sm:text-2xl lg:text-3xl font-black text-slate-900 mt-2 font-mono tracking-tight flex items-center truncate">
+            <IndianRupee size={18} className="shrink-0 -mr-0.5 text-slate-600" />
+            <span className="truncate">{totalValue.toLocaleString('en-IN')}</span>
           </div>
-          <div className="flex items-center gap-1.5 text-[11px] text-slate-400 mt-1">
-            <span className="w-1.5 h-1.5 rounded-full bg-indigo-500" />
-            <span>Gross commercial pipeline</span>
+          <div className="flex items-center gap-1.5 text-[11px] text-slate-400 mt-1 truncate">
+            <span className="w-1.5 h-1.5 rounded-full bg-indigo-500 shrink-0" />
+            <span className="truncate">Gross pipeline</span>
           </div>
         </div>
 
         {/* Card 4: Won Revenue */}
         <div className="bg-white p-4 sm:p-5 rounded-2xl border border-slate-200/80 shadow-xs hover:shadow-md hover:border-blue-400/80 hover:-translate-y-0.5 transition-all duration-300 relative overflow-hidden group">
-          <div className="absolute top-0 inset-x-0 h-1 bg-gradient-to-r from-blue-600 to-cyan-500 opacity-80" />
+          <div className="absolute top-0 inset-x-0 h-1 bg-gradient-to-r from-blue-600 via-sky-500 to-blue-700" />
           <div className="flex items-center justify-between">
-            <span className="text-[11px] sm:text-xs font-bold text-blue-600 uppercase tracking-wider">Won Revenue</span>
-            <div className="w-8 h-8 rounded-xl bg-blue-50 text-blue-600 flex items-center justify-center group-hover:scale-110 transition-transform">
+            <span className="text-[11px] sm:text-xs font-bold text-blue-700 uppercase tracking-wider">Won Revenue</span>
+            <div className="w-8 h-8 rounded-xl bg-blue-50 text-blue-600 flex items-center justify-center group-hover:scale-110 transition-transform shadow-2xs">
               <Receipt size={16} />
             </div>
           </div>
-          <div className="text-2xl sm:text-3xl font-black text-blue-700 mt-2 font-mono tracking-tight flex items-center">
-            <IndianRupee size={20} className="-mr-0.5 text-blue-600" />
-            {approvedValue.toLocaleString('en-IN')}
+          <div className="text-xl sm:text-2xl lg:text-3xl font-black text-blue-700 mt-2 font-mono tracking-tight flex items-center truncate">
+            <IndianRupee size={18} className="shrink-0 -mr-0.5 text-blue-600" />
+            <span className="truncate">{approvedValue.toLocaleString('en-IN')}</span>
           </div>
-          <div className="flex items-center gap-1.5 text-[11px] text-slate-400 mt-1">
-            <span className="w-1.5 h-1.5 rounded-full bg-blue-500" />
-            <span>Confirmed booking revenue</span>
+          <div className="flex items-center gap-1.5 text-[11px] text-slate-400 mt-1 truncate">
+            <span className="w-1.5 h-1.5 rounded-full bg-blue-500 shrink-0" />
+            <span className="truncate">Confirmed booking</span>
           </div>
         </div>
       </div>
@@ -644,13 +657,13 @@ export const QuotationList: React.FC<Props> = ({
         {/* Status Pipeline Segmented Pills Bar */}
         <div className="px-3 sm:px-6 py-2.5 flex items-center gap-1.5 sm:gap-2 overflow-x-auto overflow-y-hidden no-scrollbar border-b border-slate-100 bg-slate-50/80">
           {[
-            { id: 'all', label: 'All Quotes', count: totalCount, icon: Layers, activeBadge: 'bg-slate-100 text-slate-800' },
-            { id: 'sent', label: 'Sent', count: sentCount, icon: Send, activeBadge: 'bg-blue-100 text-blue-700' },
-            { id: 'approved', label: 'Approved', count: approvedCount, icon: CheckCircle2, activeBadge: 'bg-emerald-100 text-emerald-700' },
-            { id: 'invoiced', label: 'Invoiced', count: invoicedCount, icon: Receipt, activeBadge: 'bg-indigo-100 text-indigo-700' },
-            { id: 'draft', label: 'Drafts', count: draftCount, icon: FileEdit, activeBadge: 'bg-amber-100 text-amber-700' },
-            { id: 'rejected', label: 'Rejected', count: rejectedCount, icon: XCircle, activeBadge: 'bg-rose-100 text-rose-700' },
-            { id: 'trash', label: 'Trash', count: trashCount, icon: Trash2, activeBadge: 'bg-rose-100 text-rose-700' },
+            { id: 'all', label: 'All Quotes', count: totalCount, icon: Layers },
+            { id: 'sent', label: 'Sent', count: sentCount, icon: Send },
+            { id: 'approved', label: 'Approved', count: approvedCount, icon: CheckCircle2 },
+            { id: 'invoiced', label: 'Invoiced', count: invoicedCount, icon: Receipt },
+            { id: 'draft', label: 'Drafts', count: draftCount, icon: FileEdit },
+            { id: 'rejected', label: 'Rejected', count: rejectedCount, icon: XCircle },
+            { id: 'trash', label: 'Trash', count: trashCount, icon: Trash2 },
           ].map((tab) => {
             const isActive = statusFilter === tab.id;
             const Icon = tab.icon;
@@ -664,14 +677,14 @@ export const QuotationList: React.FC<Props> = ({
                 }}
                 className={`flex items-center gap-1.5 sm:gap-2 px-3 py-1.5 rounded-xl text-xs font-semibold transition-all whitespace-nowrap cursor-pointer shrink-0 ${
                   isActive
-                    ? 'bg-white text-slate-900 font-bold shadow-xs border border-slate-200/90'
-                    : 'text-slate-500 hover:text-slate-900 hover:bg-slate-200/60 border border-transparent'
+                    ? 'bg-blue-600 text-white font-bold shadow-sm shadow-blue-500/25'
+                    : 'text-slate-600 hover:text-slate-900 hover:bg-slate-200/60 border border-transparent'
                 }`}
               >
-                <Icon size={13} className={isActive ? 'text-blue-600' : 'text-slate-400'} />
+                <Icon size={13} className={isActive ? 'text-white' : 'text-slate-400'} />
                 <span>{tab.label}</span>
                 <span className={`text-[10px] font-bold px-1.5 py-0.5 rounded-full transition-colors ${
-                  isActive ? tab.activeBadge : 'bg-slate-200/70 text-slate-600'
+                  isActive ? 'bg-white/20 text-white' : 'bg-slate-200/70 text-slate-600'
                 }`}>
                   {tab.count}
                 </span>
@@ -682,6 +695,7 @@ export const QuotationList: React.FC<Props> = ({
 
         {/* Primary Controls Bar */}
         <div className="p-3.5 sm:p-5 border-b border-slate-100 space-y-3">
+          {/* Desktop & Tablet Layout: Search on left, Full actions on right */}
           <div className="flex flex-col sm:flex-row gap-3 items-stretch sm:items-center justify-between">
             
             {/* Search Input */}
@@ -705,8 +719,8 @@ export const QuotationList: React.FC<Props> = ({
               )}
             </div>
 
-            {/* Quick Actions & Toggles */}
-            <div className="flex items-center gap-2 flex-wrap sm:flex-nowrap justify-between sm:justify-end">
+            {/* Desktop Actions Row (Visible sm and up) */}
+            <div className="hidden sm:flex items-center gap-2 justify-end">
               
               {/* Filter & Sort Drawer Toggle */}
               <button
@@ -736,7 +750,7 @@ export const QuotationList: React.FC<Props> = ({
                 title={`Export ${filteredAndSorted.length} quotation(s) to basic CSV`}
               >
                 <Download size={14} className="text-slate-500" />
-                <span className="hidden sm:inline">CSV</span>
+                <span>CSV</span>
               </button>
 
               {/* GST & Tally Export Button */}
@@ -747,7 +761,7 @@ export const QuotationList: React.FC<Props> = ({
                 title="Export GSTR-1 Excel (.csv) and Tally Prime XML"
               >
                 <FileSpreadsheet size={14} className="text-emerald-600" />
-                <span className="hidden sm:inline">GST &amp; Tally</span>
+                <span>GST &amp; Tally</span>
               </button>
 
               {/* Backup & Restore Menu */}
@@ -758,7 +772,7 @@ export const QuotationList: React.FC<Props> = ({
                   title="Database backup & restore"
                 >
                   <Database size={14} className="text-blue-600" />
-                  <span className="hidden sm:inline">Backup</span>
+                  <span>Backup</span>
                 </button>
                 <div className="hidden group-hover:block absolute right-0 top-full mt-1 w-52 bg-white border border-slate-200 rounded-2xl shadow-xl p-1.5 z-30 space-y-1 animate-in fade-in duration-150">
                   <button
@@ -785,13 +799,110 @@ export const QuotationList: React.FC<Props> = ({
               {/* Create New CTA */}
               <button
                 onClick={onCreateNew}
-                className="flex items-center gap-2 bg-gradient-to-r from-blue-600 via-indigo-600 to-blue-700 hover:from-blue-500 hover:to-indigo-500 active:scale-95 text-white px-4 py-2.5 rounded-xl text-xs font-extrabold transition-all shadow-md shadow-blue-500/25 whitespace-nowrap ml-auto sm:ml-0 cursor-pointer"
+                className="flex items-center gap-2 bg-gradient-to-r from-blue-600 via-indigo-600 to-blue-700 hover:from-blue-500 hover:to-indigo-500 active:scale-95 text-white px-4 py-2.5 rounded-xl text-xs font-extrabold transition-all shadow-md shadow-blue-500/25 whitespace-nowrap cursor-pointer"
               >
                 <Plus size={16} />
                 <span>New Quote</span>
               </button>
             </div>
 
+            {/* Mobile Actions Row: Balanced 3-column non-wrapping toolbar */}
+            <div className="flex sm:hidden items-center gap-2 pt-0.5">
+              
+              {/* Filter & Sort Toggle */}
+              <button
+                type="button"
+                onClick={() => setIsFilterOpen(!isFilterOpen)}
+                className={`flex-1 flex items-center justify-center gap-1.5 px-3 py-2.5 rounded-xl text-xs font-bold transition-all border cursor-pointer ${
+                  isFilterOpen || activeFiltersCount > 0
+                    ? 'bg-blue-50 border-blue-200 text-blue-700 shadow-xs'
+                    : 'bg-white hover:bg-slate-50 border-slate-200 text-slate-700 shadow-2xs'
+                }`}
+              >
+                <SlidersHorizontal size={14} />
+                <span>Filters</span>
+                {activeFiltersCount > 0 && (
+                  <span className="w-4 h-4 rounded-full bg-blue-600 text-white text-[10px] flex items-center justify-center font-bold">
+                    {activeFiltersCount}
+                  </span>
+                )}
+              </button>
+
+              {/* Mobile Export & Tools Dropdown */}
+              <div className="relative" ref={mobileToolsRef}>
+                <button
+                  type="button"
+                  onClick={() => setIsMobileToolsOpen(!isMobileToolsOpen)}
+                  className="flex items-center justify-center gap-1.5 px-3 py-2.5 rounded-xl text-xs font-bold transition-all border bg-white hover:bg-slate-50 border-slate-200 text-slate-700 shadow-2xs cursor-pointer"
+                  title="Export and backup options"
+                >
+                  <Download size={14} className="text-slate-600" />
+                  <span>Export</span>
+                  <ChevronDown size={13} className={`text-slate-400 transition-transform ${isMobileToolsOpen ? 'rotate-180' : ''}`} />
+                </button>
+
+                {isMobileToolsOpen && (
+                  <div className="absolute right-0 top-full mt-1.5 w-56 bg-white border border-slate-200 rounded-2xl shadow-xl p-1.5 z-40 space-y-1 animate-in fade-in duration-150">
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setIsMobileToolsOpen(false);
+                        handleExportCSV();
+                      }}
+                      className="w-full flex items-center gap-2.5 px-3 py-2 text-xs font-semibold text-slate-700 hover:bg-slate-100 rounded-xl text-left transition-colors cursor-pointer"
+                    >
+                      <Download size={14} className="text-slate-500" />
+                      <span>Export to CSV</span>
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setIsMobileToolsOpen(false);
+                        setIsGstExportOpen(true);
+                      }}
+                      className="w-full flex items-center gap-2.5 px-3 py-2 text-xs font-semibold text-emerald-700 hover:bg-emerald-50 rounded-xl text-left transition-colors cursor-pointer"
+                    >
+                      <FileSpreadsheet size={14} className="text-emerald-600" />
+                      <span>GST &amp; Tally Export</span>
+                    </button>
+                    <div className="my-1 border-t border-slate-100" />
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setIsMobileToolsOpen(false);
+                        handleExportBackup();
+                      }}
+                      className="w-full flex items-center gap-2.5 px-3 py-2 text-xs font-semibold text-blue-700 hover:bg-blue-50 rounded-xl text-left transition-colors cursor-pointer"
+                    >
+                      <Database size={14} className="text-blue-600" />
+                      <span>Download JSON Backup</span>
+                    </button>
+                    <label className="w-full flex items-center gap-2.5 px-3 py-2 text-xs font-semibold text-slate-700 hover:bg-slate-100 rounded-xl text-left cursor-pointer transition-colors">
+                      <Upload size={14} className="text-emerald-600" />
+                      <span>Restore from Backup</span>
+                      <input
+                        type="file"
+                        accept=".json,application/json"
+                        className="hidden"
+                        onChange={(e) => {
+                          setIsMobileToolsOpen(false);
+                          handleRestoreBackupFile(e);
+                        }}
+                      />
+                    </label>
+                  </div>
+                )}
+              </div>
+
+              {/* Mobile Create New CTA */}
+              <button
+                onClick={onCreateNew}
+                className="flex-1 flex items-center justify-center gap-1.5 bg-gradient-to-r from-blue-600 via-indigo-600 to-blue-700 hover:from-blue-500 hover:to-indigo-500 active:scale-95 text-white px-3 py-2.5 rounded-xl text-xs font-extrabold transition-all shadow-md shadow-blue-500/25 whitespace-nowrap cursor-pointer"
+              >
+                <Plus size={15} />
+                <span>New Quote</span>
+              </button>
+            </div>
           </div>
 
           {/* Expandable Filter & Sort Panel */}
@@ -1154,12 +1265,12 @@ export const QuotationList: React.FC<Props> = ({
                   }`}
                 >
                   <div className="flex items-start gap-3 sm:gap-4 flex-1 min-w-0">
-                    {/* Dynamic Monogram Avatar */}
+                    {/* Dynamic Monogram Avatar with luxury ring */}
                     <div className="relative shrink-0">
-                      <div className={`w-11 h-11 rounded-2xl bg-gradient-to-br ${getAvatarGradient(quote.client?.name || quote.quotationNumber)} flex items-center justify-center font-black text-xs shadow-xs group-hover:scale-105 group-hover:shadow-sm transition-all`}>
+                      <div className={`w-11 h-11 sm:w-12 sm:h-12 rounded-2xl bg-gradient-to-br ${getAvatarGradient(quote.client?.name || quote.quotationNumber)} flex items-center justify-center font-black text-xs sm:text-sm shadow-xs ring-2 ring-white group-hover:scale-105 group-hover:shadow-md transition-all`}>
                         {getClientInitials(quote.client?.name)}
                       </div>
-                      <span className={`absolute -bottom-0.5 -right-0.5 w-3 h-3 rounded-full border-2 border-white ${
+                      <span className={`absolute -bottom-0.5 -right-0.5 w-3.5 h-3.5 rounded-full border-2 border-white shadow-2xs ${
                         statusFilter === 'trash'
                           ? 'bg-rose-500'
                           : quote.status === 'approved' || quote.status === 'invoiced'
@@ -1175,7 +1286,7 @@ export const QuotationList: React.FC<Props> = ({
                     <div className="space-y-1.5 min-w-0 flex-1">
                       {/* Row 1: Quote #, Badges & Expiry */}
                       <div className="flex items-center gap-2 flex-wrap">
-                        <span className={`font-extrabold text-slate-900 text-sm font-mono tracking-tight group-hover:text-blue-600 transition-colors ${
+                        <span className={`font-black text-slate-900 text-sm sm:text-base font-mono tracking-tight group-hover:text-blue-600 transition-colors ${
                           statusFilter === 'trash' ? 'line-through text-slate-500' : ''
                         }`}>
                           {quote.quotationNumber}
@@ -1221,10 +1332,10 @@ export const QuotationList: React.FC<Props> = ({
                               );
                             })()}
 
-                            <span className="text-xs text-slate-400">• Date: {quote.quotationDate}</span>
+                            <span className="text-xs text-slate-400 font-medium">• Date: {quote.quotationDate}</span>
 
                             {quote.eventDate && (
-                              <span className="text-xs text-blue-700 font-semibold bg-blue-50 border border-blue-200/60 px-2 py-0.5 rounded-md flex items-center gap-1">
+                              <span className="text-xs text-blue-700 font-bold bg-blue-50 border border-blue-200/80 px-2 py-0.5 rounded-md flex items-center gap-1 shadow-2xs">
                                 <Calendar size={11} className="text-blue-600" />
                                 Event: {quote.eventDate}
                               </span>
@@ -1234,17 +1345,17 @@ export const QuotationList: React.FC<Props> = ({
                       </div>
 
                       {/* Row 2: Client Name & Company */}
-                      <div className="text-sm font-bold text-slate-900 truncate flex items-center gap-1.5">
+                      <div className="text-sm sm:text-[15px] font-bold text-slate-900 truncate flex items-center gap-1.5">
                         <span>{quote.client?.name || 'Unnamed Client'}</span>
                         {quote.client?.company ? (
-                          <span className="text-xs font-medium text-slate-500">
+                          <span className="text-xs font-medium text-slate-500 truncate">
                             • {quote.client.company}
                           </span>
                         ) : null}
                       </div>
 
                       {/* Row 3: Items Count & Venue */}
-                      <div className="text-xs text-slate-500 flex items-center gap-3 flex-wrap">
+                      <div className="text-xs text-slate-500 font-medium flex items-center gap-3 flex-wrap">
                         <span className="flex items-center gap-1">
                           <Layers size={12} className="text-slate-400" />
                           <span>{quote.lineItems.length} setup item{quote.lineItems.length !== 1 ? 's' : ''}</span>
@@ -1260,12 +1371,12 @@ export const QuotationList: React.FC<Props> = ({
                   </div>
 
                   {/* Right Column: Financial & Interactive Actions */}
-                  <div className="flex items-center justify-between sm:justify-end w-full sm:w-auto gap-4 pt-2.5 sm:pt-0 border-t sm:border-0 border-slate-100">
-                    <div className="text-left sm:text-right">
-                      <div className="text-lg font-black text-slate-900 font-mono tracking-tight">
+                  <div className="flex items-center justify-between sm:justify-end w-full sm:w-auto gap-3 sm:gap-4 pt-2.5 sm:pt-0 border-t sm:border-0 border-slate-100">
+                    <div className="text-left sm:text-right shrink-0">
+                      <div className="text-base sm:text-xl font-black text-slate-900 font-mono tracking-tight whitespace-nowrap">
                         ₹{amount.toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
                       </div>
-                      <div className="text-[11px] text-slate-400 font-medium">Total payable</div>
+                      <div className="text-[10px] sm:text-[11px] text-slate-400 font-semibold uppercase tracking-wider">Total payable</div>
                     </div>
 
                     {statusFilter === 'trash' ? (
@@ -1293,7 +1404,7 @@ export const QuotationList: React.FC<Props> = ({
                         )}
                       </div>
                     ) : (
-                      <div className="flex items-center gap-1 bg-slate-50/80 p-1 rounded-xl border border-slate-200/60 group-hover:bg-white group-hover:shadow-xs transition-all">
+                      <div className="flex items-center gap-0.5 sm:gap-1 bg-slate-100/80 p-1 rounded-xl border border-slate-200/80 group-hover:bg-white group-hover:border-slate-300 group-hover:shadow-xs transition-all shrink-0">
                         <button
                           title="Send 1-Click WhatsApp Follow-up Reminder"
                           onClick={(e) => {
@@ -1302,9 +1413,9 @@ export const QuotationList: React.FC<Props> = ({
                             window.open(url, '_blank');
                             toast.info(`Opening WhatsApp follow-up reminder for ${quote.quotationNumber}`);
                           }}
-                          className="p-2 text-amber-600 hover:bg-amber-50 hover:text-amber-700 rounded-lg transition-colors cursor-pointer"
+                          className="p-1.5 sm:p-2 text-amber-600 hover:bg-amber-100/80 hover:text-amber-800 rounded-lg transition-colors cursor-pointer"
                         >
-                          <Bell size={16} />
+                          <Bell size={15} />
                         </button>
 
                         {/* Money Receipt Button (when payment is logged) */}
@@ -1315,44 +1426,44 @@ export const QuotationList: React.FC<Props> = ({
                               e.stopPropagation();
                               setReceiptModalQuote(quote);
                             }}
-                            className="p-2 text-emerald-700 bg-emerald-50/80 hover:bg-emerald-100 rounded-lg transition-colors cursor-pointer"
+                            className="p-1.5 sm:p-2 text-emerald-700 bg-emerald-100/80 hover:bg-emerald-200 rounded-lg transition-colors cursor-pointer"
                           >
-                            <Receipt size={16} />
+                            <Receipt size={15} />
                           </button>
                         )}
 
                         <button
                           title="Share Quotation (PDF or WhatsApp Text)"
                           onClick={(e) => handleOpenShare(e, quote)}
-                          className="p-2 text-emerald-600 hover:bg-emerald-50 hover:text-emerald-700 rounded-lg transition-colors cursor-pointer"
+                          className="p-1.5 sm:p-2 text-emerald-600 hover:bg-emerald-100/80 hover:text-emerald-800 rounded-lg transition-colors cursor-pointer"
                         >
-                          <Share2 size={16} />
+                          <Share2 size={15} />
                         </button>
 
                         <button
                           title="Download PDF"
                           disabled={exportingId === quote.id}
                           onClick={(e) => handleQuickDownload(e, quote)}
-                          className="p-2 text-blue-600 hover:bg-blue-50 hover:text-blue-700 rounded-lg transition-colors disabled:opacity-50 cursor-pointer"
+                          className="p-1.5 sm:p-2 text-blue-600 hover:bg-blue-100/80 hover:text-blue-800 rounded-lg transition-colors disabled:opacity-50 cursor-pointer"
                         >
-                          <Download size={16} />
+                          <Download size={15} />
                         </button>
 
                         <button
                           title="Duplicate Quotation"
                           onClick={(e) => handleDuplicateQuote(e, quote)}
-                          className="p-2 text-slate-600 hover:bg-slate-100 hover:text-slate-900 rounded-lg transition-colors cursor-pointer"
+                          className="p-1.5 sm:p-2 text-slate-600 hover:bg-slate-200/80 hover:text-slate-900 rounded-lg transition-colors cursor-pointer"
                         >
-                          <Copy size={16} />
+                          <Copy size={15} />
                         </button>
 
                         {canDelete ? (
                           <button
                             title="Move to Trash"
                             onClick={(e) => handleDeleteQuote(e, quote)}
-                            className="p-2 text-rose-500 hover:bg-rose-50 hover:text-rose-600 rounded-lg transition-colors cursor-pointer"
+                            className="p-1.5 sm:p-2 text-rose-500 hover:bg-rose-100/80 hover:text-rose-700 rounded-lg transition-colors cursor-pointer"
                           >
-                            <Trash2 size={16} />
+                            <Trash2 size={15} />
                           </button>
                         ) : (
                           <button
@@ -1361,14 +1472,14 @@ export const QuotationList: React.FC<Props> = ({
                               e.stopPropagation();
                               toast.warning('Locked: Only Super Admin can delete quotation records.');
                             }}
-                            className="p-2 text-slate-300 hover:text-slate-400 hover:bg-slate-50 rounded-lg transition-colors cursor-not-allowed"
+                            className="p-1.5 sm:p-2 text-slate-300 hover:text-slate-400 hover:bg-slate-50 rounded-lg transition-colors cursor-not-allowed"
                           >
-                            <Lock size={15} />
+                            <Lock size={14} />
                           </button>
                         )}
 
-                        <div className="pl-1 text-slate-300 group-hover:text-blue-600 group-hover:translate-x-1 transition-all hidden sm:block">
-                          <ArrowRight size={18} />
+                        <div className="pl-1 text-slate-300 group-hover:text-blue-600 group-hover:translate-x-1 transition-all hidden lg:block">
+                          <ChevronRight size={17} />
                         </div>
                       </div>
                     )}

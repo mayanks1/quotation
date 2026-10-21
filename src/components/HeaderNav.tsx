@@ -1,7 +1,7 @@
 import React, { useState, useRef, useEffect } from 'react';
 import { NavLink, useNavigate, useLocation } from 'react-router-dom';
 import {
-  FileText, Settings, Check, Plus, Users, Edit3,
+  FileText, Settings, Check, Plus, Users,
   LogOut, Shield, ChevronDown, User, Sparkles, Building2,
   Lock, Crown, Briefcase, UserCheck, CreditCard, Package
 } from 'lucide-react';
@@ -53,8 +53,6 @@ export const HeaderNav: React.FC<Props> = ({
     navigate('/login');
   };
 
-  const isEditorActive = location.pathname.startsWith('/quotes/') && location.pathname !== '/quotes';
-
   return (
     <header className="no-print bg-neutral-950 text-white border-b border-neutral-800/90 sticky top-0 z-50 shadow-md">
       <div className="w-full max-w-[1500px] mx-auto px-3 sm:px-6">
@@ -89,10 +87,9 @@ export const HeaderNav: React.FC<Props> = ({
           <nav className="hidden md:flex items-center gap-1 bg-neutral-900/90 p-1 rounded-xl border border-neutral-800/90 shadow-inner">
             <NavLink
               to="/quotes"
-              end
               className={({ isActive }) =>
                 `flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold whitespace-nowrap transition-all ${
-                  isActive && !isEditorActive
+                  isActive
                     ? 'bg-blue-600 text-white shadow-sm shadow-blue-500/30 font-bold'
                     : 'text-neutral-300 hover:text-white hover:bg-neutral-800/90'
                 }`
@@ -101,22 +98,6 @@ export const HeaderNav: React.FC<Props> = ({
               <FileText size={14} className="shrink-0" />
               <span>Quotes</span>
             </NavLink>
-
-            {(hasActiveQuote || isEditorActive) && (
-              <NavLink
-                to={activeQuoteId ? `/quotes/${activeQuoteId}` : '/quotes'}
-                className={({ isActive }) =>
-                  `flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold whitespace-nowrap transition-all ${
-                    isEditorActive || isActive
-                      ? 'bg-blue-600 text-white shadow-sm shadow-blue-500/30 font-bold'
-                      : 'text-neutral-300 hover:text-white hover:bg-neutral-800/90'
-                  }`
-                }
-              >
-                <Edit3 size={14} className="shrink-0" />
-                <span>Editor</span>
-              </NavLink>
-            )}
 
             <NavLink
               to="/clients"
@@ -360,9 +341,8 @@ export const HeaderNav: React.FC<Props> = ({
           <nav className="flex items-center gap-1 bg-neutral-900/90 p-1 rounded-xl border border-neutral-800 overflow-x-auto">
             <NavLink
               to="/quotes"
-              end
               className={({ isActive }) =>
-                `flex-1 flex items-center justify-center gap-1 py-1.5 px-2 rounded-lg text-xs font-bold transition-all whitespace-nowrap ${isActive && !isEditorActive
+                `flex-1 flex items-center justify-center gap-1 py-1.5 px-2 rounded-lg text-xs font-bold transition-all whitespace-nowrap ${isActive
                   ? 'bg-blue-600 text-white shadow-sm shadow-blue-500/30'
                   : 'text-neutral-400 hover:text-white hover:bg-neutral-800'
                 }`
@@ -371,21 +351,6 @@ export const HeaderNav: React.FC<Props> = ({
               <FileText size={13} />
               <span>Quotes</span>
             </NavLink>
-
-            {(hasActiveQuote || isEditorActive) && (
-              <NavLink
-                to={activeQuoteId ? `/quotes/${activeQuoteId}` : '/quotes'}
-                className={({ isActive }) =>
-                  `flex-1 flex items-center justify-center gap-1 py-1.5 px-2 rounded-lg text-xs font-bold transition-all whitespace-nowrap ${isEditorActive || isActive
-                    ? 'bg-blue-600 text-white shadow-sm shadow-blue-500/30'
-                    : 'text-neutral-400 hover:text-white hover:bg-neutral-800'
-                  }`
-                }
-              >
-                <Edit3 size={13} />
-                <span>Editor</span>
-              </NavLink>
-            )}
 
             <NavLink
               to="/clients"
