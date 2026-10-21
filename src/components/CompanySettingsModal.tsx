@@ -1,16 +1,19 @@
-import React, { useState, useEffect } from 'react';
-import { X, Building2, Save, Image as ImageIcon, CreditCard, Download, Upload, Cloud, HardDrive, CheckCircle2, RefreshCw, AlertCircle, Trash2, PenTool, Package, Lock, MessageSquare, Sliders, Mail } from 'lucide-react';
+import React, { useState, useEffect, useRef } from 'react';
+import { X, Building2, Save, Image as ImageIcon, CreditCard, Download, Upload, Cloud, HardDrive, CheckCircle2, RefreshCw, AlertCircle, Trash2, PenTool, Package, Lock, MessageSquare, Sliders, Mail, KeyRound, Shield, Clock } from 'lucide-react';
 import { CompanyProfile } from '../types/quotation';
 import { storage } from '../services/storage';
 import { DEFAULT_COMPANY } from '../config/defaults';
 import { isSupabaseConfigured } from '../services/supabaseClient';
 import { cloudSync } from '../services/cloudSync';
+import { securityService, SecuritySettings } from '../services/securityService';
+import { passcodeService } from '../services/passcodeService';
 import { useToast, useConfirm } from '../context/ToastContext';
 import { useAuth } from '../context/AuthContext';
 import { MASTER_SUPER_ADMIN_EMAIL } from '../types/auth';
 import { CompanyStampModal } from './CompanyStampModal';
 import { MessageTemplatesModal } from './MessageTemplatesModal';
 import { WeeklyEmailSettingsModal } from './ledger/WeeklyEmailSettingsModal';
+import { ManageLedgerPasscodeModal } from './ledger/ManageLedgerPasscodeModal';
 import { useLockBodyScroll } from '../hooks/useLockBodyScroll';
 
 interface Props {
@@ -55,16 +58,56 @@ export const CompanySettingsModal: React.FC<Props> = ({
   const [isStampModalOpen, setIsStampModalOpen] = useState(false);
   const [isTemplatesModalOpen, setIsTemplatesModalOpen] = useState(false);
   const [isWeeklyEmailModalOpen, setIsWeeklyEmailModalOpen] = useState(false);
+  const [isPasscodeModalOpen, setIsPasscodeModalOpen] = useState(false);
+  const [securitySettings, setSecuritySettings] = useState<SecuritySettings>(() => securityService.getSettings());
   const [testingConn, setTestingConn] = useState(false);
   const [testResult, setTestResult] = useState<{ success: boolean; message: string; tableReady?: boolean } | null>(null);
+
+  const formRef = useRef<HTMLFormElement>(null);
+  const [activeTabId, setActiveTabId] = useState<string>('section-company');
+
+  const tabs = [
+    { id: 'section-company', label: 'Company & Branding', icon: Building2 },
+    { id: 'section-banking', label: 'Bank Details', icon: CreditCard },
+    { id: 'section-templates', label: 'WhatsApp Templates', icon: MessageSquare },
+    ...(onOpenCatalog ? [{ id: 'section-catalog', label: 'Equipment Catalog', icon: Package }] : []),
+    ...(canManageEmailDigest ? [{ id: 'section-email-digest', label: 'Weekly Email Digest', icon: Mail }] : []),
+    { id: 'section-security', label: 'Security & Passcode', icon: Shield },
+    { id: 'section-storage', label: 'Storage & Cloud', icon: HardDrive },
+  ];
+
+  const scrollToSection = (id: string) => {
+    setActiveTabId(id);
+    const target = document.getElementById(id);
+    if (target) {
+      target.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    }
+  };
 
   // Synchronize internal state whenever the modal opens or the company prop updates
   useEffect(() => {
     if (isOpen) {
       setProfile(ensureCompanyProfile(company));
       setTestResult(null);
+      securityService.loadFromCloud().then(setSecuritySettings);
     }
   }, [isOpen, company]);
+
+  const handleTimeoutChange = async (minutes: number) => {
+    setSecuritySettings((prev) => ({ ...prev, idleTimeoutMinutes: minutes }));
+    const res = await securityService.saveSettings({ idleTimeoutMinutes: minutes }, user?.name || user?.email);
+    if (res.success) {
+      if (minutes === -1) {
+        toast.success('Idle auto-logout set to Immediate.');
+      } else if (minutes === 0) {
+        toast.success('Idle auto-logout disabled.');
+      } else {
+        toast.success(`Idle auto-logout set to ${minutes} minute${minutes > 1 ? 's' : ''}.`);
+      }
+    } else {
+      toast.error('Failed to update idle timeout: ' + res.error);
+    }
+  };
 
   if (!isOpen) return null;
 
@@ -125,11 +168,11 @@ export const CompanySettingsModal: React.FC<Props> = ({
         
         {/* Header */}
         <div className="flex items-center justify-between px-6 py-4 bg-slate-900 text-white">
-          <div className="flex items-center gap-2">
+          <div className="flex items-center gap-2.5">
             <Building2 className="text-blue-400" size={22} />
             <div>
-              <h3 className="text-lg font-bold">Company Profile & Banking Settings</h3>
-              <p className="text-xs text-slate-400">These details automatically populate all quotations & PDFs</p>
+              <h3 className="text-lg font-bold">Company Profile &amp; System Settings</h3>
+              <p className="text-xs text-slate-400">Configure company branding, banking, templates, equipment catalog &amp; security preferences</p>
             </div>
           </div>
           <button onClick={onClose} className="text-slate-400 hover:text-white p-1 rounded-lg">
@@ -137,35 +180,33 @@ export const CompanySettingsModal: React.FC<Props> = ({
           </button>
         </div>
 
-        <form onSubmit={handleSubmit} className="overflow-y-auto flex-1 p-6 space-y-6">
-          
-          {/* Quick link to Equipment Catalog */}
-          {onOpenCatalog && (
-            <div className="bg-gradient-to-r from-blue-50 to-indigo-50 border border-blue-100 rounded-xl p-3.5 flex items-center justify-between gap-3 shadow-xs">
-              <div className="flex items-center gap-3">
-                <div className="w-9 h-9 rounded-lg bg-blue-600 text-white flex items-center justify-center shrink-0 shadow-sm shadow-blue-500/30">
-                  <Package size={18} />
-                </div>
-                <div>
-                  <div className="text-xs font-bold text-slate-800">Equipment &amp; Services Catalog</div>
-                  <div className="text-[11px] text-slate-500">Configure presets (55" LED TV / Standee, LED walls, processors, sound) &amp; custom rates</div>
-                </div>
-              </div>
+        {/* Navigation Tabs Bar */}
+        <div className="bg-slate-100/90 border-b border-slate-200 px-4 py-2 flex items-center gap-1.5 overflow-x-auto no-scrollbar shrink-0">
+          {tabs.map((tab) => {
+            const Icon = tab.icon;
+            const isActive = activeTabId === tab.id;
+            return (
               <button
+                key={tab.id}
                 type="button"
-                onClick={() => {
-                  onClose();
-                  onOpenCatalog();
-                }}
-                className="px-3 py-1.5 bg-white border border-blue-200 hover:border-blue-300 text-blue-700 text-xs font-bold rounded-lg hover:bg-blue-50 transition-all shadow-xs shrink-0 cursor-pointer"
+                onClick={() => scrollToSection(tab.id)}
+                className={`inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold whitespace-nowrap transition-all cursor-pointer ${
+                  isActive
+                    ? 'bg-blue-600 text-white shadow-xs'
+                    : 'bg-white hover:bg-slate-200/80 text-slate-600 hover:text-slate-900 border border-slate-200/80 shadow-2xs'
+                }`}
               >
-                Manage Catalog
+                <Icon size={13} className={isActive ? 'text-white' : 'text-slate-500'} />
+                <span>{tab.label}</span>
               </button>
-            </div>
-          )}
+            );
+          })}
+        </div>
+
+        <form ref={formRef} onSubmit={handleSubmit} className="overflow-y-auto flex-1 p-6 space-y-6 scroll-smooth">
 
           {/* Logo, Stamp & Basic Info */}
-          <div>
+          <div id="section-company" className="scroll-mt-4">
             <h4 className="text-xs font-bold text-slate-500 uppercase tracking-wider mb-3">Company Details &amp; Branding</h4>
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 mb-4">
               
@@ -324,7 +365,7 @@ export const CompanySettingsModal: React.FC<Props> = ({
           </div>
 
           {/* Banking & UPI */}
-          <div className="bg-slate-50/80 p-4 rounded-xl border border-slate-200/80 space-y-3">
+          <div id="section-banking" className="scroll-mt-4 bg-slate-50/80 p-4 rounded-xl border border-slate-200/80 space-y-3">
             <div className="flex items-center justify-between">
               <div className="flex items-center gap-2 text-xs font-bold text-slate-700 uppercase tracking-wider">
                 <CreditCard size={16} className="text-blue-600" />
@@ -443,7 +484,7 @@ export const CompanySettingsModal: React.FC<Props> = ({
           </div>
 
           {/* WhatsApp & Portal Message Templates */}
-          <div className="bg-slate-50/80 p-4 rounded-xl border border-slate-200/80 space-y-3">
+          <div id="section-templates" className="scroll-mt-4 bg-slate-50/80 p-4 rounded-xl border border-slate-200/80 space-y-3">
             <div className="flex items-center justify-between flex-wrap gap-2">
               <div className="flex items-center gap-2 text-xs font-bold text-slate-700 uppercase tracking-wider">
                 <MessageSquare size={16} className="text-emerald-600" />
@@ -464,9 +505,36 @@ export const CompanySettingsModal: React.FC<Props> = ({
             </p>
           </div>
 
+          {/* Equipment & Services Catalog */}
+          {onOpenCatalog && (
+            <div id="section-catalog" className="scroll-mt-4 bg-slate-50/80 p-4 rounded-xl border border-slate-200/80 space-y-3">
+              <div className="flex items-center justify-between flex-wrap gap-2">
+                <div className="flex items-center gap-2 text-xs font-bold text-slate-700 uppercase tracking-wider">
+                  <Package size={16} className="text-blue-600" />
+                  <span>Equipment &amp; Services Catalog</span>
+                </div>
+                <button
+                  type="button"
+                  onClick={() => {
+                    onClose();
+                    onOpenCatalog();
+                  }}
+                  className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-blue-600 hover:bg-blue-700 active:scale-95 text-white rounded-lg text-xs font-bold transition-all shadow-xs cursor-pointer"
+                >
+                  <Package size={13} />
+                  <span>Manage Catalog</span>
+                </button>
+              </div>
+
+              <p className="text-[11px] text-slate-500 leading-relaxed">
+                Configure presets (55" LED TV / Standee, LED walls, processors, sound, staging) and default item rates for quick insertion in quotation builder.
+              </p>
+            </div>
+          )}
+
           {/* Automated Weekly Email Reports (Super Admin & Admin) */}
           {canManageEmailDigest && (
-            <div className="bg-gradient-to-r from-indigo-50/80 to-purple-50/80 p-4 rounded-xl border border-indigo-200/80 space-y-2.5 shadow-xs">
+            <div id="section-email-digest" className="scroll-mt-4 bg-gradient-to-r from-indigo-50/80 to-purple-50/80 p-4 rounded-xl border border-indigo-200/80 space-y-2.5 shadow-xs">
               <div className="flex items-center justify-between gap-3">
                 <div className="flex items-center gap-3">
                   <div className="w-8 h-8 rounded-lg bg-indigo-600 text-white flex items-center justify-center shrink-0 shadow-xs">
@@ -495,8 +563,83 @@ export const CompanySettingsModal: React.FC<Props> = ({
             </div>
           )}
 
+          {/* Security, Passcode & Idle Timeout */}
+          <div id="section-security" className="scroll-mt-4 bg-slate-50/80 p-4 rounded-xl border border-slate-200/80 space-y-3.5">
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-2 text-xs font-bold text-slate-700 uppercase tracking-wider">
+                <Shield size={16} className="text-indigo-600" />
+                <span>Security, Passcode &amp; Idle Timeout</span>
+              </div>
+              <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-indigo-50 text-indigo-700 border border-indigo-200 flex items-center gap-1">
+                <KeyRound size={11} /> Passcode Protected
+              </span>
+            </div>
+
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3.5 pt-1">
+              {/* Idle Timeout Auto-Logout Selector */}
+              <div className="bg-white p-3 rounded-lg border border-slate-200 space-y-1.5">
+                <div className="flex items-center gap-1.5 text-xs font-bold text-slate-800">
+                  <Clock size={14} className="text-blue-600" />
+                  <span>Idle Inactivity Auto-Logout</span>
+                </div>
+                <p className="text-[11px] text-slate-500 leading-tight">
+                  Automatically log out session if user is idle with no mouse or keyboard activity.
+                </p>
+                <select
+                  value={securitySettings.idleTimeoutMinutes}
+                  onChange={(e) => handleTimeoutChange(Number(e.target.value))}
+                  className="w-full mt-1 bg-slate-50 border border-slate-200 rounded-lg p-2 text-xs font-semibold text-slate-800 focus:outline-blue-500 cursor-pointer"
+                >
+                  <option value={-1}>Immediate</option>
+                  <option value={1}>1 Minute</option>
+                  <option value={5}>5 Minutes</option>
+                  <option value={10}>10 Minutes</option>
+                  <option value={15}>15 Minutes</option>
+                  <option value={30}>30 Minutes (Recommended)</option>
+                  <option value={60}>1 Hour</option>
+                  <option value={120}>2 Hours</option>
+                  <option value={240}>4 Hours</option>
+                  <option value={0}>Disabled (Never Logout)</option>
+                </select>
+              </div>
+
+              {/* Payment Ledger Passcode Controls */}
+              <div className="bg-white p-3 rounded-lg border border-slate-200 space-y-1.5 flex flex-col justify-between">
+                <div>
+                  <div className="flex items-center gap-1.5 text-xs font-bold text-slate-800">
+                    <KeyRound size={14} className="text-amber-500" />
+                    <span>Payment Ledger Passcode</span>
+                  </div>
+                  <p className="text-[11px] text-slate-500 leading-tight">
+                    Requires a security PIN before opening payment collections and client balance data.
+                  </p>
+                </div>
+                <div className="flex items-center gap-2 pt-1">
+                  <button
+                    type="button"
+                    onClick={() => setIsPasscodeModalOpen(true)}
+                    className="flex-1 py-1.5 px-2.5 bg-amber-500/10 hover:bg-amber-500/20 text-amber-700 border border-amber-300 rounded-lg text-xs font-bold transition-colors cursor-pointer text-center"
+                  >
+                    Manage / Reset Passcode
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      passcodeService.lockSession();
+                      toast.info('Payment Ledger session locked. Passcode required on next visit.');
+                    }}
+                    className="py-1.5 px-2 bg-slate-100 hover:bg-slate-200 text-slate-700 border border-slate-200 rounded-lg text-xs font-semibold transition-colors cursor-pointer"
+                    title="Lock Payment Ledger session immediately"
+                  >
+                    Lock Now
+                  </button>
+                </div>
+              </div>
+            </div>
+          </div>
+
           {/* Database & Cloud Sync Section */}
-          <div className="bg-slate-50/80 p-4 rounded-xl border border-slate-200/80 space-y-3">
+          <div id="section-storage" className="scroll-mt-4 bg-slate-50/80 p-4 rounded-xl border border-slate-200/80 space-y-3">
             <div className="flex items-center justify-between">
               <div className="flex items-center gap-2 text-xs font-bold text-slate-700 uppercase tracking-wider">
                 <HardDrive size={16} className="text-blue-600" />
@@ -683,6 +826,13 @@ export const CompanySettingsModal: React.FC<Props> = ({
         <WeeklyEmailSettingsModal
           isOpen={isWeeklyEmailModalOpen}
           onClose={() => setIsWeeklyEmailModalOpen(false)}
+        />
+      )}
+
+      {isPasscodeModalOpen && (
+        <ManageLedgerPasscodeModal
+          isOpen={isPasscodeModalOpen}
+          onClose={() => setIsPasscodeModalOpen(false)}
         />
       )}
     </div>

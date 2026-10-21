@@ -59,9 +59,10 @@ export const generateQuotationNumber = (sequence?: number): string => {
   return `TLW-${year}${month}-${rand}`;
 };
 
-export const createBlankQuotation = (companyProfile: CompanyProfile): Quotation => {
+export const createBlankQuotation = (companyProfile: CompanyProfile, organizationId?: string): Quotation => {
   const now = new Date();
   const valid = new Date(Date.now() + 15 * 24 * 60 * 60 * 1000);
+  const activeOrgId = organizationId || (typeof window !== 'undefined' ? localStorage.getItem('tisha_active_org_id') || 'org_tisha_main' : 'org_tisha_main');
   const initialItems: LineItem[] = [
     {
       id: `item-${Date.now()}-1`,
@@ -81,6 +82,7 @@ export const createBlankQuotation = (companyProfile: CompanyProfile): Quotation 
     validUntil: formatDateDMY(valid),
     venue: '',
     status: 'draft',
+    organizationId: activeOrgId,
     company: companyProfile,
     client: {
       name: '',
@@ -89,6 +91,7 @@ export const createBlankQuotation = (companyProfile: CompanyProfile): Quotation 
       email: '',
       phone: '',
       gstin: '',
+      organizationId: activeOrgId,
     },
     lineItems: initialItems,
     discountAmount: 0,
@@ -291,13 +294,21 @@ export const storage = {
     }
   },
 
-  getAllQuotations(includeDeleted = false): Quotation[] {
-    if (includeDeleted) return memoryQuotations;
-    return memoryQuotations.filter((q) => !q.isDeleted);
+  getAllQuotations(includeDeleted = false, organizationId?: string): Quotation[] {
+    let list = includeDeleted ? memoryQuotations : memoryQuotations.filter((q) => !q.isDeleted);
+    if (organizationId && organizationId !== 'all') {
+      list = list.filter((q) => q.organizationId === organizationId || (!q.organizationId && organizationId === 'org_tisha_main'));
+    }
+    return list;
   },
 
   saveQuotation(quotation: Quotation): void {
-    const updated = { ...quotation, updatedAt: new Date().toISOString() };
+    const activeOrgId = quotation.organizationId || (typeof window !== 'undefined' ? localStorage.getItem('tisha_active_org_id') || 'org_tisha_main' : 'org_tisha_main');
+    const updated = { 
+      ...quotation, 
+      organizationId: activeOrgId,
+      updatedAt: new Date().toISOString() 
+    };
     const existingIdx = memoryQuotations.findIndex((q) => q.id === quotation.id);
 
     if (existingIdx >= 0) {
@@ -471,8 +482,8 @@ export const storage = {
     return deduplicated;
   },
 
-  getAllClients(): ClientProfile[] {
-    const clients = storage.deduplicateClients();
+  getAllClients(organizationId?: string): ClientProfile[] {
+    let clients = storage.deduplicateClients();
     if (clients.length === 0 && memoryQuotations.length > 0) {
       const seen = new Set<string>();
       for (const q of memoryQuotations) {
@@ -488,12 +499,16 @@ export const storage = {
             phone: q.client.phone || '',
             email: q.client.email || '',
             gstin: q.client.gstin || '',
+            organizationId: q.organizationId || 'org_tisha_main',
           };
           memoryClients.push(c);
           clients.push(c);
           idb.saveClient(c).catch(console.error);
         }
       }
+    }
+    if (organizationId && organizationId !== 'all') {
+      clients = clients.filter((c) => c.organizationId === organizationId || (!c.organizationId && organizationId === 'org_tisha_main'));
     }
     return clients;
   },
@@ -503,12 +518,15 @@ export const storage = {
     const norm = client.name.toLowerCase().trim();
     if (norm === 'event organizer / client name') return;
 
+    const activeOrgId = client.organizationId || (typeof window !== 'undefined' ? localStorage.getItem('tisha_active_org_id') || 'org_tisha_main' : 'org_tisha_main');
+
     const existingIdx = memoryClients.findIndex(
       (c) => (client.id && c.id === client.id) || c.name.toLowerCase().trim() === norm
     );
 
     const clientWithId: ClientProfile = {
       ...client,
+      organizationId: activeOrgId,
       id: client.id || (existingIdx >= 0 && memoryClients[existingIdx].id ? memoryClients[existingIdx].id : `client-${Date.now()}`),
     };
 

@@ -17,10 +17,15 @@ import { UsersPage } from './pages/UsersPage';
 import { PaymentLedgerPage } from './pages/PaymentLedgerPage';
 import { useToast } from './context/ToastContext';
 import { useAuth } from './context/AuthContext';
+import { useIdleTimeout } from './hooks/useIdleTimeout';
+import { passcodeService } from './services/passcodeService';
+import { LedgerPasscodeModal } from './components/ledger/LedgerPasscodeModal';
 import { Lock } from 'lucide-react';
 
 function LedgerRouteGuard() {
   const { isSuperAdmin, hasPermission, isPaymentLedgerEnabled } = useAuth();
+  const navigate = useNavigate();
+  const [isUnlocked, setIsUnlocked] = useState(() => passcodeService.isSessionUnlocked());
 
   if (!isPaymentLedgerEnabled) {
     return <Navigate to="/quotes" replace />;
@@ -42,13 +47,49 @@ function LedgerRouteGuard() {
     );
   }
 
+  if (!isUnlocked) {
+    return (
+      <LedgerPasscodeModal
+        isOpen={true}
+        onClose={() => navigate('/quotes')}
+        onSuccess={() => setIsUnlocked(true)}
+      />
+    );
+  }
+
   return <PaymentLedgerPage />;
 }
 
+function ClientsRouteGuard({ clients, onSelectClientForQuote, onSaveClient, onDeleteClient }: any) {
+  const { isSuperAdmin, hasPermission } = useAuth();
+  if (!isSuperAdmin && !hasPermission('canManageClients')) {
+    return <Navigate to="/quotes" replace />;
+  }
+  return (
+    <ClientDirectory
+      clients={clients}
+      onSelectClientForQuote={onSelectClientForQuote}
+      onSaveClient={onSaveClient}
+      onDeleteClient={onDeleteClient}
+    />
+  );
+}
+
+function TeamRouteGuard() {
+  const { isSuperAdmin, hasPermission } = useAuth();
+  if (!isSuperAdmin && !hasPermission('canManageUsers')) {
+    return <Navigate to="/quotes" replace />;
+  }
+  return <UsersPage />;
+}
+
 export function App() {
+  useIdleTimeout();
   const toast = useToast();
   const navigate = useNavigate();
   const location = useLocation();
+  const { user, organization, isSuperAdmin } = useAuth();
+  const activeOrgId = user?.organizationId || organization?.id || 'org_tisha_main';
 
   const [company, setCompany] = useState<CompanyProfile>(() => storage.getCompanyProfile());
   const [quotations, setQuotations] = useState<Quotation[]>(() => storage.getAllQuotations());
@@ -56,6 +97,15 @@ export function App() {
   const [clients, setClients] = useState<ClientProfile[]>(() => storage.getAllClients());
   const [isSettingsOpen, setIsSettingsOpen] = useState(false);
   const [isCatalogOpen, setIsCatalogOpen] = useState(false);
+
+  // Workspace-scoped quotations & clients
+  const displayedQuotations = isSuperAdmin
+    ? quotations
+    : quotations.filter((q) => q.organizationId === activeOrgId || (!q.organizationId && activeOrgId === 'org_tisha_main'));
+
+  const displayedClients = isSuperAdmin
+    ? clients
+    : clients.filter((c) => c.organizationId === activeOrgId || (!c.organizationId && activeOrgId === 'org_tisha_main'));
 
   useEffect(() => {
     storage.initialize().then(({ quotations: qList, clients: cList, company: comp }) => {
@@ -84,7 +134,7 @@ export function App() {
 
   // Handlers
   const handleCreateNew = () => {
-    const newQuote = createBlankQuotation(company);
+    const newQuote = createBlankQuotation(company, activeOrgId);
     storage.saveQuotation(newQuote);
     storage.setActiveQuotationId(newQuote.id);
     setQuotations((prev) => [newQuote, ...prev]);
@@ -186,7 +236,7 @@ export function App() {
   };
 
   const handleCreateQuoteForClient = (client: ClientProfile) => {
-    const newQuote = createBlankQuotation(company);
+    const newQuote = createBlankQuotation(company, activeOrgId);
     newQuote.client = {
       name: client.name,
       company: client.company || '',
@@ -194,6 +244,7 @@ export function App() {
       phone: client.phone || '',
       email: client.email || '',
       gstin: client.gstin || '',
+      organizationId: activeOrgId,
     };
     storage.saveQuotation(newQuote);
     storage.setActiveQuotationId(newQuote.id);
@@ -250,7 +301,7 @@ export function App() {
           path="/quotes"
           element={
             <QuotationList
-              quotations={quotations}
+              quotations={displayedQuotations}
               onSelectQuotation={handleSelectQuotation}
               onCreateNew={handleCreateNew}
               onDuplicate={handleDuplicate}
@@ -266,8 +317,8 @@ export function App() {
           path="/quotes/:id"
           element={
             <QuoteEditorPage
-              quotations={quotations}
-              clients={clients}
+              quotations={displayedQuotations}
+              clients={displayedClients}
               company={company}
               onUpdateQuotation={handleUpdateQuotation}
               onDuplicate={handleDuplicate}
@@ -279,8 +330,8 @@ export function App() {
         <Route
           path="/clients"
           element={
-            <ClientDirectory
-              clients={clients}
+            <ClientsRouteGuard
+              clients={displayedClients}
               onSelectClientForQuote={handleCreateQuoteForClient}
               onSaveClient={handleSaveClient}
               onDeleteClient={handleDeleteClient}
@@ -288,7 +339,7 @@ export function App() {
           }
         />
         <Route path="/ledger" element={<LedgerRouteGuard />} />
-        <Route path="/team" element={<UsersPage />} />
+        <Route path="/team" element={<TeamRouteGuard />} />
         <Route path="*" element={<Navigate to="/quotes" replace />} />
       </Route>
     </Routes>

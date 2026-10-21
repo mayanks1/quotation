@@ -97,7 +97,9 @@ export const QuotationList: React.FC<Props> = ({
   const toast = useToast();
   const { confirm } = useConfirm();
   const { isSuperAdmin, hasPermission } = useAuth();
+  const canCreate = isSuperAdmin || hasPermission('canCreateQuotes');
   const canDelete = isSuperAdmin || hasPermission('canDeleteQuotes');
+  const canExport = isSuperAdmin || hasPermission('canExportData');
   const canRestore = isSuperAdmin || hasPermission('canRestoreBackups');
 
   // Trashed items state (synced with storage)
@@ -605,15 +607,17 @@ export const QuotationList: React.FC<Props> = ({
           </div>
         </div>
 
-        <div className="flex items-center gap-2.5 w-full sm:w-auto">
-          <button
-            onClick={onCreateNew}
-            className="flex-1 sm:flex-initial inline-flex items-center justify-center gap-2 px-5 py-2.5 rounded-xl font-extrabold text-xs text-white bg-gradient-to-r from-blue-600 via-indigo-600 to-violet-600 hover:from-blue-500 hover:to-indigo-500 active:scale-95 shadow-[0_0_25px_rgba(99,102,241,0.35)] hover:shadow-[0_0_35px_rgba(99,102,241,0.55)] transition-all cursor-pointer group"
-          >
-            <Plus size={16} className="group-hover:rotate-90 transition-transform duration-300" />
-            <span>Create New Quote</span>
-          </button>
-        </div>
+        {canCreate && (
+          <div className="flex items-center gap-2.5 w-full sm:w-auto">
+            <button
+              onClick={onCreateNew}
+              className="flex-1 sm:flex-initial inline-flex items-center justify-center gap-2 px-5 py-2.5 rounded-xl font-extrabold text-xs text-white bg-gradient-to-r from-blue-600 via-indigo-600 to-violet-600 hover:from-blue-500 hover:to-indigo-500 active:scale-95 shadow-[0_0_25px_rgba(99,102,241,0.35)] hover:shadow-[0_0_35px_rgba(99,102,241,0.55)] transition-all cursor-pointer group"
+            >
+              <Plus size={16} className="group-hover:rotate-90 transition-transform duration-300" />
+              <span>Create New Quote</span>
+            </button>
+          </div>
+        )}
       </div>
 
       {/* Top Banner / Executive Business KPI Cards */}
@@ -783,67 +787,79 @@ export const QuotationList: React.FC<Props> = ({
               </button>
 
               {/* Export to CSV (Spreadsheet) */}
-              <button
-                type="button"
-                onClick={handleExportCSV}
-                className="flex items-center gap-1.5 px-3 py-2.5 rounded-xl text-xs font-bold transition-all border bg-slate-800/80 hover:bg-slate-800 border-white/10 text-slate-200 hover:text-white cursor-pointer"
-                title={`Export ${filteredAndSorted.length} quotation(s) to basic CSV`}
-              >
-                <Download size={14} className="text-slate-400" />
-                <span>CSV</span>
-              </button>
-
-              {/* GST & Tally Export Button */}
-              <button
-                type="button"
-                onClick={() => setIsGstExportOpen(true)}
-                className="flex items-center gap-1.5 px-3 py-2.5 rounded-xl text-xs font-bold transition-all border bg-slate-800/80 hover:bg-emerald-950/40 border-white/10 hover:border-emerald-500/50 text-emerald-300 hover:text-emerald-200 cursor-pointer"
-                title="Export GSTR-1 Excel (.csv) and Tally Prime XML"
-              >
-                <FileSpreadsheet size={14} className="text-emerald-400" />
-                <span>GST &amp; Tally</span>
-              </button>
-
-              {/* Backup & Restore Menu */}
-              <div className="relative group">
+              {canExport && (
                 <button
                   type="button"
-                  className="flex items-center gap-1.5 px-3 py-2.5 rounded-xl text-xs font-bold transition-all border bg-slate-800/80 hover:bg-blue-950/40 border-white/10 hover:border-blue-500/50 text-blue-300 hover:text-blue-200 cursor-pointer"
-                  title="Database backup & restore"
+                  onClick={handleExportCSV}
+                  className="flex items-center gap-1.5 px-3 py-2.5 rounded-xl text-xs font-bold transition-all border bg-slate-800/80 hover:bg-slate-800 border-white/10 text-slate-200 hover:text-white cursor-pointer"
+                  title={`Export ${filteredAndSorted.length} quotation(s) to basic CSV`}
                 >
-                  <Database size={14} className="text-blue-400" />
-                  <span>Backup</span>
+                  <Download size={14} className="text-slate-400" />
+                  <span>CSV</span>
                 </button>
-                <div className="hidden group-hover:block absolute right-0 top-full mt-1.5 w-56 bg-slate-900/95 border border-slate-700/80 rounded-2xl shadow-2xl backdrop-blur-2xl p-1.5 z-30 space-y-1 animate-in fade-in duration-150">
+              )}
+
+              {/* GST & Tally Export Button */}
+              {canExport && (
+                <button
+                  type="button"
+                  onClick={() => setIsGstExportOpen(true)}
+                  className="flex items-center gap-1.5 px-3 py-2.5 rounded-xl text-xs font-bold transition-all border bg-slate-800/80 hover:bg-emerald-950/40 border-white/10 hover:border-emerald-500/50 text-emerald-300 hover:text-emerald-200 cursor-pointer"
+                  title="Export GSTR-1 Excel (.csv) and Tally Prime XML"
+                >
+                  <FileSpreadsheet size={14} className="text-emerald-400" />
+                  <span>GST &amp; Tally</span>
+                </button>
+              )}
+
+              {/* Backup & Restore Menu */}
+              {(canExport || canRestore) && (
+                <div className="relative group">
                   <button
                     type="button"
-                    onClick={handleExportBackup}
-                    className="w-full flex items-center gap-2 px-3 py-2 text-xs font-semibold text-slate-200 hover:bg-slate-800 rounded-xl text-left transition-colors cursor-pointer"
+                    className="flex items-center gap-1.5 px-3 py-2.5 rounded-xl text-xs font-bold transition-all border bg-slate-800/80 hover:bg-blue-950/40 border-white/10 hover:border-blue-500/50 text-blue-300 hover:text-blue-200 cursor-pointer"
+                    title="Database backup & restore"
                   >
-                    <Download size={13} className="text-blue-400" />
-                    <span>Download JSON Backup</span>
+                    <Database size={14} className="text-blue-400" />
+                    <span>Backup</span>
                   </button>
-                  <label className="w-full flex items-center gap-2 px-3 py-2 text-xs font-semibold text-slate-200 hover:bg-slate-800 rounded-xl text-left cursor-pointer transition-colors">
-                    <Upload size={13} className="text-emerald-400" />
-                    <span>Restore from JSON File</span>
-                    <input
-                      type="file"
-                      accept=".json,application/json"
-                      className="hidden"
-                      onChange={handleRestoreBackupFile}
-                    />
-                  </label>
+                  <div className="hidden group-hover:block absolute right-0 top-full mt-1.5 w-56 bg-slate-900/95 border border-slate-700/80 rounded-2xl shadow-2xl backdrop-blur-2xl p-1.5 z-30 space-y-1 animate-in fade-in duration-150">
+                    {canExport && (
+                      <button
+                        type="button"
+                        onClick={handleExportBackup}
+                        className="w-full flex items-center gap-2 px-3 py-2 text-xs font-semibold text-slate-200 hover:bg-slate-800 rounded-xl text-left transition-colors cursor-pointer"
+                      >
+                        <Download size={13} className="text-blue-400" />
+                        <span>Download JSON Backup</span>
+                      </button>
+                    )}
+                    {canRestore && (
+                      <label className="w-full flex items-center gap-2 px-3 py-2 text-xs font-semibold text-slate-200 hover:bg-slate-800 rounded-xl text-left cursor-pointer transition-colors">
+                        <Upload size={13} className="text-emerald-400" />
+                        <span>Restore from JSON File</span>
+                        <input
+                          type="file"
+                          accept=".json,application/json"
+                          className="hidden"
+                          onChange={handleRestoreBackupFile}
+                        />
+                      </label>
+                    )}
+                  </div>
                 </div>
-              </div>
+              )}
 
               {/* Create New CTA */}
-              <button
-                onClick={onCreateNew}
-                className="flex items-center gap-2 bg-gradient-to-r from-blue-600 via-indigo-600 to-blue-700 hover:from-blue-500 hover:to-indigo-500 active:scale-95 text-white px-4 py-2.5 rounded-xl text-xs font-extrabold transition-all shadow-md shadow-blue-500/25 whitespace-nowrap cursor-pointer"
-              >
-                <Plus size={16} />
-                <span>New Quote</span>
-              </button>
+              {canCreate && (
+                <button
+                  onClick={onCreateNew}
+                  className="flex items-center gap-2 bg-gradient-to-r from-blue-600 via-indigo-600 to-blue-700 hover:from-blue-500 hover:to-indigo-500 active:scale-95 text-white px-4 py-2.5 rounded-xl text-xs font-extrabold transition-all shadow-md shadow-blue-500/25 whitespace-nowrap cursor-pointer"
+                >
+                  <Plus size={16} />
+                  <span>New Quote</span>
+                </button>
+              )}
             </div>
 
             {/* Mobile Actions Row: Balanced 3-column non-wrapping toolbar */}
@@ -869,79 +885,93 @@ export const QuotationList: React.FC<Props> = ({
               </button>
 
               {/* Mobile Export & Tools Dropdown */}
-              <div className="relative" ref={mobileToolsRef}>
-                <button
-                  type="button"
-                  onClick={() => setIsMobileToolsOpen(!isMobileToolsOpen)}
-                  className="flex items-center justify-center gap-1.5 px-3 py-2.5 rounded-xl text-xs font-bold transition-all border bg-slate-800/80 hover:bg-slate-800 border-white/10 text-slate-200 hover:text-white cursor-pointer"
-                  title="Export and backup options"
-                >
-                  <Download size={14} className="text-slate-300" />
-                  <span>Export</span>
-                  <ChevronDown size={13} className={`text-slate-400 transition-transform ${isMobileToolsOpen ? 'rotate-180' : ''}`} />
-                </button>
+              {(canExport || canRestore) && (
+                <div className="relative" ref={mobileToolsRef}>
+                  <button
+                    type="button"
+                    onClick={() => setIsMobileToolsOpen(!isMobileToolsOpen)}
+                    className="flex items-center justify-center gap-1.5 px-3 py-2.5 rounded-xl text-xs font-bold transition-all border bg-slate-800/80 hover:bg-slate-800 border-white/10 text-slate-200 hover:text-white cursor-pointer"
+                    title="Export and backup options"
+                  >
+                    <Download size={14} className="text-slate-300" />
+                    <span>Export</span>
+                    <ChevronDown size={13} className={`text-slate-400 transition-transform ${isMobileToolsOpen ? 'rotate-180' : ''}`} />
+                  </button>
 
-                {isMobileToolsOpen && (
-                  <div className="absolute right-0 top-full mt-1.5 w-56 bg-slate-900/95 border border-slate-700/80 rounded-2xl shadow-2xl backdrop-blur-2xl p-1.5 z-40 space-y-1 animate-in fade-in duration-150">
-                    <button
-                      type="button"
-                      onClick={() => {
-                        setIsMobileToolsOpen(false);
-                        handleExportCSV();
-                      }}
-                      className="w-full flex items-center gap-2.5 px-3 py-2 text-xs font-semibold text-slate-200 hover:bg-slate-800 rounded-xl text-left transition-colors cursor-pointer"
-                    >
-                      <Download size={14} className="text-slate-400" />
-                      <span>Export to CSV</span>
-                    </button>
-                    <button
-                      type="button"
-                      onClick={() => {
-                        setIsMobileToolsOpen(false);
-                        setIsGstExportOpen(true);
-                      }}
-                      className="w-full flex items-center gap-2.5 px-3 py-2 text-xs font-semibold text-emerald-300 hover:bg-slate-800 rounded-xl text-left transition-colors cursor-pointer"
-                    >
-                      <FileSpreadsheet size={14} className="text-emerald-400" />
-                      <span>GST &amp; Tally Export</span>
-                    </button>
-                    <div className="my-1 border-t border-white/10" />
-                    <button
-                      type="button"
-                      onClick={() => {
-                        setIsMobileToolsOpen(false);
-                        handleExportBackup();
-                      }}
-                      className="w-full flex items-center gap-2.5 px-3 py-2 text-xs font-semibold text-blue-300 hover:bg-slate-800 rounded-xl text-left transition-colors cursor-pointer"
-                    >
-                      <Database size={14} className="text-blue-400" />
-                      <span>Download JSON Backup</span>
-                    </button>
-                    <label className="w-full flex items-center gap-2.5 px-3 py-2 text-xs font-semibold text-slate-200 hover:bg-slate-800 rounded-xl text-left cursor-pointer transition-colors">
-                      <Upload size={14} className="text-emerald-400" />
-                      <span>Restore from Backup</span>
-                      <input
-                        type="file"
-                        accept=".json,application/json"
-                        className="hidden"
-                        onChange={(e) => {
-                          setIsMobileToolsOpen(false);
-                          handleRestoreBackupFile(e);
-                        }}
-                      />
-                    </label>
-                  </div>
-                )}
-              </div>
+                  {isMobileToolsOpen && (
+                    <div className="absolute right-0 top-full mt-1.5 w-56 bg-slate-900/95 border border-slate-700/80 rounded-2xl shadow-2xl backdrop-blur-2xl p-1.5 z-40 space-y-1 animate-in fade-in duration-150">
+                      {canExport && (
+                        <button
+                          type="button"
+                          onClick={() => {
+                            setIsMobileToolsOpen(false);
+                            handleExportCSV();
+                          }}
+                          className="w-full flex items-center gap-2.5 px-3 py-2 text-xs font-semibold text-slate-200 hover:bg-slate-800 rounded-xl text-left transition-colors cursor-pointer"
+                        >
+                          <Download size={14} className="text-slate-400" />
+                          <span>Export to CSV</span>
+                        </button>
+                      )}
+                      {canExport && (
+                        <button
+                          type="button"
+                          onClick={() => {
+                            setIsMobileToolsOpen(false);
+                            setIsGstExportOpen(true);
+                          }}
+                          className="w-full flex items-center gap-2.5 px-3 py-2 text-xs font-semibold text-emerald-300 hover:bg-slate-800 rounded-xl text-left transition-colors cursor-pointer"
+                        >
+                          <FileSpreadsheet size={14} className="text-emerald-400" />
+                          <span>GST &amp; Tally Export</span>
+                        </button>
+                      )}
+                      {canExport && (
+                        <>
+                          <div className="my-1 border-t border-white/10" />
+                          <button
+                            type="button"
+                            onClick={() => {
+                              setIsMobileToolsOpen(false);
+                              handleExportBackup();
+                            }}
+                            className="w-full flex items-center gap-2.5 px-3 py-2 text-xs font-semibold text-blue-300 hover:bg-slate-800 rounded-xl text-left transition-colors cursor-pointer"
+                          >
+                            <Database size={14} className="text-blue-400" />
+                            <span>Download JSON Backup</span>
+                          </button>
+                        </>
+                      )}
+                      {canRestore && (
+                        <label className="w-full flex items-center gap-2.5 px-3 py-2 text-xs font-semibold text-slate-200 hover:bg-slate-800 rounded-xl text-left cursor-pointer transition-colors">
+                          <Upload size={14} className="text-emerald-400" />
+                          <span>Restore from Backup</span>
+                          <input
+                            type="file"
+                            accept=".json,application/json"
+                            className="hidden"
+                            onChange={(e) => {
+                              setIsMobileToolsOpen(false);
+                              handleRestoreBackupFile(e);
+                            }}
+                          />
+                        </label>
+                      )}
+                    </div>
+                  )}
+                </div>
+              )}
 
               {/* Mobile Create New CTA */}
-              <button
-                onClick={onCreateNew}
-                className="flex-1 flex items-center justify-center gap-1.5 bg-gradient-to-r from-blue-600 via-indigo-600 to-blue-700 hover:from-blue-500 hover:to-indigo-500 active:scale-95 text-white px-3 py-2.5 rounded-xl text-xs font-extrabold transition-all shadow-md shadow-blue-500/25 whitespace-nowrap cursor-pointer"
-              >
-                <Plus size={15} />
-                <span>New Quote</span>
-              </button>
+              {canCreate && (
+                <button
+                  onClick={onCreateNew}
+                  className="flex-1 flex items-center justify-center gap-1.5 bg-gradient-to-r from-blue-600 via-indigo-600 to-blue-700 hover:from-blue-500 hover:to-indigo-500 active:scale-95 text-white px-3 py-2.5 rounded-xl text-xs font-extrabold transition-all shadow-md shadow-blue-500/25 whitespace-nowrap cursor-pointer"
+                >
+                  <Plus size={15} />
+                  <span>New Quote</span>
+                </button>
+              )}
             </div>
           </div>
 
@@ -1267,15 +1297,15 @@ export const QuotationList: React.FC<Props> = ({
                   <RotateCcw size={14} />
                   Reset Filters
                 </button>
-              ) : (
+              ) : canCreate ? (
                 <button
                   onClick={onCreateNew}
                   className="inline-flex items-center gap-2 bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-500 hover:to-indigo-500 text-white px-5 py-2.5 rounded-xl text-xs font-extrabold transition-all shadow-md shadow-blue-500/25 cursor-pointer"
                 >
                   <Plus size={16} />
-                  Create Quotation Now
+                  <span>Create Quotation Now</span>
                 </button>
-              )}
+              ) : null}
             </>
           )}
         </div>
@@ -1452,15 +1482,17 @@ export const QuotationList: React.FC<Props> = ({
 
                   {isTrash ? (
                     <div className="flex items-center gap-2">
-                      <button
-                        type="button"
-                        title="Restore Quotation to Active Quotes"
-                        onClick={(e) => handleRestoreQuote(e, quote)}
-                        className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-bold bg-emerald-600 hover:bg-emerald-500 text-white transition-all shadow-md cursor-pointer"
-                      >
-                        <RotateCcw size={13} />
-                        <span>Restore</span>
-                      </button>
+                      {canDelete && (
+                        <button
+                          type="button"
+                          title="Restore Quotation to Active Quotes"
+                          onClick={(e) => handleRestoreQuote(e, quote)}
+                          className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-bold bg-emerald-600 hover:bg-emerald-500 text-white transition-all shadow-md cursor-pointer"
+                        >
+                          <RotateCcw size={13} />
+                          <span>Restore</span>
+                        </button>
+                      )}
 
                       {canDelete && (
                         <button
@@ -1520,32 +1552,23 @@ export const QuotationList: React.FC<Props> = ({
                         <Download size={15} />
                       </button>
 
-                      <button
-                        title="Duplicate Quotation"
-                        onClick={(e) => handleDuplicateQuote(e, quote)}
-                        className="p-1.5 sm:p-2 text-slate-300 hover:bg-slate-800 hover:text-white rounded-lg transition-colors cursor-pointer"
-                      >
-                        <Copy size={15} />
-                      </button>
+                      {canCreate && (
+                        <button
+                          title="Duplicate Quotation"
+                          onClick={(e) => handleDuplicateQuote(e, quote)}
+                          className="p-1.5 sm:p-2 text-slate-300 hover:bg-slate-800 hover:text-white rounded-lg transition-colors cursor-pointer"
+                        >
+                          <Copy size={15} />
+                        </button>
+                      )}
 
-                      {canDelete ? (
+                      {canDelete && (
                         <button
                           title="Move to Trash"
                           onClick={(e) => handleDeleteQuote(e, quote)}
                           className="p-1.5 sm:p-2 text-rose-400 hover:bg-rose-500/20 hover:text-rose-300 rounded-lg transition-colors cursor-pointer"
                         >
                           <Trash2 size={15} />
-                        </button>
-                      ) : (
-                        <button
-                          title="Locked: Only Super Admin can delete records"
-                          onClick={(e) => {
-                            e.stopPropagation();
-                            toast.warning('Locked: Only Super Admin can delete quotation records.');
-                          }}
-                          className="p-1.5 sm:p-2 text-slate-600 hover:text-slate-400 rounded-lg transition-colors cursor-not-allowed"
-                        >
-                          <Lock size={14} />
                         </button>
                       )}
 

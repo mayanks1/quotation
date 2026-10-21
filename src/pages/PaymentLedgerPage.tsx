@@ -30,22 +30,27 @@ import { LedgerAccountingExportModal } from '../components/ledger/LedgerAccounti
 import { PaymentReceiptModal } from '../components/PaymentReceiptModal';
 import { storage } from '../services/storage';
 import { PaymentReceipt } from '../types/receipt';
-import { Calendar, Check, ChevronDown, FileSpreadsheet, Plus, RotateCcw, Mail } from 'lucide-react';
+import { Calendar, Check, ChevronDown, FileSpreadsheet, Plus, RotateCcw, Mail, KeyRound } from 'lucide-react';
 import { DraggableFab } from '../components/DraggableFab';
 import { WeeklyEmailSettingsModal } from '../components/ledger/WeeklyEmailSettingsModal';
+import { ManageLedgerPasscodeModal } from '../components/ledger/ManageLedgerPasscodeModal';
 import '../components/ledger/ledger.css';
 
 const MONTH_NAMES = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
 
 export const PaymentLedgerPage: React.FC = () => {
   const toast = useToast();
-  const { user, isSuperAdmin, hasPermission } = useAuth();
+  const { user, organization, isSuperAdmin, hasPermission } = useAuth();
   const isMasterSuperAdmin = (user?.email || '').toLowerCase().trim() === MASTER_SUPER_ADMIN_EMAIL.toLowerCase().trim();
   const canManageEmailDigest = isSuperAdmin || hasPermission('canManageEmailDigest') || user?.role === 'owner' || user?.role === 'admin' || isMasterSuperAdmin;
+  const canExport = isSuperAdmin || hasPermission('canExportData');
+  const canDelete = isSuperAdmin || hasPermission('canDeleteQuotes');
+  const userOrgId = user?.organizationId || organization?.id || 'org_tisha_main';
 
   const [records, setRecords] = useState<LedgerRecord[]>([]);
   const [trashedRecords, setTrashedRecords] = useState<LedgerRecord[]>(() => getTrashedRecords());
   const [isLoading, setIsLoading] = useState(true);
+  const [isPasscodeModalOpen, setIsPasscodeModalOpen] = useState(false);
 
   // Filters
   const [selectedYear, setSelectedYear] = useState<string>('all');
@@ -131,24 +136,35 @@ export const PaymentLedgerPage: React.FC = () => {
     return () => unsubscribe();
   }, []);
 
+  // Workspace Scoped Records: Super Admin sees all data; workspace admins/users see only their workspace data
+  const scopedRecords = useMemo(() => {
+    if (isSuperAdmin) return records;
+    return records.filter(d => !d.organizationId || d.organizationId === userOrgId);
+  }, [records, isSuperAdmin, userOrgId]);
+
+  const scopedTrashedRecords = useMemo(() => {
+    if (isSuperAdmin) return trashedRecords;
+    return trashedRecords.filter(d => !d.organizationId || d.organizationId === userOrgId);
+  }, [trashedRecords, isSuperAdmin, userOrgId]);
+
   // 1. Unique Years and Clients
   const allYears = useMemo(() => {
-    return [...new Set(records.map(d => getYear(d.date)).filter(Boolean))].sort((a, b) => (b as number) - (a as number)) as number[];
-  }, [records]);
+    return [...new Set(scopedRecords.map(d => getYear(d.date)).filter(Boolean))].sort((a, b) => (b as number) - (a as number)) as number[];
+  }, [scopedRecords]);
 
   const allClients = useMemo(() => {
-    return [...new Set(records.map(d => d.client))].sort((a, b) => a.localeCompare(b));
-  }, [records]);
+    return [...new Set(scopedRecords.map(d => d.client))].sort((a, b) => a.localeCompare(b));
+  }, [scopedRecords]);
 
   // 2. Data Filtered by Year & Client
   const yearAndClientFilteredData = useMemo(() => {
-    return records.filter(d => {
+    return scopedRecords.filter(d => {
       const y = getYear(d.date);
       const matchesYear = selectedYear === 'all' || String(y) === String(selectedYear);
       const matchesClient = selectedClient === 'all' || d.client.toLowerCase() === selectedClient.toLowerCase();
       return matchesYear && matchesClient;
     });
-  }, [records, selectedYear, selectedClient]);
+  }, [scopedRecords, selectedYear, selectedClient]);
 
   // 3. Filtered by Active Month
   const finalFilteredData = useMemo(() => {
@@ -312,6 +328,7 @@ export const PaymentLedgerPage: React.FC = () => {
       const maxSheetRow = records.reduce((max, r) => Math.max(max, r.sheetRow || 0), 1);
       const newEntry: LedgerRecord = {
         id: `led_${Date.now()}_${Math.random().toString(36).slice(2, 6)}`,
+        organizationId: userOrgId,
         date: formData.date,
         client: normalizeClient(formData.client),
         size: formData.size || '',
@@ -325,7 +342,7 @@ export const PaymentLedgerPage: React.FC = () => {
       setRecords(prev => [newEntry, ...prev]);
       toast.info('Saving to Ledger...');
 
-      addRecord(formData)
+      addRecord({ ...formData, organizationId: userOrgId })
         .then((saved) => {
           if (saved && saved.id) {
             setRecords(prev => prev.map(r => r.id === newEntry.id ? { ...saved, sheetRow: r.sheetRow } : r));
@@ -642,14 +659,27 @@ export const PaymentLedgerPage: React.FC = () => {
               )}
 
               {/* Ledger & Tally Accounting Export */}
+              {canExport && (
+                <button
+                  type="button"
+                  onClick={() => setIsLedgerExportOpen(true)}
+                  className="flex items-center justify-center gap-1.5 px-3 py-2 bg-neutral-800/90 hover:bg-neutral-700 border border-neutral-700/80 text-xs font-semibold rounded-xl text-emerald-400 hover:text-emerald-300 transition-all cursor-pointer active:scale-95 shrink-0 whitespace-nowrap"
+                  title="Export Collections Register (.csv) and Tally Prime Receipt Vouchers (.xml)"
+                >
+                  <FileSpreadsheet size={13} className="text-emerald-400 shrink-0" />
+                  <span>Export</span>
+                </button>
+              )}
+
+              {/* Manage Ledger Passcode */}
               <button
                 type="button"
-                onClick={() => setIsLedgerExportOpen(true)}
-                className="flex items-center justify-center gap-1.5 px-3 py-2 bg-neutral-800/90 hover:bg-neutral-700 border border-neutral-700/80 text-xs font-semibold rounded-xl text-emerald-400 hover:text-emerald-300 transition-all cursor-pointer active:scale-95 shrink-0 whitespace-nowrap"
-                title="Export Collections Register (.csv) and Tally Prime Receipt Vouchers (.xml)"
+                onClick={() => setIsPasscodeModalOpen(true)}
+                className="flex items-center justify-center gap-1.5 px-3 py-2 bg-neutral-800/90 hover:bg-neutral-700 border border-neutral-700/80 text-xs font-semibold rounded-xl text-amber-400 hover:text-amber-300 transition-all cursor-pointer active:scale-95 shrink-0 whitespace-nowrap"
+                title="Manage or reset Payment Ledger access passcode"
               >
-                <FileSpreadsheet size={13} className="text-emerald-400 shrink-0" />
-                <span>Export</span>
+                <KeyRound size={13} className="text-amber-400 shrink-0" />
+                <span className="hidden md:inline">Passcode</span>
               </button>
 
               {/* Weekly Email Digest Automation (Super Admin & Admin) */}
@@ -832,6 +862,14 @@ export const PaymentLedgerPage: React.FC = () => {
           <WeeklyEmailSettingsModal
             isOpen={isEmailSettingsOpen}
             onClose={() => setIsEmailSettingsOpen(false)}
+          />
+        )}
+
+        {/* Manage Ledger Passcode Modal */}
+        {isPasscodeModalOpen && (
+          <ManageLedgerPasscodeModal
+            isOpen={isPasscodeModalOpen}
+            onClose={() => setIsPasscodeModalOpen(false)}
           />
         )}
 

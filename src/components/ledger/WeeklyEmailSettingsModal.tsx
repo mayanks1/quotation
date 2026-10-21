@@ -1,22 +1,22 @@
 import React, { useState, useEffect, useMemo } from 'react';
-import { 
-  X, 
-  Mail, 
-  Send, 
-  Clock, 
-  Calendar, 
-  ShieldCheck, 
-  Lock, 
-  CheckCircle2, 
-  AlertCircle, 
-  RefreshCw, 
-  Users, 
-  Sliders, 
-  Sparkles, 
-  Copy, 
-  Check, 
-  Eye, 
-  Code, 
+import {
+  X,
+  Mail,
+  Send,
+  Clock,
+  Calendar,
+  ShieldCheck,
+  Lock,
+  CheckCircle2,
+  AlertCircle,
+  RefreshCw,
+  Users,
+  Sliders,
+  Sparkles,
+  Copy,
+  Check,
+  Eye,
+  Code,
   ExternalLink,
   CreditCard,
   Layers,
@@ -76,10 +76,10 @@ const DEFAULT_TEMPLATE: WeeklyEmailTemplateConfig = {
   showDashboardButton: true,
   footerText: 'Tisha LED Walls • Automated Financial Operations Digest',
   bankDetails: {
-    bankName: 'HDFC Bank',
-    accountNumber: '50200067891234',
-    ifsc: 'HDFC0001234',
-    upiId: '7703948857@upi',
+    bankName: 'State Bank Of India',
+    accountNumber: '42410969250',
+    ifsc: 'SBIN0061222',
+    upiId: '9716681122@sbi',
     accountHolder: 'Tisha LED Walls'
   }
 };
@@ -183,6 +183,7 @@ interface Props {
 
 export const WeeklyEmailSettingsModal: React.FC<Props> = ({ isOpen, onClose }) => {
   useLockBodyScroll(isOpen);
+  const toast = useToast();
   const { user, isSuperAdmin, hasPermission } = useAuth();
 
   // Super Admin & Admin / Permissions Matrix check
@@ -204,11 +205,11 @@ export const WeeklyEmailSettingsModal: React.FC<Props> = ({ isOpen, onClose }) =
           template: { ...DEFAULT_TEMPLATE, ...(parsed.template || {}) }
         };
       }
-    } catch (e) {}
+    } catch (e) { }
     return DEFAULT_CONFIG;
   });
 
-  const [recipientsInput, setRecipientsInput] = useState<string>(() => 
+  const [recipientsInput, setRecipientsInput] = useState<string>(() =>
     config.recipients.join(', ')
   );
 
@@ -242,7 +243,7 @@ export const WeeklyEmailSettingsModal: React.FC<Props> = ({ isOpen, onClose }) =
             setRecipientsInput((loaded.recipients || []).join(', '));
             try {
               localStorage.setItem(STORAGE_KEY, JSON.stringify(loaded));
-            } catch (e) {}
+            } catch (e) { }
           }
         })
         .catch(console.warn);
@@ -459,8 +460,8 @@ export const WeeklyEmailSettingsModal: React.FC<Props> = ({ isOpen, onClose }) =
         throw new Error(data.error || data.message || 'Failed to dispatch test email');
       }
 
-      const methodLabel = data.method === 'apps_script' 
-        ? 'Own Google Account (Google Apps Script)' 
+      const methodLabel = data.method === 'apps_script'
+        ? 'Own Google Account (Google Apps Script)'
         : 'Cloud Edge Function (Resend)';
 
       setTestStatus({
@@ -511,7 +512,7 @@ SELECT cron.schedule(
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/75 backdrop-blur-sm p-2 sm:p-4 animate-in fade-in duration-200">
       <div className="bg-slate-900 text-white rounded-2xl shadow-2xl max-w-3xl w-full max-h-[94vh] flex flex-col overflow-hidden border border-slate-800">
-        
+
         {/* Header */}
         <div className="flex items-center justify-between px-6 py-4 bg-gradient-to-r from-slate-900 via-indigo-950 to-slate-900 border-b border-indigo-500/20 shrink-0">
           <div className="flex items-center gap-3">
@@ -532,9 +533,9 @@ SELECT cron.schedule(
               </p>
             </div>
           </div>
-          <button 
-            type="button" 
-            onClick={onClose} 
+          <button
+            type="button"
+            onClick={onClose}
             className="text-slate-400 hover:text-white p-1.5 rounded-lg hover:bg-slate-800 transition-colors"
           >
             <X size={18} />
@@ -546,11 +547,10 @@ SELECT cron.schedule(
           <button
             type="button"
             onClick={() => setActiveTab('schedule')}
-            className={`flex items-center gap-2 px-3.5 py-1.5 rounded-lg text-xs font-bold transition-all whitespace-nowrap ${
-              activeTab === 'schedule'
+            className={`flex items-center gap-2 px-3.5 py-1.5 rounded-lg text-xs font-bold transition-all whitespace-nowrap ${activeTab === 'schedule'
                 ? 'bg-indigo-600 text-white shadow-xs'
                 : 'text-slate-400 hover:text-white hover:bg-slate-800/60'
-            }`}
+              }`}
           >
             <Calendar size={14} />
             <span>Schedule &amp; Recipients</span>
@@ -559,11 +559,10 @@ SELECT cron.schedule(
           <button
             type="button"
             onClick={() => setActiveTab('template')}
-            className={`flex items-center gap-2 px-3.5 py-1.5 rounded-lg text-xs font-bold transition-all whitespace-nowrap ${
-              activeTab === 'template'
+            className={`flex items-center gap-2 px-3.5 py-1.5 rounded-lg text-xs font-bold transition-all whitespace-nowrap ${activeTab === 'template'
                 ? 'bg-indigo-600 text-white shadow-xs'
                 : 'text-slate-400 hover:text-white hover:bg-slate-800/60'
-            }`}
+              }`}
           >
             <Sliders size={14} />
             <span>Email Template</span>
@@ -572,11 +571,10 @@ SELECT cron.schedule(
           <button
             type="button"
             onClick={() => setActiveTab('sender')}
-            className={`flex items-center gap-2 px-3.5 py-1.5 rounded-lg text-xs font-bold transition-all whitespace-nowrap ${
-              activeTab === 'sender'
+            className={`flex items-center gap-2 px-3.5 py-1.5 rounded-lg text-xs font-bold transition-all whitespace-nowrap ${activeTab === 'sender'
                 ? 'bg-indigo-600 text-white shadow-xs'
                 : 'text-slate-400 hover:text-white hover:bg-slate-800/60'
-            }`}
+              }`}
           >
             <Code size={14} />
             <span>Send From Own ID (No 3rd Party)</span>
@@ -588,11 +586,10 @@ SELECT cron.schedule(
               setActiveTab('preview');
               loadLivePreview();
             }}
-            className={`flex items-center gap-2 px-3.5 py-1.5 rounded-lg text-xs font-bold transition-all whitespace-nowrap ${
-              activeTab === 'preview'
+            className={`flex items-center gap-2 px-3.5 py-1.5 rounded-lg text-xs font-bold transition-all whitespace-nowrap ${activeTab === 'preview'
                 ? 'bg-indigo-600 text-white shadow-xs'
                 : 'text-slate-400 hover:text-white hover:bg-slate-800/60'
-            }`}
+              }`}
           >
             <Eye size={14} />
             <span>Live Preview</span>
@@ -626,11 +623,10 @@ SELECT cron.schedule(
                 <div>
                   <div className="text-xs font-bold text-white flex items-center gap-2">
                     <span>Automated Email Digest Status</span>
-                    <span className={`text-[10px] font-bold px-2 py-0.5 rounded-full border ${
-                      config.enabled 
-                        ? 'bg-emerald-500/20 text-emerald-300 border-emerald-500/30' 
+                    <span className={`text-[10px] font-bold px-2 py-0.5 rounded-full border ${config.enabled
+                        ? 'bg-emerald-500/20 text-emerald-300 border-emerald-500/30'
                         : 'bg-slate-700 text-slate-300 border-slate-600'
-                    }`}>
+                      }`}>
                       {config.enabled ? 'ACTIVE' : 'PAUSED'}
                     </span>
                   </div>
@@ -1024,11 +1020,10 @@ SELECT cron.schedule(
 
               {/* Method Selection */}
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                <label className={`p-3.5 rounded-xl border cursor-pointer transition-all ${
-                  config.dispatchMethod === 'apps_script'
+                <label className={`p-3.5 rounded-xl border cursor-pointer transition-all ${config.dispatchMethod === 'apps_script'
                     ? 'bg-indigo-950/50 border-indigo-500 text-white shadow-xs'
                     : 'bg-slate-900 border-slate-800 text-slate-400 hover:border-slate-700'
-                }`}>
+                  }`}>
                   <div className="flex items-center gap-2 mb-1">
                     <input
                       type="radio"
@@ -1048,11 +1043,10 @@ SELECT cron.schedule(
                   </div>
                 </label>
 
-                <label className={`p-3.5 rounded-xl border cursor-pointer transition-all ${
-                  config.dispatchMethod === 'edge_function'
+                <label className={`p-3.5 rounded-xl border cursor-pointer transition-all ${config.dispatchMethod === 'edge_function'
                     ? 'bg-indigo-950/50 border-indigo-500 text-white shadow-xs'
                     : 'bg-slate-900 border-slate-800 text-slate-400 hover:border-slate-700'
-                }`}>
+                  }`}>
                   <div className="flex items-center gap-2 mb-1">
                     <input
                       type="radio"
@@ -1116,9 +1110,9 @@ SELECT cron.schedule(
                   <div className="p-3 bg-slate-900/80 rounded-lg border border-slate-800 text-[11px] text-slate-300 space-y-1.5">
                     <div className="font-bold text-white text-xs flex items-center gap-1.5">
                       <span>Quick 1-Minute Setup in your Google Account:</span>
-                      <a 
-                        href="https://script.google.com/" 
-                        target="_blank" 
+                      <a
+                        href="https://script.google.com/"
+                        target="_blank"
                         rel="noreferrer"
                         className="inline-flex items-center gap-0.5 text-indigo-400 hover:underline"
                       >
@@ -1218,11 +1212,10 @@ SELECT cron.schedule(
 
             {/* Test Status Banner */}
             {testStatus && (
-              <div className={`p-3 rounded-lg text-xs border flex items-start gap-2.5 animate-in fade-in duration-150 ${
-                testStatus.success 
-                  ? 'bg-emerald-500/10 text-emerald-300 border-emerald-500/30' 
+              <div className={`p-3 rounded-lg text-xs border flex items-start gap-2.5 animate-in fade-in duration-150 ${testStatus.success
+                  ? 'bg-emerald-500/10 text-emerald-300 border-emerald-500/30'
                   : 'bg-rose-500/10 text-rose-300 border-rose-500/30'
-              }`}>
+                }`}>
                 {testStatus.success ? (
                   <CheckCircle2 size={16} className="text-emerald-400 shrink-0 mt-0.5" />
                 ) : (

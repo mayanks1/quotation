@@ -59,6 +59,7 @@ export interface ClientProfile {
   email: string;
   phone: string;
   gstin?: string;
+  organizationId?: string;
 }
 
 export type DocumentType = 'quotation' | 'invoice';
@@ -73,6 +74,7 @@ export interface Quotation {
   eventDate?: string;
   venue?: string;
   status: QuotationStatus;
+  organizationId?: string;
 
   // Document Type & Invoicing
   documentType?: DocumentType;

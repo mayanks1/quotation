@@ -86,9 +86,9 @@ serve(async (req) => {
     // Merge settings from request body if passed (useful for instant preview/testing)
     const enabled = reqBody.enabled !== undefined ? reqBody.enabled : (configProfile.enabled !== false);
     if (!enabled && !reqBody.isTest) {
-      return new Response(JSON.stringify({ 
-        success: true, 
-        message: "Weekly automated report is currently paused in settings." 
+      return new Response(JSON.stringify({
+        success: true,
+        message: "Weekly automated report is currently paused in settings."
       }), {
         headers: { ...corsHeaders, "Content-Type": "application/json" },
         status: 200
@@ -118,11 +118,12 @@ serve(async (req) => {
       showDashboardButton: reqBody.template?.showDashboardButton !== undefined ? reqBody.template.showDashboardButton : (configProfile.template?.showDashboardButton !== false),
       footerText: reqBody.template?.footerText || configProfile.template?.footerText || "Tisha LED Walls • Automated Financial Operations Digest",
       bankDetails: reqBody.template?.bankDetails || configProfile.template?.bankDetails || {
-        bankName: "HDFC Bank",
-        accountNumber: "50200067891234",
-        ifsc: "HDFC0001234",
-        upiId: "7703948857@upi",
-        accountHolder: "Tisha LED Walls"
+        bankName: "State Bank Of India",
+        accountNumber: "42410969250",
+        ifsc: "SBIN0061222",
+        upiId: "9716681122@sbi",
+        accountHolder: "Ankush Saini"
+
       }
     };
 
@@ -475,10 +476,10 @@ serve(async (req) => {
         throw new Error(`Resend email error: ${JSON.stringify(resendData)}`);
       }
 
-      return new Response(JSON.stringify({ 
-        success: true, 
+      return new Response(JSON.stringify({
+        success: true,
         method: "resend",
-        emailId: resendData.id, 
+        emailId: resendData.id,
         recipients: targetRecipients,
         subject,
         emailHTML: reqBody.isTest ? emailHTML : undefined

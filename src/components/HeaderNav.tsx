@@ -3,10 +3,12 @@ import { NavLink, useNavigate, useLocation } from 'react-router-dom';
 import {
   FileText, Settings, Check, Plus, Users,
   LogOut, Shield, ChevronDown, User, Sparkles, Building2,
-  Lock, Crown, Briefcase, UserCheck, CreditCard, Package
+  Lock, Crown, Briefcase, UserCheck, CreditCard, Package, KeyRound
 } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
 import { useToast } from '../context/ToastContext';
+import { passcodeService } from '../services/passcodeService';
+import { LedgerPasscodeModal } from './ledger/LedgerPasscodeModal';
 
 interface Props {
   onOpenSettings: () => void;
@@ -29,11 +31,23 @@ export const HeaderNav: React.FC<Props> = ({
   const location = useLocation();
 
   const [isUserMenuOpen, setIsUserMenuOpen] = useState(false);
+  const [isPasscodeModalOpen, setIsPasscodeModalOpen] = useState(false);
   const menuRef = useRef<HTMLDivElement>(null);
 
+  const canCreate = isSuperAdmin || hasPermission('canCreateQuotes');
+  const canViewClients = isSuperAdmin || hasPermission('canManageClients');
   const canManageUsers = isSuperAdmin || hasPermission('canManageUsers');
   const canEditBank = isSuperAdmin || hasPermission('canEditBankDetails');
   const canViewPaymentLedger = isPaymentLedgerEnabled && (isSuperAdmin || hasPermission('canViewPaymentLedger'));
+
+  const handleLedgerClick = (e: React.MouseEvent) => {
+    e.preventDefault();
+    if (passcodeService.isSessionUnlocked()) {
+      navigate('/ledger');
+    } else {
+      setIsPasscodeModalOpen(true);
+    }
+  };
 
   // Close dropdown on outside click
   useEffect(() => {
@@ -99,34 +113,35 @@ export const HeaderNav: React.FC<Props> = ({
               <span>Quotes</span>
             </NavLink>
 
-            <NavLink
-              to="/clients"
-              className={({ isActive }) =>
-                `flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold whitespace-nowrap transition-all ${
-                  isActive
-                    ? 'bg-blue-600 text-white shadow-sm shadow-blue-500/30 font-bold'
-                    : 'text-neutral-300 hover:text-white hover:bg-neutral-800/90'
-                }`
-              }
-            >
-              <Users size={14} className="shrink-0" />
-              <span>Clients</span>
-            </NavLink>
-
-            {canViewPaymentLedger && (
+            {canViewClients && (
               <NavLink
-                to="/ledger"
+                to="/clients"
                 className={({ isActive }) =>
                   `flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold whitespace-nowrap transition-all ${
                     isActive
-                      ? 'bg-emerald-600 text-white shadow-sm shadow-emerald-500/30 font-bold'
-                      : 'text-emerald-400 hover:text-white hover:bg-emerald-950/50'
+                      ? 'bg-blue-600 text-white shadow-sm shadow-blue-500/30 font-bold'
+                      : 'text-neutral-300 hover:text-white hover:bg-neutral-800/90'
                   }`
                 }
               >
+                <Users size={14} className="shrink-0" />
+                <span>Clients</span>
+              </NavLink>
+            )}
+
+            {canViewPaymentLedger && (
+              <button
+                type="button"
+                onClick={handleLedgerClick}
+                className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold whitespace-nowrap transition-all cursor-pointer ${
+                  location.pathname.startsWith('/ledger')
+                    ? 'bg-emerald-600 text-white shadow-sm shadow-emerald-500/30 font-bold'
+                    : 'text-emerald-400 hover:text-white hover:bg-emerald-950/50'
+                }`}
+              >
                 <CreditCard size={14} className="text-emerald-400 shrink-0" />
                 <span>Payment Ledger</span>
-              </NavLink>
+              </button>
             )}
 
             {canManageUsers && (
@@ -148,15 +163,17 @@ export const HeaderNav: React.FC<Props> = ({
 
           {/* Right side CTAs */}
           <div className="flex items-center gap-2 flex-shrink-0">
-            <button
-              onClick={onCreateNew}
-              title="Create New Quote"
-              className="flex items-center gap-1.5 bg-blue-600 hover:bg-blue-500 active:scale-95 text-white px-3 py-1.5 rounded-lg text-xs font-bold transition-all shadow-sm whitespace-nowrap cursor-pointer"
-            >
-              <Plus size={15} className="shrink-0" />
-              <span className="hidden sm:inline">New Quote</span>
-              <span className="sm:hidden">New</span>
-            </button>
+            {canCreate && (
+              <button
+                onClick={onCreateNew}
+                title="Create New Quote"
+                className="flex items-center gap-1.5 bg-blue-600 hover:bg-blue-500 active:scale-95 text-white px-3 py-1.5 rounded-lg text-xs font-bold transition-all shadow-sm whitespace-nowrap cursor-pointer"
+              >
+                <Plus size={15} className="shrink-0" />
+                <span className="hidden sm:inline">New Quote</span>
+                <span className="sm:hidden">New</span>
+              </button>
+            )}
 
             {/* SaaS User Profile & Workspace Dropdown */}
             {user && (
@@ -261,14 +278,14 @@ export const HeaderNav: React.FC<Props> = ({
                         className="w-full flex items-center gap-2.5 px-3.5 py-2 text-xs hover:bg-neutral-800/80 transition-colors text-left"
                       >
                         <Settings size={14} className="text-neutral-400" />
-                        <span>Company &amp; GST Settings</span>
+                        <span>Company &amp; System Settings</span>
                       </button>
                     </div>
 
-                    {/* Multi-Workspace Switcher */}
+                    {/* Multi-Workspace Switcher: Only Super Admin can view & switch all workspaces */}
                     <div className="py-1 border-t border-neutral-800">
                       <div className="px-3.5 py-1 text-[10px] font-bold text-neutral-400 uppercase tracking-wider flex items-center justify-between">
-                        <span>Workspaces</span>
+                        <span>Workspace</span>
                         {isSuperAdmin && (
                           <button
                             type="button"
@@ -283,34 +300,44 @@ export const HeaderNav: React.FC<Props> = ({
                         )}
                       </div>
 
-                      <div className="max-h-36 overflow-y-auto space-y-0.5 px-1 py-0.5">
-                        {organizations.map((org) => {
-                          const isCurrentOrg = org.id === organization?.id;
-                          return (
-                            <button
-                              key={org.id}
-                              type="button"
-                              onClick={() => {
-                                setIsUserMenuOpen(false);
-                                if (!isCurrentOrg) {
-                                  switchOrganization(org.id);
-                                  toast.success(`Switched active workspace to "${org.name}".`);
-                                }
-                              }}
-                              className={`w-full flex items-center justify-between px-2.5 py-1.5 rounded-lg text-xs transition-colors text-left ${isCurrentOrg
-                                ? 'bg-purple-950/70 text-purple-200 font-bold border border-purple-500/30'
-                                : 'text-neutral-300 hover:bg-neutral-800/80 hover:text-white'
-                                }`}
-                            >
-                              <div className="flex items-center gap-2 truncate">
-                                <Building2 size={12} className={isCurrentOrg ? 'text-purple-400 shrink-0' : 'text-neutral-500 shrink-0'} />
-                                <span className="truncate">{org.name}</span>
-                              </div>
-                              {isCurrentOrg && <Check size={12} className="text-purple-400 shrink-0" />}
-                            </button>
-                          );
-                        })}
-                      </div>
+                      {isSuperAdmin ? (
+                        <div className="max-h-36 overflow-y-auto space-y-0.5 px-1 py-0.5">
+                          {organizations.map((org) => {
+                            const isCurrentOrg = org.id === organization?.id;
+                            return (
+                              <button
+                                key={org.id}
+                                type="button"
+                                onClick={() => {
+                                  setIsUserMenuOpen(false);
+                                  if (!isCurrentOrg) {
+                                    switchOrganization(org.id);
+                                    toast.success(`Switched active workspace to "${org.name}".`);
+                                  }
+                                }}
+                                className={`w-full flex items-center justify-between px-2.5 py-1.5 rounded-lg text-xs transition-colors text-left ${isCurrentOrg
+                                  ? 'bg-purple-950/70 text-purple-200 font-bold border border-purple-500/30'
+                                  : 'text-neutral-300 hover:bg-neutral-800/80 hover:text-white'
+                                  }`}
+                              >
+                                <div className="flex items-center gap-2 truncate">
+                                  <Building2 size={12} className={isCurrentOrg ? 'text-purple-400 shrink-0' : 'text-neutral-500 shrink-0'} />
+                                  <span className="truncate">{org.name}</span>
+                                </div>
+                                {isCurrentOrg && <Check size={12} className="text-purple-400 shrink-0" />}
+                              </button>
+                            );
+                          })}
+                        </div>
+                      ) : (
+                        <div className="px-3 py-1.5 mx-1 my-0.5 rounded-lg bg-neutral-950 border border-neutral-800/80 text-xs flex items-center justify-between text-neutral-300">
+                          <div className="flex items-center gap-2 truncate">
+                            <Building2 size={12} className="text-blue-400 shrink-0" />
+                            <span className="truncate font-semibold">{organization?.name}</span>
+                          </div>
+                          <span className="text-[10px] text-neutral-500 font-mono">Assigned</span>
+                        </div>
+                      )}
                     </div>
 
                     <div className="pt-1 border-t border-neutral-800">
@@ -352,32 +379,34 @@ export const HeaderNav: React.FC<Props> = ({
               <span>Quotes</span>
             </NavLink>
 
-            <NavLink
-              to="/clients"
-              className={({ isActive }) =>
-                `flex-1 flex items-center justify-center gap-1 py-1.5 px-2 rounded-lg text-xs font-bold transition-all whitespace-nowrap ${isActive
-                  ? 'bg-blue-600 text-white shadow-sm shadow-blue-500/30'
-                  : 'text-neutral-400 hover:text-white hover:bg-neutral-800'
-                }`
-              }
-            >
-              <Users size={13} />
-              <span>Clients</span>
-            </NavLink>
-
-            {canViewPaymentLedger && (
+            {canViewClients && (
               <NavLink
-                to="/ledger"
+                to="/clients"
                 className={({ isActive }) =>
                   `flex-1 flex items-center justify-center gap-1 py-1.5 px-2 rounded-lg text-xs font-bold transition-all whitespace-nowrap ${isActive
-                    ? 'bg-emerald-600 text-white shadow-sm shadow-emerald-500/30'
-                    : 'text-emerald-400 hover:text-white hover:bg-neutral-800'
+                    ? 'bg-blue-600 text-white shadow-sm shadow-blue-500/30'
+                    : 'text-neutral-400 hover:text-white hover:bg-neutral-800'
                   }`
                 }
               >
+                <Users size={13} />
+                <span>Clients</span>
+              </NavLink>
+            )}
+
+            {canViewPaymentLedger && (
+              <button
+                type="button"
+                onClick={handleLedgerClick}
+                className={`flex-1 flex items-center justify-center gap-1 py-1.5 px-2 rounded-lg text-xs font-bold transition-all whitespace-nowrap cursor-pointer ${
+                  location.pathname.startsWith('/ledger')
+                    ? 'bg-emerald-600 text-white shadow-sm shadow-emerald-500/30'
+                    : 'text-emerald-400 hover:text-white hover:bg-neutral-800'
+                }`}
+              >
                 <CreditCard size={13} />
                 <span>Ledger</span>
-              </NavLink>
+              </button>
             )}
 
             {canManageUsers && (
@@ -397,6 +426,17 @@ export const HeaderNav: React.FC<Props> = ({
           </nav>
         </div>
 
+        {/* Ledger Passcode Security Modal */}
+        {isPasscodeModalOpen && (
+          <LedgerPasscodeModal
+            isOpen={isPasscodeModalOpen}
+            onClose={() => setIsPasscodeModalOpen(false)}
+            onSuccess={() => {
+              setIsPasscodeModalOpen(false);
+              navigate('/ledger');
+            }}
+          />
+        )}
       </div>
     </header>
   );

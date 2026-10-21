@@ -6,6 +6,7 @@ import {
 } from 'lucide-react';
 import { ClientProfile } from '../types/quotation';
 import { useToast, useConfirm } from '../context/ToastContext';
+import { useAuth } from '../context/AuthContext';
 import { useLockBodyScroll } from '../hooks/useLockBodyScroll';
 
 interface Props {
@@ -23,6 +24,8 @@ export const ClientDirectory: React.FC<Props> = ({
 }) => {
   const toast = useToast();
   const { confirm } = useConfirm();
+  const { isSuperAdmin, hasPermission } = useAuth();
+  const canManageClients = isSuperAdmin || hasPermission('canManageClients');
   const [search, setSearch] = useState('');
   const [isAdding, setIsAdding] = useState(false);
   const [editingClient, setEditingClient] = useState<ClientProfile | null>(null);
@@ -158,18 +161,20 @@ export const ClientDirectory: React.FC<Props> = ({
           </div>
         </div>
 
-        <div className="flex items-center gap-2.5 w-full sm:w-auto">
-          <button
-            onClick={() => {
-              setIsAdding(!isAdding);
-              setEditingClient(null);
-            }}
-            className="flex-1 sm:flex-initial inline-flex items-center justify-center gap-2 px-5 py-2.5 rounded-xl font-extrabold text-xs text-white bg-gradient-to-r from-blue-600 via-indigo-600 to-cyan-600 hover:from-blue-500 hover:to-cyan-500 active:scale-95 shadow-[0_0_25px_rgba(99,102,241,0.35)] hover:shadow-[0_0_35px_rgba(6,182,212,0.55)] transition-all cursor-pointer group"
-          >
-            <Plus size={16} className={`transition-transform duration-300 ${isAdding ? 'rotate-45' : 'group-hover:rotate-90'}`} />
-            <span>{isAdding ? 'Close Form' : 'Add New Client'}</span>
-          </button>
-        </div>
+        {canManageClients && (
+          <div className="flex items-center gap-2.5 w-full sm:w-auto">
+            <button
+              onClick={() => {
+                setIsAdding(!isAdding);
+                setEditingClient(null);
+              }}
+              className="flex-1 sm:flex-initial inline-flex items-center justify-center gap-2 px-5 py-2.5 rounded-xl font-extrabold text-xs text-white bg-gradient-to-r from-blue-600 via-indigo-600 to-cyan-600 hover:from-blue-500 hover:to-cyan-500 active:scale-95 shadow-[0_0_25px_rgba(99,102,241,0.35)] hover:shadow-[0_0_35px_rgba(6,182,212,0.55)] transition-all cursor-pointer group"
+            >
+              <Plus size={16} className={`transition-transform duration-300 ${isAdding ? 'rotate-45' : 'group-hover:rotate-90'}`} />
+              <span>{isAdding ? 'Close Form' : 'Add New Client'}</span>
+            </button>
+          </div>
+        )}
       </div>
 
       {/* KPI Metric Summary Cards */}
@@ -475,7 +480,7 @@ export const ClientDirectory: React.FC<Props> = ({
             >
               Clear Search
             </button>
-          ) : (
+          ) : canManageClients ? (
             <button
               onClick={() => setIsAdding(true)}
               className="inline-flex items-center gap-2 bg-gradient-to-r from-blue-600 via-indigo-600 to-cyan-600 hover:from-blue-500 hover:to-cyan-500 text-white px-5 py-2.5 rounded-xl text-xs font-extrabold transition-all shadow-md shadow-cyan-500/25 cursor-pointer"
@@ -483,7 +488,7 @@ export const ClientDirectory: React.FC<Props> = ({
               <Plus size={16} />
               <span>Add Your First Client</span>
             </button>
-          )}
+          ) : null}
         </div>
       ) : (
         <div className="relative z-10 grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 sm:gap-4.5">
@@ -522,24 +527,26 @@ export const ClientDirectory: React.FC<Props> = ({
                       </div>
                     </div>
 
-                    <div className="flex items-center gap-1 shrink-0">
-                      <button
-                        type="button"
-                        onClick={() => setEditingClient({ ...client })}
-                        className="text-slate-400 hover:text-cyan-300 p-1.5 rounded-lg hover:bg-white/10 transition-colors cursor-pointer"
-                        title="Edit client details"
-                      >
-                        <Pencil size={14} />
-                      </button>
-                      <button
-                        type="button"
-                        onClick={() => handleDeleteClientContact(client)}
-                        className="text-slate-400 hover:text-rose-400 p-1.5 rounded-lg hover:bg-rose-500/20 transition-colors cursor-pointer"
-                        title="Delete contact"
-                      >
-                        <Trash2 size={14} />
-                      </button>
-                    </div>
+                    {canManageClients && (
+                      <div className="flex items-center gap-1 shrink-0">
+                        <button
+                          type="button"
+                          onClick={() => setEditingClient({ ...client })}
+                          className="text-slate-400 hover:text-cyan-300 p-1.5 rounded-lg hover:bg-white/10 transition-colors cursor-pointer"
+                          title="Edit client details"
+                        >
+                          <Pencil size={14} />
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => handleDeleteClientContact(client)}
+                          className="text-slate-400 hover:text-rose-400 p-1.5 rounded-lg hover:bg-rose-500/20 transition-colors cursor-pointer"
+                          title="Delete contact"
+                        >
+                          <Trash2 size={14} />
+                        </button>
+                      </div>
+                    )}
                   </div>
 
                   {/* Contact Details List */}

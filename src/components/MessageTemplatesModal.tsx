@@ -79,13 +79,14 @@ export const MessageTemplatesModal: React.FC<Props> = ({
       phone: '+91 97166 81122',
       email: 'sales@tishaledwalls.com',
       bankDetails: {
-        accountName: 'Tisha LED Walls',
-        bankName: 'HDFC Bank',
-        accountNumber: '50200012345678',
-        ifscCode: 'HDFC0001234',
-        branch: 'Sector 39 Gurugram',
-        upiId: 'tishaledwalls@hdfcbank'
+        accountName: 'Ankush Saini',
+        bankName: 'State Bank Of India',
+        accountNumber: '42410969250',
+        ifscCode: 'SBIN0061222',
+        branch: 'Sector 46 Gurugram',
+        upiId: '9716681122@sbi'
       }
+
     },
     client: {
       name: 'Aman Sharma',
@@ -220,11 +221,10 @@ export const MessageTemplatesModal: React.FC<Props> = ({
                 key={key}
                 type="button"
                 onClick={() => handleTabChange(key)}
-                className={`flex items-center gap-2 px-3.5 py-2.5 rounded-t-xl text-xs font-bold transition-all border-t border-x cursor-pointer whitespace-nowrap ${
-                  isActive
+                className={`flex items-center gap-2 px-3.5 py-2.5 rounded-t-xl text-xs font-bold transition-all border-t border-x cursor-pointer whitespace-nowrap ${isActive
                     ? 'bg-white text-slate-900 border-slate-200 shadow-xs'
                     : 'bg-transparent text-slate-600 border-transparent hover:text-slate-900 hover:bg-slate-200/60'
-                }`}
+                  }`}
               >
                 <Icon size={14} className={isActive ? 'text-emerald-600' : 'text-slate-400'} />
                 <span>{def.name}</span>
@@ -244,11 +244,10 @@ export const MessageTemplatesModal: React.FC<Props> = ({
               <div className="flex items-center gap-2">
                 <h4 className="font-extrabold text-sm text-slate-900">{currentDef.name}</h4>
                 <span
-                  className={`text-[10px] font-bold px-2 py-0.5 rounded-full border ${
-                    isCustom
+                  className={`text-[10px] font-bold px-2 py-0.5 rounded-full border ${isCustom
                       ? 'bg-emerald-50 text-emerald-700 border-emerald-200'
                       : 'bg-slate-100 text-slate-600 border-slate-200'
-                  }`}
+                    }`}
                 >
                   {isCustom ? 'Customized' : 'System Default'}
                 </span>
