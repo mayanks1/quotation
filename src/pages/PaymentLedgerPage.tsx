@@ -29,9 +29,9 @@ import { LedgerAccountingExportModal } from '../components/ledger/LedgerAccounti
 import { PaymentReceiptModal } from '../components/PaymentReceiptModal';
 import { storage } from '../services/storage';
 import { PaymentReceipt } from '../types/receipt';
-import { OFFICIAL_TISHA_STAMP } from '../config/officialStamp';
-import { Calendar, Check, ChevronDown, FileSpreadsheet, Plus, RotateCcw } from 'lucide-react';
+import { Calendar, Check, ChevronDown, FileSpreadsheet, Plus, RotateCcw, Mail } from 'lucide-react';
 import { DraggableFab } from '../components/DraggableFab';
+import { WeeklyEmailSettingsModal } from '../components/ledger/WeeklyEmailSettingsModal';
 import '../components/ledger/ledger.css';
 
 const MONTH_NAMES = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
@@ -68,6 +68,7 @@ export const PaymentLedgerPage: React.FC = () => {
   // Accounting Export & Payment Receipt States
   const [isLedgerExportOpen, setIsLedgerExportOpen] = useState(false);
   const [receiptModalData, setReceiptModalData] = useState<PaymentReceipt | null>(null);
+  const [isEmailSettingsOpen, setIsEmailSettingsOpen] = useState(false);
 
   // Year Dropdown
   const [isYearDropdownOpen, setIsYearDropdownOpen] = useState(false);
@@ -647,6 +648,17 @@ export const PaymentLedgerPage: React.FC = () => {
                 <span>Export</span>
               </button>
 
+              {/* Weekly Email Digest Automation (Super Admin) */}
+              <button
+                type="button"
+                onClick={() => setIsEmailSettingsOpen(true)}
+                className="flex items-center justify-center gap-1.5 px-3 py-2 bg-indigo-950/60 hover:bg-indigo-900/80 border border-indigo-500/40 text-xs font-semibold rounded-xl text-indigo-300 hover:text-white transition-all cursor-pointer active:scale-95 shrink-0 whitespace-nowrap shadow-xs"
+                title="Configure automated weekly email digest, recipients & instant test (Super Admin: admin@tishaledwalls.com)"
+              >
+                <Mail size={13} className="text-indigo-400 shrink-0" />
+                <span className="hidden md:inline">Email Digest</span>
+              </button>
+
               {/* Add New Entry Button (Desktop / Tablet) */}
               <button
                 type="button"
@@ -806,6 +818,14 @@ export const PaymentLedgerPage: React.FC = () => {
             isOpen={Boolean(receiptModalData)}
             onClose={() => setReceiptModalData(null)}
             initialReceipt={receiptModalData}
+          />
+        )}
+
+        {/* Weekly Email Settings & Instant Test Modal (Super Admin) */}
+        {isEmailSettingsOpen && (
+          <WeeklyEmailSettingsModal
+            isOpen={isEmailSettingsOpen}
+            onClose={() => setIsEmailSettingsOpen(false)}
           />
         )}
 

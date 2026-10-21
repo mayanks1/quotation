@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { X, Building2, Save, Image as ImageIcon, CreditCard, Download, Upload, Cloud, HardDrive, CheckCircle2, RefreshCw, AlertCircle, Trash2, PenTool, Package, Lock, MessageSquare, Sliders } from 'lucide-react';
+import { X, Building2, Save, Image as ImageIcon, CreditCard, Download, Upload, Cloud, HardDrive, CheckCircle2, RefreshCw, AlertCircle, Trash2, PenTool, Package, Lock, MessageSquare, Sliders, Mail } from 'lucide-react';
 import { CompanyProfile } from '../types/quotation';
 import { storage } from '../services/storage';
 import { DEFAULT_COMPANY } from '../config/defaults';
@@ -9,6 +9,7 @@ import { useToast, useConfirm } from '../context/ToastContext';
 import { useAuth } from '../context/AuthContext';
 import { CompanyStampModal } from './CompanyStampModal';
 import { MessageTemplatesModal } from './MessageTemplatesModal';
+import { WeeklyEmailSettingsModal } from './ledger/WeeklyEmailSettingsModal';
 import { useLockBodyScroll } from '../hooks/useLockBodyScroll';
 
 interface Props {
@@ -50,6 +51,7 @@ export const CompanySettingsModal: React.FC<Props> = ({
   const [isSaving, setIsSaving] = useState(false);
   const [isStampModalOpen, setIsStampModalOpen] = useState(false);
   const [isTemplatesModalOpen, setIsTemplatesModalOpen] = useState(false);
+  const [isWeeklyEmailModalOpen, setIsWeeklyEmailModalOpen] = useState(false);
   const [testingConn, setTestingConn] = useState(false);
   const [testResult, setTestResult] = useState<{ success: boolean; message: string; tableReady?: boolean } | null>(null);
 
@@ -459,6 +461,35 @@ export const CompanySettingsModal: React.FC<Props> = ({
             </p>
           </div>
 
+          {/* Automated Weekly Email Reports */}
+          <div className="bg-gradient-to-r from-indigo-50/80 to-purple-50/80 p-4 rounded-xl border border-indigo-200/80 space-y-2.5 shadow-xs">
+            <div className="flex items-center justify-between gap-3">
+              <div className="flex items-center gap-3">
+                <div className="w-8 h-8 rounded-lg bg-indigo-600 text-white flex items-center justify-center shrink-0 shadow-xs">
+                  <Mail size={16} />
+                </div>
+                <div>
+                  <div className="flex items-center gap-2">
+                    <span className="text-xs font-bold text-slate-800">Weekly Email Financial Digest</span>
+                    <span className="text-[10px] font-bold px-1.5 py-0.5 rounded-full bg-indigo-100 text-indigo-700 border border-indigo-200">
+                      Super Admin
+                    </span>
+                  </div>
+                  <p className="text-[11px] text-slate-500">
+                    Automated weekly collections &amp; dues summary to configured recipients
+                  </p>
+                </div>
+              </div>
+              <button
+                type="button"
+                onClick={() => setIsWeeklyEmailModalOpen(true)}
+                className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-indigo-600 hover:bg-indigo-700 active:scale-95 text-white rounded-lg text-xs font-bold transition-all shadow-xs cursor-pointer shrink-0"
+              >
+                <span>Configure</span>
+              </button>
+            </div>
+          </div>
+
           {/* Database & Cloud Sync Section */}
           <div className="bg-slate-50/80 p-4 rounded-xl border border-slate-200/80 space-y-3">
             <div className="flex items-center justify-between">
@@ -640,6 +671,13 @@ export const CompanySettingsModal: React.FC<Props> = ({
         <MessageTemplatesModal
           isOpen={isTemplatesModalOpen}
           onClose={() => setIsTemplatesModalOpen(false)}
+        />
+      )}
+
+      {isWeeklyEmailModalOpen && (
+        <WeeklyEmailSettingsModal
+          isOpen={isWeeklyEmailModalOpen}
+          onClose={() => setIsWeeklyEmailModalOpen(false)}
         />
       )}
     </div>
