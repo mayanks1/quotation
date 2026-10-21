@@ -7,7 +7,8 @@ export default function ConfirmModal({
   onClose,
   onConfirm,
   record,
-  isDeleting = false
+  isDeleting = false,
+  isPermanent = false
 }) {
   useLockBodyScroll(isOpen);
   // Handle keyboard shortcuts (Escape = close, Enter = confirm)
@@ -45,13 +46,17 @@ export default function ConfirmModal({
         {/* Header */}
         <div className="modal-header confirm-modal-header">
           <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
-            <div className="confirm-icon-badge">
-              <Trash2 size={20} color="#f87171" />
+            <div className="confirm-icon-badge" style={{ background: isPermanent ? 'rgba(239, 68, 68, 0.2)' : 'rgba(245, 158, 11, 0.15)' }}>
+              <Trash2 size={20} color={isPermanent ? "#ef4444" : "#fbbf24"} />
             </div>
             <div>
-              <h3 style={{ margin: 0, fontSize: '18px', color: '#ffffff' }}>Delete Event Record</h3>
+              <h3 style={{ margin: 0, fontSize: '17px', color: '#ffffff', fontWeight: 700 }}>
+                {isPermanent ? 'Permanently Delete Record' : 'Move to Trash (30 Days)'}
+              </h3>
               <p style={{ margin: '2px 0 0 0', fontSize: '12px', color: 'var(--text-muted)' }}>
-                This record will be removed from your dashboard
+                {isPermanent 
+                  ? 'Immediate permanent deletion from database' 
+                  : 'Safely retained in Trash with restore capability'}
               </p>
             </div>
           </div>
@@ -110,10 +115,20 @@ export default function ConfirmModal({
           </div>
 
           {/* Warning Message */}
-          <div className="confirm-warning-bar">
-            <AlertTriangle size={16} color="#fbbf24" style={{ flexShrink: 0 }} />
-            <span>
-              Are you sure you want to permanently delete this entry? A 9-second undo option will be available.
+          <div 
+            className="confirm-warning-bar"
+            style={{
+              borderColor: isPermanent ? 'rgba(239, 68, 68, 0.4)' : 'rgba(245, 158, 11, 0.35)',
+              background: isPermanent ? 'rgba(239, 68, 68, 0.1)' : 'rgba(245, 158, 11, 0.08)'
+            }}
+          >
+            <AlertTriangle size={16} color={isPermanent ? "#f87171" : "#fbbf24"} style={{ flexShrink: 0 }} />
+            <span style={{ fontSize: '12.5px', lineHeight: 1.45, color: isPermanent ? '#fca5a5' : '#fde68a' }}>
+              {isPermanent ? (
+                <>This record will be <strong>permanently deleted</strong>. This action cannot be undone.</>
+              ) : (
+                <>Record will be moved to <strong>Trash for 30 days</strong>. You can restore it anytime during this retention period.</>
+              )}
             </span>
           </div>
         </div>
@@ -133,11 +148,20 @@ export default function ConfirmModal({
             type="button"
             onClick={onConfirm}
             disabled={isDeleting}
-            className="btn btn-danger"
-            style={{ flex: 1.2 }}
+            className={`btn ${isPermanent ? 'btn-danger' : 'btn-warning'}`}
+            style={{ 
+              flex: 1.3,
+              background: isPermanent ? undefined : 'linear-gradient(135deg, #d97706, #b45309)',
+              color: '#ffffff',
+              borderColor: isPermanent ? undefined : 'rgba(245, 158, 11, 0.5)'
+            }}
           >
-            <Trash2 size={16} />
-            <span>{isDeleting ? 'Deleting...' : 'Delete Record'}</span>
+            <Trash2 size={15} />
+            <span>
+              {isDeleting
+                ? (isPermanent ? 'Deleting...' : 'Moving to Trash...')
+                : (isPermanent ? 'Delete Permanently' : 'Move to Trash')}
+            </span>
           </button>
         </div>
       </div>

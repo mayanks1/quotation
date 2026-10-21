@@ -1,15 +1,22 @@
 import React, { useState, useEffect, useMemo, useRef } from 'react';
 import {
+  fetchLedgerRecords,
   fetchSheetData,
   addRecord,
   updateRecord,
   deleteRecord,
+  getDaysRemainingInTrash,
+  getTrashedRecords,
+  restoreFromTrash,
+  permanentlyDeleteRecord,
+  emptyTrash,
   getYear,
   parseDate,
   saveQuickNote,
   normalizeClient,
+  subscribeToLedgerChanges,
   LedgerRecord
-} from '../services/sheetService';
+} from '../services/ledgerService';
 import MetricCards from '../components/ledger/MetricCards';
 import ChartsSection from '../components/ledger/ChartsSection';
 import DataTable from '../components/ledger/DataTable';
@@ -23,7 +30,7 @@ import { PaymentReceiptModal } from '../components/PaymentReceiptModal';
 import { storage } from '../services/storage';
 import { PaymentReceipt } from '../types/receipt';
 import { OFFICIAL_TISHA_STAMP } from '../config/officialStamp';
-import { RefreshCw, Calendar, Check, ChevronDown, FileSpreadsheet, Plus } from 'lucide-react';
+import { Calendar, Check, ChevronDown, FileSpreadsheet, Plus, RotateCcw } from 'lucide-react';
 import { DraggableFab } from '../components/DraggableFab';
 import '../components/ledger/ledger.css';
 
@@ -33,8 +40,8 @@ export const PaymentLedgerPage: React.FC = () => {
   const toast = useToast();
 
   const [records, setRecords] = useState<LedgerRecord[]>([]);
+  const [trashedRecords, setTrashedRecords] = useState<LedgerRecord[]>(() => getTrashedRecords());
   const [isLoading, setIsLoading] = useState(true);
-  const [isRefreshing, setIsRefreshing] = useState(false);
 
   // Filters
   const [selectedYear, setSelectedYear] = useState<string>('all');
@@ -52,6 +59,7 @@ export const PaymentLedgerPage: React.FC = () => {
   // Custom Delete Confirmation Modal State
   const [recordToDelete, setRecordToDelete] = useState<any>(null);
   const [isDeleting, setIsDeleting] = useState(false);
+  const [isPermanentDelete, setIsPermanentDelete] = useState(false);
 
   // Undo Delete state
   const [lastDeletedRecord, setLastDeletedRecord] = useState<any>(null);
@@ -82,18 +90,14 @@ export const PaymentLedgerPage: React.FC = () => {
 
   // Load Data
   const loadData = async (isManual = false) => {
-    if (isManual) {
-      setIsRefreshing(true);
-      try {
-        localStorage.removeItem('tisha_local_deltas');
-      } catch (e) { }
-    } else {
+    if (!isManual) {
       setIsLoading(true);
     }
 
     try {
       const data = await fetchSheetData();
       setRecords(data);
+      setTrashedRecords(getTrashedRecords());
 
       if (!isManual && selectedYear === 'all') {
         const years = [...new Set(data.map(d => getYear(d.date)).filter(Boolean))] as number[];
@@ -104,19 +108,22 @@ export const PaymentLedgerPage: React.FC = () => {
       }
 
       if (isManual) {
-        toast.success('Sync complete! Latest Google Sheet data loaded.');
+        toast.success('Sync complete! Latest cloud ledger records loaded.');
       }
     } catch (err: any) {
       console.error(err);
-      toast.error('Failed to fetch data from Google Sheet');
+      toast.error('Failed to fetch data from cloud ledger');
     } finally {
       setIsLoading(false);
-      setIsRefreshing(false);
     }
   };
 
   useEffect(() => {
     loadData();
+    const unsubscribe = subscribeToLedgerChanges(() => {
+      loadData(false);
+    });
+    return () => unsubscribe();
   }, []);
 
   // 1. Unique Years and Clients
@@ -285,12 +292,12 @@ export const PaymentLedgerPage: React.FC = () => {
         pendingAmount: pendingVal,
         note: formData.note || ''
       };
-      setRecords(prev => prev.map(r => r.sheetRow === targetRow ? updatedItem : r));
-      toast.info('Updating Google Sheet...');
+      setRecords(prev => prev.map(r => (editingRecord.id && r.id === editingRecord.id) || r.sheetRow === targetRow ? updatedItem : r));
+      toast.info('Saving to Ledger...');
 
-      updateRecord(formData, targetRow)
+      updateRecord({ ...formData, id: editingRecord.id }, editingRecord.id || targetRow)
         .then(() => {
-          toast.success('Record updated in Google Sheet!');
+          toast.success('Record updated in Ledger!');
         })
         .catch(err => {
           console.error(err);
@@ -299,7 +306,7 @@ export const PaymentLedgerPage: React.FC = () => {
     } else {
       const maxSheetRow = records.reduce((max, r) => Math.max(max, r.sheetRow || 0), 1);
       const newEntry: LedgerRecord = {
-        id: `local-${Date.now()}`,
+        id: `led_${Date.now()}_${Math.random().toString(36).slice(2, 6)}`,
         date: formData.date,
         client: normalizeClient(formData.client),
         size: formData.size || '',
@@ -311,11 +318,14 @@ export const PaymentLedgerPage: React.FC = () => {
         sheetRow: maxSheetRow + 1
       };
       setRecords(prev => [newEntry, ...prev]);
-      toast.info('Saving to Google Sheet...');
+      toast.info('Saving to Ledger...');
 
       addRecord(formData)
-        .then(() => {
-          toast.success('New record saved in Google Sheet!');
+        .then((saved) => {
+          if (saved && saved.id) {
+            setRecords(prev => prev.map(r => r.id === newEntry.id ? { ...saved, sheetRow: r.sheetRow } : r));
+          }
+          toast.success('New record saved in Ledger!');
         })
         .catch(err => {
           console.error(err);
@@ -342,22 +352,74 @@ export const PaymentLedgerPage: React.FC = () => {
     }
   };
 
-  // Delete Prompt
+  // Delete Prompt (Move to Trash)
   const handlePromptDelete = (record: any) => {
     setIsModalOpen(false);
     setEditingRecord(null);
+    setIsPermanentDelete(false);
     setRecordToDelete(record);
   };
 
-  // Execute Delete
+  // Permanent Delete Prompt (from Trash view)
+  const handlePromptPermanentDelete = (record: any) => {
+    setIsPermanentDelete(true);
+    setRecordToDelete(record);
+  };
+
+  // Restore Record from Trash
+  const handleRestoreRecord = async (record: LedgerRecord) => {
+    try {
+      await restoreFromTrash(record.id);
+      setTrashedRecords(getTrashedRecords());
+      setRecords(prev => [record, ...prev.filter(r => r.id !== record.id)]);
+      toast.success(`Restored "${record.client}" to Active Ledger!`);
+    } catch (err) {
+      console.error(err);
+      toast.error('Failed to restore record');
+    }
+  };
+
+  // Empty Trash Permanently
+  const handleEmptyTrash = async () => {
+    if (window.confirm('Are you sure you want to permanently delete all items in Trash? This action cannot be undone.')) {
+      try {
+        await emptyTrash();
+        setTrashedRecords([]);
+        toast.success('Trash emptied successfully.');
+      } catch (err) {
+        console.error(err);
+        toast.error('Failed to empty trash');
+      }
+    }
+  };
+
+  // Execute Delete (handles both Move to Trash and Permanent Delete)
   const handleExecuteDelete = async () => {
     if (!recordToDelete) return;
     const target = recordToDelete;
+    const isPermanent = isPermanentDelete;
     setRecordToDelete(null);
-    setLastDeletedRecord({ ...target });
+    setIsPermanentDelete(false);
 
+    if (isPermanent) {
+      setIsDeleting(true);
+      try {
+        await permanentlyDeleteRecord(target.id);
+        setTrashedRecords(getTrashedRecords());
+        toast.info('Record permanently deleted.');
+      } catch (err) {
+        console.error(err);
+        toast.error('Failed to delete record.');
+      } finally {
+        setIsDeleting(false);
+      }
+      return;
+    }
+
+    // Move to Trash (30-day retention)
+    setLastDeletedRecord({ ...target });
     setRecords(prev => prev.filter(r => r.sheetRow !== target.sheetRow && r.id !== target.id));
-    toast.info('Entry deleted.');
+    toast.info('Moved to Trash (retained for 30 days)');
 
     if (undoTimer) clearTimeout(undoTimer);
     const timer = setTimeout(() => {
@@ -365,11 +427,27 @@ export const PaymentLedgerPage: React.FC = () => {
     }, 9000);
     setUndoTimer(timer);
 
-    deleteRecord(target.sheetRow)
+    deleteRecord(target.id || target.sheetRow)
+      .then(() => {
+        setTrashedRecords(getTrashedRecords());
+      })
       .catch(err => {
         console.error(err);
         toast.error('Delete sync failed.');
       });
+  };
+
+  // Undo delete
+  const handleUndoDelete = async () => {
+    if (!lastDeletedRecord) return;
+    const target = lastDeletedRecord;
+    setLastDeletedRecord(null);
+    if (undoTimer) clearTimeout(undoTimer);
+
+    await restoreFromTrash(target.id);
+    setTrashedRecords(getTrashedRecords());
+    setRecords(prev => [target, ...prev.filter(r => r.id !== target.id)]);
+    toast.success(`Restored "${target.client}" to active ledger!`);
   };
 
   const handleResetFilters = () => {
@@ -479,7 +557,7 @@ export const PaymentLedgerPage: React.FC = () => {
                   </h2>
                   <span className="text-[9.5px] sm:text-[10px] font-bold px-2 py-0.5 rounded-full bg-emerald-500/20 text-emerald-300 border border-emerald-500/30 inline-flex items-center gap-1 shrink-0 whitespace-nowrap">
                     <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse"></span>
-                    Live Google Sheet Sync
+                    Live Cloud Ledger
                   </span>
                 </div>
                 <p className="text-[11px] sm:text-xs text-neutral-400 mt-0.5 leading-snug">
@@ -569,18 +647,6 @@ export const PaymentLedgerPage: React.FC = () => {
                 <span>Export</span>
               </button>
 
-              {/* Sync / Refresh Button */}
-              <button
-                type="button"
-                onClick={() => loadData(true)}
-                disabled={isRefreshing}
-                className="flex items-center justify-center gap-1.5 px-3 py-2 bg-neutral-800/90 hover:bg-neutral-700 border border-neutral-700/80 text-xs font-semibold rounded-xl text-neutral-200 hover:text-white transition-all disabled:opacity-50 cursor-pointer active:scale-95 shrink-0 whitespace-nowrap"
-                title="Sync live from Google Sheet"
-              >
-                <RefreshCw size={13} className={isRefreshing ? 'animate-spin text-emerald-400' : 'text-neutral-400 shrink-0'} />
-                <span>{isRefreshing ? 'Syncing...' : 'Sync Sheet'}</span>
-              </button>
-
               {/* Add New Entry Button (Desktop / Tablet) */}
               <button
                 type="button"
@@ -621,6 +687,7 @@ export const PaymentLedgerPage: React.FC = () => {
             {/* Records Table */}
             <DataTable
               records={finalFilteredData}
+              trashedRecords={trashedRecords}
               allClients={allClients}
               allYears={allYears}
               selectedYear={selectedYear}
@@ -632,12 +699,61 @@ export const PaymentLedgerPage: React.FC = () => {
                 setIsModalOpen(true);
               }}
               onDeleteRecord={handlePromptDelete}
+              onRestoreRecord={handleRestoreRecord}
+              onPermanentlyDeleteRecord={handlePromptPermanentDelete}
+              onEmptyTrash={handleEmptyTrash}
               onResetFilters={handleResetFilters}
               onOpenNoteModal={(record: any) => setNoteModalRecord(record)}
               onGenerateReceipt={handleGenerateReceiptFromRecord}
             />
           </main>
         </div>
+
+        {/* Floating 9-Second Undo Deletion Toast */}
+        {lastDeletedRecord && (
+          <div style={{
+            position: 'fixed',
+            bottom: '24px',
+            left: '50%',
+            transform: 'translateX(-50%)',
+            zIndex: 999,
+            display: 'flex',
+            alignItems: 'center',
+            gap: '12px',
+            padding: '10px 18px',
+            background: '#0f172a',
+            border: '1px solid rgba(245, 158, 11, 0.4)',
+            borderRadius: '12px',
+            boxShadow: '0 20px 40px -10px rgba(0, 0, 0, 0.8), 0 0 15px rgba(245, 158, 11, 0.2)',
+            color: '#f8fafc',
+            fontSize: '13px'
+          }}>
+            <span style={{ display: 'inline-flex', alignItems: 'center', gap: '6px' }}>
+              <span style={{ color: '#fbbf24' }}>⏳</span>
+              <span>Record moved to <strong>Trash (30-day retention)</strong></span>
+            </span>
+            <button
+              type="button"
+              onClick={handleUndoDelete}
+              style={{
+                display: 'inline-flex',
+                alignItems: 'center',
+                gap: '5px',
+                padding: '4px 12px',
+                borderRadius: '8px',
+                background: 'rgba(59, 130, 246, 0.2)',
+                border: '1px solid rgba(59, 130, 246, 0.5)',
+                color: '#93c5fd',
+                fontWeight: 700,
+                cursor: 'pointer',
+                fontSize: '12px'
+              }}
+            >
+              <RotateCcw size={12} />
+              Undo
+            </button>
+          </div>
+        )}
 
         {/* Modals */}
         <RecordModal
@@ -662,10 +778,14 @@ export const PaymentLedgerPage: React.FC = () => {
 
         <ConfirmModal
           isOpen={Boolean(recordToDelete)}
-          onClose={() => setRecordToDelete(null)}
+          onClose={() => {
+            setRecordToDelete(null);
+            setIsPermanentDelete(false);
+          }}
           onConfirm={handleExecuteDelete}
           record={recordToDelete}
           isDeleting={isDeleting}
+          isPermanent={isPermanentDelete}
         />
 
         {/* Ledger & Tally Accounting Export Modal */}

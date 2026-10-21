@@ -2,6 +2,7 @@ import { Quotation, CompanyProfile, ClientProfile, LineItem, CatalogItem } from 
 import { DEFAULT_COMPANY, DEFAULT_TERMS_AND_CONDITIONS, DEFAULT_PAYMENT_TERMS, CATALOG_PRESETS } from '../config/defaults';
 import { idb } from './indexedDb';
 import { cloudSync } from './cloudSync';
+import { syncInvoicedQuotation, handleQuotationDeleted } from './ledgerService';
 
 const STORAGE_KEYS = {
   ACTIVE_QUOTATION_ID: 'tisha_active_quotation_id_v2',
@@ -313,6 +314,11 @@ export const storage = {
     // Background cloud sync
     cloudSync.syncQuotation(updated).catch(console.error);
 
+    // Auto-create / update entry in Payment Ledger ONLY if quotation is Invoiced
+    if (updated.status === 'invoiced' || updated.documentType === 'invoice' || Boolean(updated.invoiceNumber)) {
+      syncInvoicedQuotation(updated).catch(console.error);
+    }
+
     // Auto-save client profile when quotation has client name
     if (quotation.client?.name) {
       const clientName = quotation.client.name.trim();
@@ -352,6 +358,7 @@ export const storage = {
 
     idb.saveQuotation(trashed).catch(console.error);
     cloudSync.syncQuotation(trashed).catch(console.error);
+    handleQuotationDeleted(id).catch(console.error);
     return trashed;
   },
 
@@ -369,6 +376,9 @@ export const storage = {
     memoryQuotations = memoryQuotations.map((q) => (q.id === id ? restored : q));
     idb.saveQuotation(restored).catch(console.error);
     cloudSync.syncQuotation(restored).catch(console.error);
+    if (restored.status === 'invoiced' || restored.documentType === 'invoice' || Boolean(restored.invoiceNumber)) {
+      syncInvoicedQuotation(restored).catch(console.error);
+    }
     return restored;
   },
 
@@ -380,6 +390,7 @@ export const storage = {
 
     idb.deleteQuotation(id).catch(console.error);
     cloudSync.deleteQuotation(id).catch(console.error);
+    handleQuotationDeleted(id).catch(console.error);
   },
 
   emptyTrash(): void {

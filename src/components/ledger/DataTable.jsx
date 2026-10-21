@@ -26,10 +26,11 @@ import {
   Printer,
   Receipt
 } from 'lucide-react';
-import { formatDate, parseDate } from '../../services/sheetService';
+import { formatDate, parseDate, getDaysRemainingInTrash } from '../../services/sheetService';
 
 export default function DataTable({
   records,
+  trashedRecords = [],
   allClients,
   allYears,
   selectedYear,
@@ -38,12 +39,15 @@ export default function DataTable({
   setSelectedClient,
   onEditRecord,
   onDeleteRecord,
+  onRestoreRecord,
+  onPermanentlyDeleteRecord,
+  onEmptyTrash,
   onResetFilters,
   onOpenNoteModal,
   onGenerateReceipt
 }) {
   const [searchTerm, setSearchTerm] = useState('');
-  const [statusFilter, setStatusFilter] = useState('ALL'); // 'ALL' | 'Received' | 'Pending'
+  const [statusFilter, setStatusFilter] = useState('ALL'); // 'ALL' | 'Received' | 'Partial' | 'Pending' | 'TRASH'
   const [sortField, setSortField] = useState('date');
   const [sortAsc, setSortAsc] = useState(false); // default: FALSE for Latest data on top!
   const [currentPage, setCurrentPage] = useState(1);
@@ -90,18 +94,19 @@ export default function DataTable({
   );
 
   // 1. Filter records
-  const filteredRecords = records.filter(record => {
+  const sourceRecords = statusFilter === 'TRASH' ? trashedRecords : records;
+  const filteredRecords = sourceRecords.filter(record => {
     // Status filter
-    if (statusFilter !== 'ALL' && record.status !== statusFilter) {
+    if (statusFilter !== 'ALL' && statusFilter !== 'TRASH' && record.status !== statusFilter) {
       return false;
     }
     // Search query
     if (searchTerm.trim() !== '') {
       const q = searchTerm.toLowerCase();
-      const matchClient = record.client.toLowerCase().includes(q);
-      const matchDate = record.date.toLowerCase().includes(q);
-      const matchSize = record.size.toLowerCase().includes(q);
-      const matchAmount = String(record.amount).includes(q);
+      const matchClient = (record.client || '').toLowerCase().includes(q);
+      const matchDate = (record.date || '').toLowerCase().includes(q);
+      const matchSize = (record.size || '').toLowerCase().includes(q);
+      const matchAmount = String(record.amount || '').includes(q);
       if (!matchClient && !matchDate && !matchSize && !matchAmount) {
         return false;
       }
@@ -553,7 +558,7 @@ Thank you for your continuous business!
       </div>
 
       {/* Client Account Summary & Statement Banner */}
-      {clientStats && (
+      {clientStats && statusFilter !== 'TRASH' && (
         <div style={{
           margin: '0 0 16px 0',
           padding: '14px 18px',
@@ -627,6 +632,48 @@ Thank you for your continuous business!
         </div>
       )}
 
+      {/* Trash Bin Header Banner when viewing Trash */}
+      {statusFilter === 'TRASH' && (
+        <div style={{
+          margin: '0 0 16px 0',
+          padding: '12px 18px',
+          background: 'rgba(239, 68, 68, 0.08)',
+          border: '1px solid rgba(239, 68, 68, 0.25)',
+          borderRadius: '12px',
+          display: 'flex',
+          flexWrap: 'wrap',
+          alignItems: 'center',
+          justifyContent: 'space-between',
+          gap: '12px'
+        }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+            <div style={{ padding: '7px', background: 'rgba(239, 68, 68, 0.15)', borderRadius: '8px', color: '#f87171' }}>
+              <Trash2 size={16} />
+            </div>
+            <div>
+              <div style={{ fontSize: '13px', fontWeight: 700, color: '#fca5a5' }}>
+                Trash Bin (30-Day Auto Retention)
+              </div>
+              <div style={{ fontSize: '11.5px', color: '#94a3b8' }}>
+                Deleted records are kept safe here for 30 days before permanent auto-purge. You can restore them anytime.
+              </div>
+            </div>
+          </div>
+          {trashedRecords.length > 0 && (
+            <button
+              type="button"
+              onClick={onEmptyTrash}
+              className="btn btn-danger"
+              style={{ fontSize: '11.5px', padding: '6px 12px', display: 'flex', alignItems: 'center', gap: '6px' }}
+              title="Permanently erase all items in trash"
+            >
+              <Trash2 size={13} />
+              <span>Empty Trash ({trashedRecords.length})</span>
+            </button>
+          )}
+        </div>
+      )}
+
       {/* Secondary Row: Status Tabs & Mobile View Toggle & Export */}
         <div className="table-tabs-and-export">
           {/* Status Tabs */}
@@ -654,6 +701,15 @@ Thank you for your continuous business!
               className={`status-tab status-tab-pending ${statusFilter === 'Pending' ? 'active' : ''}`}
             >
               Pending ({records.filter(r => r.status === 'Pending').length})
+            </button>
+            <button
+              onClick={() => { setStatusFilter('TRASH'); setCurrentPage(1); }}
+              className={`status-tab ${statusFilter === 'TRASH' ? 'active' : ''}`}
+              style={statusFilter === 'TRASH' ? { background: 'rgba(239, 68, 68, 0.2)', borderColor: 'rgba(239, 68, 68, 0.4)', color: '#fca5a5' } : {}}
+              title="Deleted records retained for 30 days"
+            >
+              <Trash2 size={12} style={{ display: 'inline', marginRight: '4px', verticalAlign: '-1px' }} />
+              Trash ({trashedRecords.length})
             </button>
           </div>
 
@@ -709,24 +765,41 @@ Thank you for your continuous business!
                   </div>
                 </div>
 
-                <span className={`status-badge ${record.status === 'Received' ? 'received' : (record.status === 'Partial' ? 'partial' : 'pending')}`}>
-                  {record.status === 'Received' ? (
-                    <>
-                      <CheckCircle2 size={11} />
-                      <span>Received</span>
-                    </>
-                  ) : record.status === 'Partial' ? (
-                    <>
-                      <span style={{ fontSize: '11px' }}>🌗</span>
-                      <span>Partial</span>
-                    </>
-                  ) : (
-                    <>
-                      <Clock size={11} />
-                      <span>Pending</span>
-                    </>
-                  )}
-                </span>
+                {statusFilter === 'TRASH' ? (
+                  <span style={{
+                    fontSize: '11px',
+                    fontWeight: 700,
+                    padding: '3px 8px',
+                    borderRadius: '999px',
+                    background: 'rgba(245, 158, 11, 0.15)',
+                    border: '1px solid rgba(245, 158, 11, 0.35)',
+                    color: '#fbbf24',
+                    display: 'inline-flex',
+                    alignItems: 'center',
+                    gap: '4px'
+                  }}>
+                    ⏳ {getDaysRemainingInTrash(record.deletedAt)}d left
+                  </span>
+                ) : (
+                  <span className={`status-badge ${record.status === 'Received' ? 'received' : (record.status === 'Partial' ? 'partial' : 'pending')}`}>
+                    {record.status === 'Received' ? (
+                      <>
+                        <CheckCircle2 size={11} />
+                        <span>Received</span>
+                      </>
+                    ) : record.status === 'Partial' ? (
+                      <>
+                        <span style={{ fontSize: '11px' }}>🌗</span>
+                        <span>Partial</span>
+                      </>
+                    ) : (
+                      <>
+                        <Clock size={11} />
+                        <span>Pending</span>
+                      </>
+                    )}
+                  </span>
+                )}
               </div>
 
               {/* Body: Client Name + Size + Note */}
@@ -768,75 +841,117 @@ Thank you for your continuous business!
                 </div>
 
                 <div className="mobile-card-actions">
-                  <button
-                    onClick={() => onGenerateReceipt && onGenerateReceipt(record)}
-                    className="btn btn-icon-sm"
-                    style={
-                      record.status === 'Pending'
-                        ? {
-                            background: 'rgba(245, 158, 11, 0.15)',
-                            border: '1px solid rgba(245, 158, 11, 0.35)',
-                            color: '#fbbf24'
-                          }
-                        : {
-                            background: 'rgba(16, 185, 129, 0.15)',
-                            border: '1px solid rgba(16, 185, 129, 0.35)',
-                            color: '#34d399'
-                          }
-                    }
-                    title={record.status === 'Pending' ? "Generate Pending Payment Bill / Receipt" : "Generate Official Money Receipt"}
-                  >
-                    <Receipt size={14} />
-                  </button>
-                  {record.status !== 'Received' && (
-                    <button 
-                      onClick={() => handleWhatsAppFollowup(record)}
-                      className="btn btn-icon-sm"
-                      style={{
-                        background: 'rgba(37, 211, 102, 0.15)',
-                        border: '1px solid rgba(37, 211, 102, 0.35)',
-                        color: '#4ade80'
-                      }}
-                      title="Send WhatsApp Payment Follow-up"
-                    >
-                      <MessageCircle size={14} />
-                    </button>
+                  {statusFilter === 'TRASH' ? (
+                    <>
+                      <button
+                        type="button"
+                        onClick={() => onRestoreRecord && onRestoreRecord(record)}
+                        className="btn btn-icon-sm"
+                        style={{
+                          background: 'rgba(16, 185, 129, 0.15)',
+                          border: '1px solid rgba(16, 185, 129, 0.35)',
+                          color: '#34d399',
+                          padding: '6px 12px',
+                          display: 'inline-flex',
+                          alignItems: 'center',
+                          gap: '5px'
+                        }}
+                        title="Restore entry to Active Ledger"
+                      >
+                        <RotateCcw size={14} />
+                        <span style={{ fontSize: '11px', fontWeight: 700 }}>Restore</span>
+                      </button>
+                      <button 
+                        type="button"
+                        onClick={() => onPermanentlyDeleteRecord && onPermanentlyDeleteRecord(record)}
+                        className="btn btn-danger btn-icon-sm"
+                        title="Delete permanently from database"
+                      >
+                        <Trash2 size={14} />
+                      </button>
+                    </>
+                  ) : (
+                    <>
+                      <button
+                        onClick={() => onGenerateReceipt && onGenerateReceipt(record)}
+                        className="btn btn-icon-sm"
+                        style={
+                          record.status === 'Pending'
+                            ? {
+                                background: 'rgba(245, 158, 11, 0.15)',
+                                border: '1px solid rgba(245, 158, 11, 0.35)',
+                                color: '#fbbf24'
+                              }
+                            : {
+                                background: 'rgba(16, 185, 129, 0.15)',
+                                border: '1px solid rgba(16, 185, 129, 0.35)',
+                                color: '#34d399'
+                              }
+                        }
+                        title={record.status === 'Pending' ? "Generate Pending Payment Bill / Receipt" : "Generate Official Money Receipt"}
+                      >
+                        <Receipt size={14} />
+                      </button>
+                      {record.status !== 'Received' && (
+                        <button 
+                          onClick={() => handleWhatsAppFollowup(record)}
+                          className="btn btn-icon-sm"
+                          style={{
+                            background: 'rgba(37, 211, 102, 0.15)',
+                            border: '1px solid rgba(37, 211, 102, 0.35)',
+                            color: '#4ade80'
+                          }}
+                          title="Send WhatsApp Payment Follow-up"
+                        >
+                          <MessageCircle size={14} />
+                        </button>
+                      )}
+                      <button 
+                        onClick={() => onOpenNoteModal && onOpenNoteModal(record)}
+                        className={`btn btn-icon-sm ${record.note ? 'btn-note-active' : 'btn-secondary'}`}
+                        title={record.note ? `Note: ${record.note}` : "Add Note"}
+                      >
+                        <StickyNote size={14} color={record.note ? "#fbbf24" : "#94a3b8"} />
+                      </button>
+                      <button 
+                        onClick={() => onEditRecord(record)}
+                        className="btn btn-secondary btn-icon-sm"
+                        title="Edit entry"
+                      >
+                        <Edit3 size={14} color="#818cf8" />
+                      </button>
+                      <button 
+                        onClick={() => onDeleteRecord(record)}
+                        className="btn btn-danger btn-icon-sm"
+                        title="Delete entry"
+                      >
+                        <Trash2 size={14} />
+                      </button>
+                    </>
                   )}
-                  <button 
-                    onClick={() => onOpenNoteModal && onOpenNoteModal(record)}
-                    className={`btn btn-icon-sm ${record.note ? 'btn-note-active' : 'btn-secondary'}`}
-                    title={record.note ? `Note: ${record.note}` : "Add Note"}
-                  >
-                    <StickyNote size={14} color={record.note ? "#fbbf24" : "#94a3b8"} />
-                  </button>
-                  <button 
-                    onClick={() => onEditRecord(record)}
-                    className="btn btn-secondary btn-icon-sm"
-                    title="Edit entry"
-                  >
-                    <Edit3 size={14} color="#818cf8" />
-                  </button>
-                  <button 
-                    onClick={() => onDeleteRecord(record)}
-                    className="btn btn-danger btn-icon-sm"
-                    title="Delete entry"
-                  >
-                    <Trash2 size={14} />
-                  </button>
                 </div>
               </div>
             </div>
           ))
         ) : (
           <div className="empty-state-card">
-            <Filter size={28} style={{ opacity: 0.3 }} />
-            <p>No records found matching your filters</p>
-            <button 
-              onClick={() => { setSearchTerm(''); setStatusFilter('ALL'); onResetFilters(); }} 
-              className="btn btn-secondary"
-            >
-              Clear All Filters
-            </button>
+            {statusFilter === 'TRASH' ? (
+              <>
+                <Trash2 size={28} style={{ opacity: 0.3, color: '#f87171' }} />
+                <p>Trash is empty. No deleted records found.</p>
+              </>
+            ) : (
+              <>
+                <Filter size={28} style={{ opacity: 0.3 }} />
+                <p>No records found matching your filters</p>
+                <button 
+                  onClick={() => { setSearchTerm(''); setStatusFilter('ALL'); onResetFilters(); }} 
+                  className="btn btn-secondary"
+                >
+                  Clear All Filters
+                </button>
+              </>
+            )}
           </div>
         )}
       </div>
@@ -922,82 +1037,133 @@ Thank you for your continuous business!
                     )}
                   </td>
                   <td>
-                    <span className={`status-badge ${record.status === 'Received' ? 'received' : (record.status === 'Partial' ? 'partial' : 'pending')}`}>
-                      {record.status === 'Received' ? (
+                    {statusFilter === 'TRASH' ? (
+                      <span style={{
+                        fontSize: '11px',
+                        fontWeight: 700,
+                        padding: '3px 9px',
+                        borderRadius: '999px',
+                        background: 'rgba(245, 158, 11, 0.15)',
+                        border: '1px solid rgba(245, 158, 11, 0.35)',
+                        color: '#fbbf24',
+                        display: 'inline-flex',
+                        alignItems: 'center',
+                        gap: '4px',
+                        whiteSpace: 'nowrap'
+                      }}>
+                        ⏳ {getDaysRemainingInTrash(record.deletedAt)}d left
+                      </span>
+                    ) : (
+                      <span className={`status-badge ${record.status === 'Received' ? 'received' : (record.status === 'Partial' ? 'partial' : 'pending')}`}>
+                        {record.status === 'Received' ? (
+                          <>
+                            <CheckCircle2 size={11} />
+                            <span>Received</span>
+                          </>
+                        ) : record.status === 'Partial' ? (
+                          <>
+                            <span style={{ fontSize: '11px' }}>🌗</span>
+                            <span>Partial</span>
+                          </>
+                        ) : (
+                          <>
+                            <Clock size={11} />
+                            <span>Pending</span>
+                          </>
+                        )}
+                      </span>
+                    )}
+                  </td>
+                  <td style={{ textAlign: 'right' }}>
+                    <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '5px' }}>
+                      {statusFilter === 'TRASH' ? (
                         <>
-                          <CheckCircle2 size={11} />
-                          <span>Received</span>
-                        </>
-                      ) : record.status === 'Partial' ? (
-                        <>
-                          <span style={{ fontSize: '11px' }}>🌗</span>
-                          <span>Partial</span>
+                          <button
+                            type="button"
+                            onClick={() => onRestoreRecord && onRestoreRecord(record)}
+                            className="btn btn-icon-sm"
+                            style={{
+                              background: 'rgba(16, 185, 129, 0.15)',
+                              border: '1px solid rgba(16, 185, 129, 0.35)',
+                              color: '#34d399',
+                              padding: '5px 11px',
+                              display: 'inline-flex',
+                              alignItems: 'center',
+                              gap: '5px'
+                            }}
+                            title="Restore entry to Active Ledger"
+                          >
+                            <RotateCcw size={13} />
+                            <span style={{ fontSize: '11.5px', fontWeight: 600 }}>Restore</span>
+                          </button>
+                          <button 
+                            type="button"
+                            onClick={() => onPermanentlyDeleteRecord && onPermanentlyDeleteRecord(record)}
+                            className="btn btn-danger btn-icon-sm"
+                            title="Delete permanently from database"
+                          >
+                            <Trash2 size={13} />
+                          </button>
                         </>
                       ) : (
                         <>
-                          <Clock size={11} />
-                          <span>Pending</span>
+                          <button
+                            onClick={() => onGenerateReceipt && onGenerateReceipt(record)}
+                            className="btn btn-icon-sm"
+                            style={
+                              record.status === 'Pending'
+                                ? {
+                                    background: 'rgba(245, 158, 11, 0.15)',
+                                    border: '1px solid rgba(245, 158, 11, 0.35)',
+                                    color: '#fbbf24'
+                                  }
+                                : {
+                                    background: 'rgba(16, 185, 129, 0.15)',
+                                    border: '1px solid rgba(16, 185, 129, 0.35)',
+                                    color: '#34d399'
+                                  }
+                            }
+                            title={record.status === 'Pending' ? "Generate Pending Payment Bill / Receipt" : "Generate Official Money Receipt"}
+                          >
+                            <Receipt size={13} />
+                          </button>
+                          {record.status !== 'Received' && (
+                            <button 
+                              onClick={() => handleWhatsAppFollowup(record)}
+                              className="btn btn-icon-sm"
+                              style={{
+                                background: 'rgba(37, 211, 102, 0.15)',
+                                border: '1px solid rgba(37, 211, 102, 0.35)',
+                                color: '#4ade80'
+                              }}
+                              title="Send WhatsApp Payment Follow-up"
+                            >
+                              <MessageCircle size={13} />
+                            </button>
+                          )}
+                          <button 
+                            onClick={() => onOpenNoteModal && onOpenNoteModal(record)}
+                            className={`btn btn-icon-sm ${record.note ? 'btn-note-active' : 'btn-secondary'}`}
+                            title={record.note ? `Note: ${record.note}` : "Add Note"}
+                          >
+                            <StickyNote size={13} color={record.note ? "#fbbf24" : "#94a3b8"} />
+                          </button>
+                          <button 
+                            onClick={() => onEditRecord(record)}
+                            className="btn btn-secondary btn-icon-sm"
+                            title="Edit entry"
+                          >
+                            <Edit3 size={13} color="#818cf8" />
+                          </button>
+                          <button 
+                            onClick={() => onDeleteRecord(record)}
+                            className="btn btn-danger btn-icon-sm"
+                            title="Delete entry"
+                          >
+                            <Trash2 size={13} />
+                          </button>
                         </>
                       )}
-                    </span>
-                  </td>
-                  <td style={{ textAlign: 'right' }}>
-                    <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '4px' }}>
-                      <button
-                        onClick={() => onGenerateReceipt && onGenerateReceipt(record)}
-                        className="btn btn-icon-sm"
-                        style={
-                          record.status === 'Pending'
-                            ? {
-                                background: 'rgba(245, 158, 11, 0.15)',
-                                border: '1px solid rgba(245, 158, 11, 0.35)',
-                                color: '#fbbf24'
-                              }
-                            : {
-                                background: 'rgba(16, 185, 129, 0.15)',
-                                border: '1px solid rgba(16, 185, 129, 0.35)',
-                                color: '#34d399'
-                              }
-                        }
-                        title={record.status === 'Pending' ? "Generate Pending Payment Bill / Receipt" : "Generate Official Money Receipt"}
-                      >
-                        <Receipt size={13} />
-                      </button>
-                      {record.status !== 'Received' && (
-                        <button 
-                          onClick={() => handleWhatsAppFollowup(record)}
-                          className="btn btn-icon-sm"
-                          style={{
-                            background: 'rgba(37, 211, 102, 0.15)',
-                            border: '1px solid rgba(37, 211, 102, 0.35)',
-                            color: '#4ade80'
-                          }}
-                          title="Send WhatsApp Payment Follow-up"
-                        >
-                          <MessageCircle size={13} />
-                        </button>
-                      )}
-                      <button 
-                        onClick={() => onOpenNoteModal && onOpenNoteModal(record)}
-                        className={`btn btn-icon-sm ${record.note ? 'btn-note-active' : 'btn-secondary'}`}
-                        title={record.note ? `Note: ${record.note}` : "Add Note"}
-                      >
-                        <StickyNote size={13} color={record.note ? "#fbbf24" : "#94a3b8"} />
-                      </button>
-                      <button 
-                        onClick={() => onEditRecord(record)}
-                        className="btn btn-secondary btn-icon-sm"
-                        title="Edit entry"
-                      >
-                        <Edit3 size={13} color="#818cf8" />
-                      </button>
-                      <button 
-                        onClick={() => onDeleteRecord(record)}
-                        className="btn btn-danger btn-icon-sm"
-                        title="Delete entry"
-                      >
-                        <Trash2 size={13} />
-                      </button>
                     </div>
                   </td>
                 </tr>
@@ -1006,15 +1172,24 @@ Thank you for your continuous business!
               <tr>
                 <td colSpan={7} style={{ textAlign: 'center', padding: '36px 16px', color: 'var(--text-dim)' }}>
                   <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '8px' }}>
-                    <Filter size={28} style={{ opacity: 0.3 }} />
-                    <p style={{ fontSize: '14px' }}>No records found matching your filters</p>
-                    <button 
-                      onClick={() => { setSearchTerm(''); setStatusFilter('ALL'); onResetFilters(); }} 
-                      className="btn btn-secondary"
-                      style={{ fontSize: '12px' }}
-                    >
-                      Clear All Filters
-                    </button>
+                    {statusFilter === 'TRASH' ? (
+                      <>
+                        <Trash2 size={28} style={{ opacity: 0.3, color: '#f87171' }} />
+                        <p style={{ fontSize: '14px' }}>Trash is empty. No deleted records in the last 30 days.</p>
+                      </>
+                    ) : (
+                      <>
+                        <Filter size={28} style={{ opacity: 0.3 }} />
+                        <p style={{ fontSize: '14px' }}>No records found matching your filters</p>
+                        <button 
+                          onClick={() => { setSearchTerm(''); setStatusFilter('ALL'); onResetFilters(); }} 
+                          className="btn btn-secondary"
+                          style={{ fontSize: '12px' }}
+                        >
+                          Clear All Filters
+                        </button>
+                      </>
+                    )}
                   </div>
                 </td>
               </tr>

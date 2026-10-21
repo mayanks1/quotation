@@ -162,12 +162,61 @@ CREATE TABLE IF NOT EXISTS public.saas_users (
   last_login TIMESTAMPTZ
 );
 
+-- 6. Payment Ledger Table (Native PostgreSQL Ledger replacing Google Sheets)
+CREATE TABLE IF NOT EXISTS public.payment_ledger (
+  id TEXT PRIMARY KEY,
+  organization_id TEXT NOT NULL DEFAULT 'org_tisha_main',
+  
+  -- Core Transaction Info
+  date DATE NOT NULL DEFAULT CURRENT_DATE,
+  client_name TEXT NOT NULL,
+  client_id TEXT,
+  
+  -- Event & Screen Details
+  event_venue TEXT,
+  screen_size TEXT,
+  
+  -- Financial Ledger Calculations
+  total_amount NUMERIC(12, 2) NOT NULL DEFAULT 0.00,
+  paid_amount NUMERIC(12, 2) NOT NULL DEFAULT 0.00,
+  pending_amount NUMERIC(12, 2) GENERATED ALWAYS AS (total_amount - paid_amount) STORED,
+  
+  -- Status: 'Received' | 'Partial' | 'Pending'
+  status TEXT NOT NULL CHECK (status IN ('Received', 'Partial', 'Pending')),
+  
+  -- Payment Method & Traceability
+  payment_mode TEXT DEFAULT 'unpaid',
+  transaction_ref TEXT,
+  notes TEXT,
+  
+  -- Quotation Link (Set ONLY when auto-generated from an Invoiced Quotation)
+  linked_quotation_id TEXT UNIQUE,
+  invoice_number TEXT,
+  
+  -- Soft-Delete & 30-Day Retention Trash Management
+  is_deleted BOOLEAN NOT NULL DEFAULT false,
+  deleted_at TIMESTAMPTZ,
+
+  -- Metadata
+  created_at TIMESTAMPTZ NOT NULL DEFAULT timezone('utc'::text, now()),
+  updated_at TIMESTAMPTZ NOT NULL DEFAULT timezone('utc'::text, now())
+);
+
+-- Ledger Performance Indexes
+CREATE INDEX IF NOT EXISTS idx_ledger_org ON public.payment_ledger(organization_id);
+CREATE INDEX IF NOT EXISTS idx_ledger_date ON public.payment_ledger(date DESC);
+CREATE INDEX IF NOT EXISTS idx_ledger_client ON public.payment_ledger(client_name);
+CREATE INDEX IF NOT EXISTS idx_ledger_status ON public.payment_ledger(status);
+CREATE INDEX IF NOT EXISTS idx_ledger_is_deleted ON public.payment_ledger(is_deleted);
+CREATE INDEX IF NOT EXISTS idx_ledger_linked_quote ON public.payment_ledger(linked_quotation_id);
+
 -- 5. Enable Row Level Security (RLS) & Allow public read/write with anon key for this tenant
 ALTER TABLE public.quotations ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.clients ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.company_settings ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.users ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.saas_users ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.payment_ledger ENABLE ROW LEVEL SECURITY;
 
 CREATE POLICY "Allow public access for quotations" ON public.quotations
   FOR ALL USING (true) WITH CHECK (true);
@@ -183,5 +232,9 @@ CREATE POLICY "Allow public access for users" ON public.users
 
 CREATE POLICY "Allow public access for saas_users" ON public.saas_users
   FOR ALL USING (true) WITH CHECK (true);
+
+CREATE POLICY "Allow public access for payment_ledger" ON public.payment_ledger
+  FOR ALL USING (true) WITH CHECK (true);
+
 
 

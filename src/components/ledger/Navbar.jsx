@@ -118,7 +118,7 @@ export default function Navbar({
           {/* Sync badge */}
           <div className="navbar-sync-badge">
             <span className="sync-pulse-dot" />
-            <span className="sync-text-desktop">Google Sheet Synced</span>
+            <span className="sync-text-desktop">Cloud Ledger Synced</span>
             <span className="sync-text-mobile">Synced</span>
           </div>
 
@@ -135,7 +135,7 @@ export default function Navbar({
             onClick={onRefresh}
             disabled={isRefreshing}
             className="btn btn-secondary btn-sync"
-            title="Refresh Data from Google Sheet"
+            title="Refresh Data from Cloud Ledger"
           >
             <RefreshCw size={15} className={isRefreshing ? 'spin-animation' : ''} />
             <span className="btn-text-desktop">{isRefreshing ? 'Syncing...' : 'Sync'}</span>
