@@ -1,4 +1,5 @@
 import { Quotation, getItemAmount } from '../types/quotation';
+import { renderTemplate } from '../services/templateService';
 
 export interface ExpiryStatus {
   isExpired: boolean;
@@ -105,44 +106,7 @@ export function getQuotationExpiryStatus(validUntil?: string): ExpiryStatus {
  * Formats polite, high-converting WhatsApp follow-up reminder text
  */
 export function formatQuotationReminderText(quotation: Quotation): string {
-  const expiry = getQuotationExpiryStatus(quotation.validUntil);
-  const clientName = quotation.client?.name || 'Sir / Madam';
-  const companyName = quotation.company?.name || 'Tisha LED Walls';
-  
-  const subtotal = quotation.lineItems.reduce((acc, i) => acc + getItemAmount(i), 0);
-  const discounted = Math.max(0, subtotal - (quotation.discountAmount || 0));
-  const isZeroTax = quotation.taxScheme === 'none';
-  const effectiveTaxRate = isZeroTax ? 0 : (quotation.taxRate || 0);
-  const tax = isZeroTax ? 0 : (discounted * effectiveTaxRate) / 100;
-  const grandTotal = Math.max(0, discounted + tax + (quotation.shippingCharges || 0) + (quotation.adjustmentAmount || 0));
-
-  let text = `Namaste *${clientName}*,\n\n`;
-  text += `Following up regarding Quotation *#${quotation.quotationNumber}* from *${companyName}*`;
-  if (quotation.venue) {
-    text += ` for your upcoming event at *${quotation.venue}*`;
-  }
-  if (quotation.eventDate) {
-    text += ` on *${quotation.eventDate}*`;
-  }
-  text += `.\n\n`;
-
-  text += `• *Quoted Amount:* ₹${grandTotal.toLocaleString('en-IN')}\n`;
-  text += `• *Validity:* ${quotation.validUntil} _(${expiry.label})_\n\n`;
-
-  if (expiry.isExpired) {
-    text += `The initial proposal period has ended, but we would love to refresh this quotation and confirm LED screen inventory for you.\n\n`;
-  } else if (expiry.isExpiringSoon) {
-    text += `This proposal will be expiring soon. Kindly let us know if you would like us to reserve the LED wall panels and technical crew for your event date.\n\n`;
-  } else {
-    text += `Please let us know if you require any adjustments to the screen sizes, pitch options, or setup schedule.\n\n`;
-  }
-
-  if (quotation.company?.phone) {
-    text += `Feel free to reply here or call us directly at *${quotation.company.phone}*.\n\n`;
-  }
-  text += `Warm regards,\n*${companyName}*`;
-
-  return text;
+  return renderTemplate('followUpReminder', quotation);
 }
 
 /**

@@ -2,7 +2,7 @@ import React, { useState, useRef } from 'react';
 import {
   X, Share2, FileText, Download, Copy, Check,
   MessageSquare, ExternalLink, Loader2, Smartphone,
-  AlertCircle, ChevronDown, ChevronUp, IndianRupee, Bell, Clock, Truck, Receipt
+  AlertCircle, ChevronDown, ChevronUp, IndianRupee, Bell, Clock, Truck, Receipt, Sliders
 } from 'lucide-react';
 import { Quotation, getItemAmount } from '../types/quotation';
 import { 
@@ -16,6 +16,8 @@ import { generateQuotationPDFFile, exportQuotationPDF, generateQuotationPDFDoc }
 import { getQuotationExpiryStatus, formatQuotationReminderText, generateWhatsAppReminderUrl } from '../utils/quotationExpiry';
 import { createReceiptFromQuotation } from '../utils/receiptHelper';
 import { DeliveryChallanModal } from './DeliveryChallanModal';
+import { MessageTemplatesModal } from './MessageTemplatesModal';
+import { TemplateKey } from '../services/templateService';
 import { useToast } from '../context/ToastContext';
 import { useLockBodyScroll } from '../hooks/useLockBodyScroll';
 import { PdfGeneratingOverlay } from './PdfGeneratingOverlay';
@@ -41,7 +43,17 @@ export const ShareQuotationModal: React.FC<Props> = ({
   const [copied, setCopied] = useState<boolean>(false);
   const [reminderCopied, setReminderCopied] = useState<boolean>(false);
   const [isGatePassOpen, setIsGatePassOpen] = useState<boolean>(false);
+  const [isTemplateModalOpen, setIsTemplateModalOpen] = useState<boolean>(false);
+  const [selectedTemplateTab, setSelectedTemplateTab] = useState<TemplateKey>('simpleTextBreakdown');
+  const [templateVersion, setTemplateVersion] = useState<number>(0);
   const cancelPdfRef = useRef(false);
+
+  // Listen to template updates so preview re-renders instantly
+  React.useEffect(() => {
+    const handleUpdate = () => setTemplateVersion(v => v + 1);
+    window.addEventListener('tisha_templates_updated', handleUpdate);
+    return () => window.removeEventListener('tisha_templates_updated', handleUpdate);
+  }, []);
 
   const handleCancelPdf = () => {
     cancelPdfRef.current = true;
@@ -335,7 +347,21 @@ export const ShareQuotationModal: React.FC<Props> = ({
                 <MessageSquare size={18} />
               </div>
               <div className="flex-1 min-w-0">
-                <h4 className="font-extrabold text-sm text-slate-900">Simple Text Breakdown</h4>
+                <div className="flex items-center justify-between gap-2 flex-wrap">
+                  <h4 className="font-extrabold text-sm text-slate-900">Simple Text Breakdown</h4>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setSelectedTemplateTab('simpleTextBreakdown');
+                      setIsTemplateModalOpen(true);
+                    }}
+                    className="inline-flex items-center gap-1 text-[11px] font-bold text-emerald-700 hover:text-emerald-800 bg-emerald-100 hover:bg-emerald-200/80 px-2 py-0.5 rounded-md transition-all cursor-pointer active:scale-95"
+                    title="Customize Simple Text Breakdown template"
+                  >
+                    <Sliders size={11} />
+                    <span>Manage Template</span>
+                  </button>
+                </div>
                 <p className="text-xs text-slate-600 mt-0.5 leading-relaxed">
                   Instant message with line items, setup scope, pricing summary, and bank/UPI details directly in WhatsApp chat text.
                 </p>
@@ -371,11 +397,25 @@ export const ShareQuotationModal: React.FC<Props> = ({
                 <Bell size={18} />
               </div>
               <div className="flex-1 min-w-0">
-                <div className="flex items-center gap-1.5 flex-wrap">
-                  <h4 className="font-extrabold text-sm text-slate-900">Follow-Up &amp; Booking Reminder</h4>
-                  <span className={`text-[9px] font-bold px-1.5 py-0.5 rounded-full border ${expiry.badgeClass}`}>
-                    {expiry.label}
-                  </span>
+                <div className="flex items-center justify-between gap-2 flex-wrap">
+                  <div className="flex items-center gap-1.5 flex-wrap">
+                    <h4 className="font-extrabold text-sm text-slate-900">Follow-Up &amp; Booking Reminder</h4>
+                    <span className={`text-[9px] font-bold px-1.5 py-0.5 rounded-full border ${expiry.badgeClass}`}>
+                      {expiry.label}
+                    </span>
+                  </div>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setSelectedTemplateTab('followUpReminder');
+                      setIsTemplateModalOpen(true);
+                    }}
+                    className="inline-flex items-center gap-1 text-[11px] font-bold text-amber-800 hover:text-amber-900 bg-amber-100 hover:bg-amber-200/80 px-2 py-0.5 rounded-md transition-all cursor-pointer active:scale-95"
+                    title="Customize Follow-Up & Booking Reminder template"
+                  >
+                    <Sliders size={11} />
+                    <span>Manage Template</span>
+                  </button>
                 </div>
                 <p className="text-xs text-slate-600 mt-0.5 leading-relaxed">
                   Send polite follow-up checking booking decision before quotation expiry to lock screen inventory.
@@ -515,11 +555,25 @@ export const ShareQuotationModal: React.FC<Props> = ({
                   <Clock size={18} />
                 </div>
                 <div className="flex-1 min-w-0">
-                  <div className="flex items-center gap-1.5 flex-wrap">
-                    <h4 className="font-extrabold text-sm text-slate-900">Balance Payment Reminder (T-24h)</h4>
-                    <span className="text-[9px] font-extrabold px-1.5 py-0.2 rounded bg-rose-600 text-white uppercase tracking-wider">
-                      Due: ₹{Math.max(0, grandTotal - (quotation.paidAmount || 0)).toLocaleString('en-IN')}
-                    </span>
+                  <div className="flex items-center justify-between gap-2 flex-wrap">
+                    <div className="flex items-center gap-1.5 flex-wrap">
+                      <h4 className="font-extrabold text-sm text-slate-900">Balance Payment Reminder (T-24h)</h4>
+                      <span className="text-[9px] font-extrabold px-1.5 py-0.2 rounded bg-rose-600 text-white uppercase tracking-wider">
+                        Due: ₹{Math.max(0, grandTotal - (quotation.paidAmount || 0)).toLocaleString('en-IN')}
+                      </span>
+                    </div>
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setSelectedTemplateTab('balancePaymentReminder');
+                        setIsTemplateModalOpen(true);
+                      }}
+                      className="inline-flex items-center gap-1 text-[11px] font-bold text-rose-800 hover:text-rose-900 bg-rose-100 hover:bg-rose-200/80 px-2 py-0.5 rounded-md transition-all cursor-pointer active:scale-95"
+                      title="Customize Balance Payment Reminder template"
+                    >
+                      <Sliders size={11} />
+                      <span>Manage Template</span>
+                    </button>
                   </div>
                   <p className="text-xs text-slate-600 mt-0.5 leading-relaxed">
                     Polite milestone reminder for upcoming event setup, alerting client to clear outstanding balance with UPI details.
@@ -598,11 +652,24 @@ export const ShareQuotationModal: React.FC<Props> = ({
         </div>
 
         {/* Modal Footer */}
-        <div className="p-3 sm:p-4 border-t border-slate-100 bg-slate-50/80 flex items-center justify-end">
+        <div className="p-3 sm:p-4 border-t border-slate-100 bg-slate-50/80 flex items-center justify-between gap-2">
+          <button
+            type="button"
+            onClick={() => {
+              setSelectedTemplateTab('simpleTextBreakdown');
+              setIsTemplateModalOpen(true);
+            }}
+            className="inline-flex items-center gap-1.5 text-xs font-bold text-slate-700 hover:text-emerald-700 bg-white hover:bg-emerald-50 border border-slate-200 hover:border-emerald-300 px-3 py-2 rounded-xl transition-all cursor-pointer shadow-xs active:scale-95"
+            title="Manage all 3 WhatsApp templates"
+          >
+            <Sliders size={13} className="text-emerald-600" />
+            <span>Customize Message Templates</span>
+          </button>
+
           <button
             type="button"
             onClick={onClose}
-            className="px-4 py-2 text-xs font-bold text-slate-600 hover:text-slate-800 hover:bg-slate-200/60 rounded-lg transition-colors"
+            className="px-4 py-2 text-xs font-bold text-slate-600 hover:text-slate-800 hover:bg-slate-200/60 rounded-xl transition-colors cursor-pointer"
           >
             Close
           </button>
@@ -615,6 +682,16 @@ export const ShareQuotationModal: React.FC<Props> = ({
           isOpen={isGatePassOpen}
           onClose={() => setIsGatePassOpen(false)}
           quotation={quotation}
+        />
+      )}
+
+      {/* Message Templates Manager Modal */}
+      {isTemplateModalOpen && (
+        <MessageTemplatesModal
+          isOpen={isTemplateModalOpen}
+          onClose={() => setIsTemplateModalOpen(false)}
+          initialTab={selectedTemplateTab}
+          sampleQuotation={quotation}
         />
       )}
 

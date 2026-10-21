@@ -296,7 +296,7 @@ export const DeliveryChallanModal: React.FC<Props> = ({ isOpen, onClose, quotati
 
   return (
     <div className="fixed inset-0 z-50 bg-slate-900/60 backdrop-blur-xs flex items-center justify-center p-3 sm:p-4 overflow-y-auto">
-      <div className="bg-white rounded-2xl shadow-2xl border border-slate-200 w-full max-w-3xl my-8 overflow-hidden flex flex-col max-h-[90vh]">
+      <div className="bg-white text-slate-900 rounded-2xl shadow-2xl border border-slate-200 w-full max-w-3xl my-8 overflow-hidden flex flex-col max-h-[90vh]">
         {/* Header */}
         <div className="p-4 sm:p-5 bg-gradient-to-r from-slate-900 to-slate-800 text-white flex items-center justify-between">
           <div className="flex items-center gap-3">
@@ -317,7 +317,7 @@ export const DeliveryChallanModal: React.FC<Props> = ({ isOpen, onClose, quotati
         </div>
 
         {/* Content Body */}
-        <div className="p-4 sm:p-6 space-y-6 overflow-y-auto flex-1">
+        <div className="p-4 sm:p-6 space-y-6 overflow-y-auto flex-1 text-slate-900">
           {/* Top Config Row */}
           <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
             <div>
@@ -326,7 +326,7 @@ export const DeliveryChallanModal: React.FC<Props> = ({ isOpen, onClose, quotati
                 type="text"
                 value={challanNumber}
                 onChange={(e) => setChallanNumber(e.target.value)}
-                className="w-full text-xs font-semibold px-3 py-2 rounded-lg border border-slate-300 focus:outline-none focus:border-blue-500"
+                className="w-full text-xs font-semibold px-3 py-2 rounded-lg border border-slate-300 bg-white text-slate-900 placeholder:text-slate-400 focus:outline-none focus:border-blue-600 focus:ring-1 focus:ring-blue-500/20"
               />
             </div>
 
@@ -335,7 +335,7 @@ export const DeliveryChallanModal: React.FC<Props> = ({ isOpen, onClose, quotati
               <select
                 value={passType}
                 onChange={(e) => setPassType(e.target.value as any)}
-                className="w-full text-xs font-semibold px-3 py-2 rounded-lg border border-slate-300 focus:outline-none focus:border-blue-500 bg-white"
+                className="w-full text-xs font-semibold px-3 py-2 rounded-lg border border-slate-300 bg-white text-slate-900 focus:outline-none focus:border-blue-600 focus:ring-1 focus:ring-blue-500/20"
               >
                 <option value="Returnable Gate Pass">Returnable Gate Pass</option>
                 <option value="Non-Returnable Delivery Challan">Non-Returnable Delivery Challan</option>
@@ -348,7 +348,7 @@ export const DeliveryChallanModal: React.FC<Props> = ({ isOpen, onClose, quotati
                 type="date"
                 value={dispatchDate}
                 onChange={(e) => setDispatchDate(e.target.value)}
-                className="w-full text-xs font-semibold px-3 py-2 rounded-lg border border-slate-300 focus:outline-none focus:border-blue-500"
+                className="w-full text-xs font-semibold px-3 py-2 rounded-lg border border-slate-300 bg-white text-slate-900 focus:outline-none focus:border-blue-600 focus:ring-1 focus:ring-blue-500/20"
               />
             </div>
           </div>
@@ -368,7 +368,7 @@ export const DeliveryChallanModal: React.FC<Props> = ({ isOpen, onClose, quotati
                   placeholder="e.g. DL 1L AA 1234"
                   value={vehicleNumber}
                   onChange={(e) => setVehicleNumber(e.target.value)}
-                  className="w-full text-xs px-3 py-1.5 rounded-lg border border-slate-300 bg-white"
+                  className="w-full text-xs px-3 py-1.5 rounded-lg border border-slate-300 bg-white text-slate-900 placeholder:text-slate-400 font-medium focus:outline-none focus:border-blue-600 focus:ring-1 focus:ring-blue-500/20"
                 />
               </div>
 
@@ -379,7 +379,7 @@ export const DeliveryChallanModal: React.FC<Props> = ({ isOpen, onClose, quotati
                   placeholder="Hotel / Convention Center Name"
                   value={venue}
                   onChange={(e) => setVenue(e.target.value)}
-                  className="w-full text-xs px-3 py-1.5 rounded-lg border border-slate-300 bg-white"
+                  className="w-full text-xs px-3 py-1.5 rounded-lg border border-slate-300 bg-white text-slate-900 placeholder:text-slate-400 font-medium focus:outline-none focus:border-blue-600 focus:ring-1 focus:ring-blue-500/20"
                 />
               </div>
 
@@ -391,14 +391,14 @@ export const DeliveryChallanModal: React.FC<Props> = ({ isOpen, onClose, quotati
                     placeholder="Driver Name"
                     value={driverName}
                     onChange={(e) => setDriverName(e.target.value)}
-                    className="flex-1 text-xs px-3 py-1.5 rounded-lg border border-slate-300 bg-white"
+                    className="flex-1 text-xs px-3 py-1.5 rounded-lg border border-slate-300 bg-white text-slate-900 placeholder:text-slate-400 font-medium focus:outline-none focus:border-blue-600 focus:ring-1 focus:ring-blue-500/20"
                   />
                   <input
                     type="text"
                     placeholder="Mobile #"
                     value={driverPhone}
                     onChange={(e) => setDriverPhone(e.target.value)}
-                    className="w-32 text-xs px-3 py-1.5 rounded-lg border border-slate-300 bg-white"
+                    className="w-32 text-xs px-3 py-1.5 rounded-lg border border-slate-300 bg-white text-slate-900 placeholder:text-slate-400 font-medium focus:outline-none focus:border-blue-600 focus:ring-1 focus:ring-blue-500/20"
                   />
                 </div>
               </div>
@@ -411,14 +411,14 @@ export const DeliveryChallanModal: React.FC<Props> = ({ isOpen, onClose, quotati
                     placeholder="Technician Name"
                     value={technicianName}
                     onChange={(e) => setTechnicianName(e.target.value)}
-                    className="flex-1 text-xs px-3 py-1.5 rounded-lg border border-slate-300 bg-white"
+                    className="flex-1 text-xs px-3 py-1.5 rounded-lg border border-slate-300 bg-white text-slate-900 placeholder:text-slate-400 font-medium focus:outline-none focus:border-blue-600 focus:ring-1 focus:ring-blue-500/20"
                   />
                   <input
                     type="text"
                     placeholder="Mobile #"
                     value={technicianPhone}
                     onChange={(e) => setTechnicianPhone(e.target.value)}
-                    className="w-32 text-xs px-3 py-1.5 rounded-lg border border-slate-300 bg-white"
+                    className="w-32 text-xs px-3 py-1.5 rounded-lg border border-slate-300 bg-white text-slate-900 placeholder:text-slate-400 font-medium focus:outline-none focus:border-blue-600 focus:ring-1 focus:ring-blue-500/20"
                   />
                 </div>
               </div>
@@ -442,7 +442,7 @@ export const DeliveryChallanModal: React.FC<Props> = ({ isOpen, onClose, quotati
               </button>
             </div>
 
-            <div className="border border-slate-200 rounded-xl overflow-hidden">
+            <div className="border border-slate-200 rounded-xl overflow-hidden bg-white">
               <table className="w-full text-xs text-left border-collapse">
                 <thead className="bg-slate-100 text-slate-700 font-bold border-b border-slate-200">
                   <tr>
@@ -453,7 +453,7 @@ export const DeliveryChallanModal: React.FC<Props> = ({ isOpen, onClose, quotati
                     <th className="p-2.5 w-10 text-center"></th>
                   </tr>
                 </thead>
-                <tbody className="divide-y divide-slate-200">
+                <tbody className="divide-y divide-slate-200 bg-white">
                   {equipmentList.map((item) => (
                     <tr key={item.id} className="hover:bg-slate-50/60">
                       <td className="p-2">
@@ -461,7 +461,7 @@ export const DeliveryChallanModal: React.FC<Props> = ({ isOpen, onClose, quotati
                           type="text"
                           value={item.description}
                           onChange={(e) => handleItemChange(item.id, 'description', e.target.value)}
-                          className="w-full px-2 py-1 rounded border border-slate-200 font-medium"
+                          className="w-full px-2.5 py-1.5 rounded border border-slate-300 font-medium text-slate-900 bg-white placeholder:text-slate-400 focus:outline-none focus:border-blue-600"
                           placeholder="Description of item"
                         />
                       </td>
@@ -470,7 +470,7 @@ export const DeliveryChallanModal: React.FC<Props> = ({ isOpen, onClose, quotati
                           type="number"
                           value={item.quantity}
                           onChange={(e) => handleItemChange(item.id, 'quantity', e.target.value)}
-                          className="w-full px-2 py-1 rounded border border-slate-200 text-center font-bold"
+                          className="w-full px-2 py-1.5 rounded border border-slate-300 text-center font-bold text-slate-900 bg-white focus:outline-none focus:border-blue-600"
                           min="1"
                         />
                       </td>
@@ -479,7 +479,7 @@ export const DeliveryChallanModal: React.FC<Props> = ({ isOpen, onClose, quotati
                           type="text"
                           value={item.unit}
                           onChange={(e) => handleItemChange(item.id, 'unit', e.target.value)}
-                          className="w-full px-2 py-1 rounded border border-slate-200"
+                          className="w-full px-2 py-1.5 rounded border border-slate-300 text-slate-900 bg-white font-medium focus:outline-none focus:border-blue-600"
                         />
                       </td>
                       <td className="p-2">
@@ -487,7 +487,7 @@ export const DeliveryChallanModal: React.FC<Props> = ({ isOpen, onClose, quotati
                           type="text"
                           value={item.remarks}
                           onChange={(e) => handleItemChange(item.id, 'remarks', e.target.value)}
-                          className="w-full px-2 py-1 rounded border border-slate-200 text-slate-600"
+                          className="w-full px-2 py-1.5 rounded border border-slate-300 text-slate-900 bg-white font-medium placeholder:text-slate-400 focus:outline-none focus:border-blue-600"
                           placeholder="Flight cases, cables, etc."
                         />
                       </td>

@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { X, Building2, Save, Image as ImageIcon, CreditCard, Download, Upload, Cloud, HardDrive, CheckCircle2, RefreshCw, AlertCircle, Trash2, PenTool, Package } from 'lucide-react';
+import { X, Building2, Save, Image as ImageIcon, CreditCard, Download, Upload, Cloud, HardDrive, CheckCircle2, RefreshCw, AlertCircle, Trash2, PenTool, Package, Lock, MessageSquare, Sliders } from 'lucide-react';
 import { CompanyProfile } from '../types/quotation';
 import { storage } from '../services/storage';
 import { DEFAULT_COMPANY } from '../config/defaults';
@@ -7,8 +7,8 @@ import { isSupabaseConfigured } from '../services/supabaseClient';
 import { cloudSync } from '../services/cloudSync';
 import { useToast, useConfirm } from '../context/ToastContext';
 import { useAuth } from '../context/AuthContext';
-import { Lock } from 'lucide-react';
 import { CompanyStampModal } from './CompanyStampModal';
+import { MessageTemplatesModal } from './MessageTemplatesModal';
 import { useLockBodyScroll } from '../hooks/useLockBodyScroll';
 
 interface Props {
@@ -49,6 +49,7 @@ export const CompanySettingsModal: React.FC<Props> = ({
   const [profile, setProfile] = useState<CompanyProfile>(() => ensureCompanyProfile(company));
   const [isSaving, setIsSaving] = useState(false);
   const [isStampModalOpen, setIsStampModalOpen] = useState(false);
+  const [isTemplatesModalOpen, setIsTemplatesModalOpen] = useState(false);
   const [testingConn, setTestingConn] = useState(false);
   const [testResult, setTestResult] = useState<{ success: boolean; message: string; tableReady?: boolean } | null>(null);
 
@@ -436,6 +437,28 @@ export const CompanySettingsModal: React.FC<Props> = ({
             </div>
           </div>
 
+          {/* WhatsApp & Portal Message Templates */}
+          <div className="bg-slate-50/80 p-4 rounded-xl border border-slate-200/80 space-y-3">
+            <div className="flex items-center justify-between flex-wrap gap-2">
+              <div className="flex items-center gap-2 text-xs font-bold text-slate-700 uppercase tracking-wider">
+                <MessageSquare size={16} className="text-emerald-600" />
+                <span>WhatsApp Message Templates</span>
+              </div>
+              <button
+                type="button"
+                onClick={() => setIsTemplatesModalOpen(true)}
+                className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-emerald-600 hover:bg-emerald-700 active:scale-95 text-white rounded-lg text-xs font-bold transition-all shadow-xs cursor-pointer"
+              >
+                <Sliders size={13} />
+                <span>Manage Templates</span>
+              </button>
+            </div>
+
+            <p className="text-[11px] text-slate-500 leading-relaxed">
+              Customize text breakdown, follow-up booking reminders, and 24h balance payment reminder templates with dynamic variables.
+            </p>
+          </div>
+
           {/* Database & Cloud Sync Section */}
           <div className="bg-slate-50/80 p-4 rounded-xl border border-slate-200/80 space-y-3">
             <div className="flex items-center justify-between">
@@ -612,6 +635,13 @@ export const CompanySettingsModal: React.FC<Props> = ({
         existingStamp={profile.signature}
         companyName={profile.name}
       />
+
+      {isTemplatesModalOpen && (
+        <MessageTemplatesModal
+          isOpen={isTemplatesModalOpen}
+          onClose={() => setIsTemplatesModalOpen(false)}
+        />
+      )}
     </div>
   );
 };
