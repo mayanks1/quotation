@@ -23,7 +23,8 @@ import { PaymentReceiptModal } from '../components/PaymentReceiptModal';
 import { storage } from '../services/storage';
 import { PaymentReceipt } from '../types/receipt';
 import { OFFICIAL_TISHA_STAMP } from '../config/officialStamp';
-import { RefreshCw, Calendar, Check, ChevronDown, FileSpreadsheet } from 'lucide-react';
+import { RefreshCw, Calendar, Check, ChevronDown, FileSpreadsheet, Plus } from 'lucide-react';
+import { DraggableFab } from '../components/DraggableFab';
 import '../components/ledger/ledger.css';
 
 const MONTH_NAMES = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
@@ -579,6 +580,20 @@ export const PaymentLedgerPage: React.FC = () => {
                 <RefreshCw size={13} className={isRefreshing ? 'animate-spin text-emerald-400' : 'text-neutral-400 shrink-0'} />
                 <span>{isRefreshing ? 'Syncing...' : 'Sync Sheet'}</span>
               </button>
+
+              {/* Add New Entry Button (Desktop / Tablet) */}
+              <button
+                type="button"
+                onClick={() => {
+                  setEditingRecord(null);
+                  setIsModalOpen(true);
+                }}
+                className="hidden sm:inline-flex items-center justify-center gap-1.5 px-3.5 py-2 bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-500 hover:to-teal-500 border border-emerald-400/40 text-xs font-bold rounded-xl text-white shadow-[0_0_15px_rgba(16,185,129,0.3)] transition-all cursor-pointer active:scale-95 shrink-0 whitespace-nowrap"
+                title="Create New Ledger Record"
+              >
+                <Plus size={14} className="stroke-[2.5] shrink-0" />
+                <span>New Entry</span>
+              </button>
             </div>
 
           </div>
@@ -673,6 +688,16 @@ export const PaymentLedgerPage: React.FC = () => {
             initialReceipt={receiptModalData}
           />
         )}
+
+        {/* Draggable Floating Action Button (FAB) for adding new ledger entry */}
+        <DraggableFab
+          onClick={() => {
+            setEditingRecord(null);
+            setIsModalOpen(true);
+          }}
+          label="New Entry"
+          title="Add New Ledger Entry (Drag to move anywhere)"
+        />
       </div>
     </div>
   );
