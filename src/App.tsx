@@ -217,7 +217,7 @@ export function App() {
       <Route
         element={
           <ProtectedRoute>
-            <div className={`min-h-screen ${location.pathname.startsWith('/ledger') ? 'bg-[#070a13]' : 'bg-slate-100'} flex flex-col font-sans`}>
+            <div className="min-h-screen bg-[#070a13] text-slate-100 flex flex-col font-sans transition-colors duration-300">
               <HeaderNav
                 onOpenSettings={() => setIsSettingsOpen(true)}
                 onOpenCatalog={() => setIsCatalogOpen(true)}
