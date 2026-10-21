@@ -2,6 +2,7 @@ import React, { useRef, useState, useEffect } from 'react';
 import { X, Check, RotateCcw, Upload, Trash2, PenTool, Building2, Sparkles, CheckCircle2, ShieldCheck } from 'lucide-react';
 import { OFFICIAL_TISHA_STAMP } from '../config/officialStamp';
 import { compositeDrawnStampDataUrl } from '../utils/generateStampPng';
+import { useLockBodyScroll } from '../hooks/useLockBodyScroll';
 
 interface Props {
   isOpen: boolean;
@@ -18,6 +19,7 @@ export const CompanyStampModal: React.FC<Props> = ({
   existingStamp = '',
   companyName = 'Tisha LED Walls',
 }) => {
+  useLockBodyScroll(isOpen);
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const [activeTab, setActiveTab] = useState<'draw' | 'default' | 'upload'>('draw');
   const [isDrawing, setIsDrawing] = useState(false);

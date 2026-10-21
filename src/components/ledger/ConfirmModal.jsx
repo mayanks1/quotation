@@ -1,5 +1,6 @@
 import React, { useEffect } from 'react';
 import { Trash2, AlertTriangle, X, Calendar, IndianRupee, Tv, FileText } from 'lucide-react';
+import { useLockBodyScroll } from '../../hooks/useLockBodyScroll';
 
 export default function ConfirmModal({
   isOpen,
@@ -8,6 +9,7 @@ export default function ConfirmModal({
   record,
   isDeleting = false
 }) {
+  useLockBodyScroll(isOpen);
   // Handle keyboard shortcuts (Escape = close, Enter = confirm)
   useEffect(() => {
     if (!isOpen) return;

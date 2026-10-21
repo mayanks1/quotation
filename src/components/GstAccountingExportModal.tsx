@@ -19,6 +19,7 @@ import {
 } from '../services/accountingExport';
 import { calculateQuotationTotals } from '../utils/receiptHelper';
 import { parseDateStr } from '../utils/quotationExpiry';
+import { useLockBodyScroll } from '../hooks/useLockBodyScroll';
 
 interface Props {
   isOpen: boolean;
@@ -34,6 +35,7 @@ export const GstAccountingExportModal: React.FC<Props> = ({
   onClose,
   quotations,
 }) => {
+  useLockBodyScroll(isOpen);
   const [period, setPeriod] = useState<PeriodOption>('all');
   const [docFilter, setDocFilter] = useState<DocFilterOption>('all');
   const [fromDate, setFromDate] = useState<string>('');

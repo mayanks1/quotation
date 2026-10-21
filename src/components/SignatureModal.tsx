@@ -1,6 +1,7 @@
 import React, { useRef, useState, useEffect } from 'react';
 import { X, Check, RotateCcw, Upload, Trash2, PenTool } from 'lucide-react';
 import { ClientSignature } from '../types/quotation';
+import { useLockBodyScroll } from '../hooks/useLockBodyScroll';
 
 interface Props {
   isOpen: boolean;
@@ -19,6 +20,7 @@ export const SignatureModal: React.FC<Props> = ({
   clientName = '',
   clientPhone = '',
 }) => {
+  useLockBodyScroll(isOpen);
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const [isDrawing, setIsDrawing] = useState(false);
   const [hasDrawn, setHasDrawn] = useState(false);

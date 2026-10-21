@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { X, Save, Trash2, Calendar, User, Maximize2, IndianRupee, PieChart, FileText, AlertCircle } from 'lucide-react';
+import { useLockBodyScroll } from '../../hooks/useLockBodyScroll';
 
 export default function RecordModal({
   isOpen,
@@ -9,6 +10,7 @@ export default function RecordModal({
   initialData,
   isSaving
 }) {
+  useLockBodyScroll(isOpen);
   const [formData, setFormData] = useState({
     date: '',
     client: '',

@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { X, Save, Trash2, StickyNote, Calendar, User, IndianRupee, Sparkles } from 'lucide-react';
+import { useLockBodyScroll } from '../../hooks/useLockBodyScroll';
 
 const QUICK_SUGGESTIONS = [
   'Advance Paid via UPI',
@@ -17,6 +18,7 @@ export default function NoteModal({
   onSaveNote,
   isSaving
 }) {
+  useLockBodyScroll(isOpen);
   const [noteText, setNoteText] = useState('');
 
   useEffect(() => {

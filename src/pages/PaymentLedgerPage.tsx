@@ -23,7 +23,7 @@ import { PaymentReceiptModal } from '../components/PaymentReceiptModal';
 import { storage } from '../services/storage';
 import { PaymentReceipt } from '../types/receipt';
 import { OFFICIAL_TISHA_STAMP } from '../config/officialStamp';
-import { Plus, RefreshCw, Calendar, Check, ChevronDown, FileSpreadsheet } from 'lucide-react';
+import { RefreshCw, Calendar, Check, ChevronDown, FileSpreadsheet } from 'lucide-react';
 import '../components/ledger/ledger.css';
 
 const MONTH_NAMES = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
@@ -392,6 +392,9 @@ export const PaymentLedgerPage: React.FC = () => {
     let clientPhone = '';
     let clientEmail = '';
     let clientAddress = '';
+    let matchedQuoteNumber = '';
+    let matchedQuoteId = '';
+
     try {
       const allClients = storage.getClients?.() || [];
       const foundClient = allClients.find(
@@ -401,25 +404,40 @@ export const PaymentLedgerPage: React.FC = () => {
         clientPhone = foundClient.phone || '';
         clientEmail = foundClient.email || '';
         clientAddress = foundClient.address || '';
-      } else {
-        const quotes = storage.getAllQuotations?.() || [];
-        const foundQuote = quotes.find(
-          (q: any) => q.client?.name?.toLowerCase() === record.client.toLowerCase() || q.client?.company?.toLowerCase() === record.client.toLowerCase()
-        );
-        if (foundQuote && foundQuote.client?.phone) {
-          clientPhone = foundQuote.client.phone;
-          clientEmail = foundQuote.client.email || '';
-          clientAddress = foundQuote.client.address || '';
-        }
       }
-    } catch (e) {}
+
+      const quotes = storage.getAllQuotations?.() || [];
+      const foundQuote = quotes.find(
+        (q: any) => q.client?.name?.toLowerCase() === record.client.toLowerCase() || q.client?.company?.toLowerCase() === record.client.toLowerCase()
+      );
+      if (foundQuote) {
+        if (!clientPhone && foundQuote.client?.phone) clientPhone = foundQuote.client.phone;
+        if (!clientEmail && foundQuote.client?.email) clientEmail = foundQuote.client.email || '';
+        if (!clientAddress && foundQuote.client?.address) clientAddress = foundQuote.client.address || '';
+        matchedQuoteNumber = foundQuote.quotationNumber || '';
+        matchedQuoteId = foundQuote.id || '';
+      }
+    } catch (e) { }
+
+    const effectiveCompany = company ? {
+      ...company,
+      signature: company.signature || OFFICIAL_TISHA_STAMP,
+      stampUrl: company.signature || (company as any).stampUrl || OFFICIAL_TISHA_STAMP,
+    } : {
+      name: 'Tisha LED Walls',
+      address: 'Plot No 183, near Parshuram Bhavan, Jharsa, Sector 39, Gurugram, Haryana 122001',
+      phone: '+91 7703948857',
+      email: 'tishaledwalls@gmail.com',
+      signature: OFFICIAL_TISHA_STAMP,
+      stampUrl: OFFICIAL_TISHA_STAMP,
+    };
 
     const rec: PaymentReceipt = {
       id: `rec-${Date.now()}`,
       receiptNumber: receiptNum,
       receiptDate: record.date ? (parseDate(record.date).toISOString().split('T')[0] || new Date().toISOString().split('T')[0]) : new Date().toISOString().split('T')[0],
-      quotationId: record.id,
-      quotationNumber: record.id,
+      quotationId: matchedQuoteId || record.id,
+      quotationNumber: matchedQuoteNumber,
       client: {
         name: record.client,
         company: record.client,
@@ -427,13 +445,7 @@ export const PaymentLedgerPage: React.FC = () => {
         email: clientEmail,
         address: clientAddress,
       },
-      company: company || {
-        name: 'Tisha LED Walls',
-        address: 'Gurugram, Haryana',
-        phone: '+91 97166 81122',
-        email: 'info@tishaledwalls.com',
-        stampUrl: OFFICIAL_TISHA_STAMP,
-      },
+      company: effectiveCompany as any,
       amountPaid,
       paymentMode: 'bank_transfer',
       paymentMilestone: record.status === 'Received' ? 'full' : (amountPaid > 0 ? 'partial' : 'advance'),
@@ -451,41 +463,43 @@ export const PaymentLedgerPage: React.FC = () => {
     <div className="ledger-module">
       <div className="app-shell">
         {/* Ledger Top Sub-header Toolbar */}
-        <div className="border-b border-neutral-800 bg-neutral-900/60 backdrop-blur-md px-3 sm:px-6 py-3 relative z-30">
-          <div className="max-w-7xl mx-auto flex flex-wrap items-center justify-between gap-3">
+        <div className="border-b border-neutral-800 bg-neutral-900/60 backdrop-blur-md px-3.5 sm:px-6 py-3 relative z-30">
+          <div className="max-w-7xl mx-auto flex flex-col sm:flex-row sm:items-center justify-between gap-3 sm:gap-4">
 
             {/* Title & Live Status */}
-            <div className="flex items-center gap-3">
-              <div className="p-2 bg-emerald-500/10 border border-emerald-500/20 rounded-xl text-emerald-400">
+            <div className="flex items-start sm:items-center gap-3">
+              <div className="p-2 sm:p-2.5 bg-emerald-500/10 border border-emerald-500/20 rounded-xl text-emerald-400 shrink-0 mt-0.5 sm:mt-0 shadow-xs">
                 <FileSpreadsheet size={20} />
               </div>
-              <div>
-                <div className="flex items-center gap-2">
-                  <h2 className="text-base font-bold text-white tracking-tight">Payment Ledger &amp; Operations</h2>
-                  <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-emerald-500/20 text-emerald-300 border border-emerald-500/30 flex items-center gap-1">
+              <div className="min-w-0 flex-1">
+                <div className="flex flex-wrap items-center gap-2">
+                  <h2 className="text-sm sm:text-base font-bold text-white tracking-tight">
+                    Payment Ledger &amp; Operations
+                  </h2>
+                  <span className="text-[9.5px] sm:text-[10px] font-bold px-2 py-0.5 rounded-full bg-emerald-500/20 text-emerald-300 border border-emerald-500/30 inline-flex items-center gap-1 shrink-0 whitespace-nowrap">
                     <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse"></span>
                     Live Google Sheet Sync
                   </span>
                 </div>
-                <p className="text-xs text-neutral-400">
+                <p className="text-[11px] sm:text-xs text-neutral-400 mt-0.5 leading-snug">
                   Real-time event rentals, payments, partial amounts &amp; dues
                 </p>
               </div>
             </div>
 
-            {/* Actions: Year Filter, Refresh, Add Record */}
-            <div className="flex items-center gap-2.5">
+            {/* Actions: Year Filter, Ledger Export, Sync Sheet */}
+            <div className="flex items-center gap-2 w-full sm:w-auto pt-1 sm:pt-0 border-t border-neutral-800/80 sm:border-t-0">
               {/* Year Dropdown */}
               {allYears && allYears.length > 0 && (
-                <div className="relative" ref={yearDropdownRef}>
+                <div className="relative shrink-0" ref={yearDropdownRef}>
                   <button
                     type="button"
                     onClick={() => setIsYearDropdownOpen(!isYearDropdownOpen)}
-                    className="flex items-center gap-2 px-3.5 py-2 bg-neutral-900 hover:bg-neutral-800 border border-neutral-700/80 text-xs font-bold rounded-xl text-white transition-all shadow-sm cursor-pointer select-none"
+                    className="flex items-center gap-1.5 px-3 py-2 bg-neutral-900 hover:bg-neutral-800 border border-neutral-700/80 text-xs font-bold rounded-xl text-white transition-all shadow-xs cursor-pointer select-none active:scale-95 whitespace-nowrap"
                   >
-                    <Calendar size={13} className="text-blue-400" />
+                    <Calendar size={13} className="text-blue-400 shrink-0" />
                     <span>{selectedYear === 'all' ? 'All Years' : `Year ${selectedYear}`}</span>
-                    <ChevronDown size={13} className={`text-neutral-400 transition-transform duration-200 ${isYearDropdownOpen ? 'rotate-180 text-blue-400' : ''}`} />
+                    <ChevronDown size={13} className={`text-neutral-400 transition-transform duration-200 shrink-0 ${isYearDropdownOpen ? 'rotate-180 text-blue-400' : ''}`} />
                   </button>
 
                   {isYearDropdownOpen && (
@@ -509,11 +523,10 @@ export const PaymentLedgerPage: React.FC = () => {
                             setSelectedYear('all');
                             setIsYearDropdownOpen(false);
                           }}
-                          className={`w-full text-left px-3 py-2 text-xs font-semibold rounded-lg flex items-center justify-between transition-colors cursor-pointer ${
-                            selectedYear === 'all'
-                              ? 'bg-blue-600 text-white font-bold shadow-sm'
-                              : 'text-slate-300 hover:text-white hover:bg-slate-800/80'
-                          }`}
+                          className={`w-full text-left px-3 py-2 text-xs font-semibold rounded-lg flex items-center justify-between transition-colors cursor-pointer ${selectedYear === 'all'
+                            ? 'bg-blue-600 text-white font-bold shadow-sm'
+                            : 'text-slate-300 hover:text-white hover:bg-slate-800/80'
+                            }`}
                         >
                           <span>All Years</span>
                           {selectedYear === 'all' && <Check size={13} className="text-white" />}
@@ -528,11 +541,10 @@ export const PaymentLedgerPage: React.FC = () => {
                                 setSelectedYear(String(yr));
                                 setIsYearDropdownOpen(false);
                               }}
-                              className={`w-full text-left px-3 py-2 text-xs font-semibold rounded-lg flex items-center justify-between transition-colors cursor-pointer ${
-                                isSelected
-                                  ? 'bg-blue-600 text-white font-bold shadow-sm'
-                                  : 'text-slate-300 hover:text-white hover:bg-slate-800/80'
-                              }`}
+                              className={`w-full text-left px-3 py-2 text-xs font-semibold rounded-lg flex items-center justify-between transition-colors cursor-pointer ${isSelected
+                                ? 'bg-blue-600 text-white font-bold shadow-sm'
+                                : 'text-slate-300 hover:text-white hover:bg-slate-800/80'
+                                }`}
                             >
                               <span>Year {yr}</span>
                               {isSelected && <Check size={13} className="text-white" />}
@@ -549,11 +561,11 @@ export const PaymentLedgerPage: React.FC = () => {
               <button
                 type="button"
                 onClick={() => setIsLedgerExportOpen(true)}
-                className="flex items-center gap-1.5 px-3 py-1.5 bg-neutral-800 hover:bg-neutral-700 border border-neutral-700 text-xs font-semibold rounded-lg text-emerald-400 hover:text-emerald-300 transition-all cursor-pointer"
+                className="flex items-center justify-center gap-1.5 px-3 py-2 bg-neutral-800/90 hover:bg-neutral-700 border border-neutral-700/80 text-xs font-semibold rounded-xl text-emerald-400 hover:text-emerald-300 transition-all cursor-pointer active:scale-95 shrink-0 whitespace-nowrap"
                 title="Export Collections Register (.csv) and Tally Prime Receipt Vouchers (.xml)"
               >
-                <FileSpreadsheet size={13} className="text-emerald-400" />
-                <span className="hidden sm:inline">Ledger &amp; Tally Export</span>
+                <FileSpreadsheet size={13} className="text-emerald-400 shrink-0" />
+                <span>Export</span>
               </button>
 
               {/* Sync / Refresh Button */}
@@ -561,24 +573,11 @@ export const PaymentLedgerPage: React.FC = () => {
                 type="button"
                 onClick={() => loadData(true)}
                 disabled={isRefreshing}
-                className="flex items-center gap-1.5 px-3 py-1.5 bg-neutral-800 hover:bg-neutral-700 border border-neutral-700 text-xs font-semibold rounded-lg text-neutral-200 hover:text-white transition-all disabled:opacity-50 cursor-pointer"
+                className="flex items-center justify-center gap-1.5 px-3 py-2 bg-neutral-800/90 hover:bg-neutral-700 border border-neutral-700/80 text-xs font-semibold rounded-xl text-neutral-200 hover:text-white transition-all disabled:opacity-50 cursor-pointer active:scale-95 shrink-0 whitespace-nowrap"
                 title="Sync live from Google Sheet"
               >
-                <RefreshCw size={13} className={isRefreshing ? 'animate-spin text-emerald-400' : 'text-neutral-400'} />
+                <RefreshCw size={13} className={isRefreshing ? 'animate-spin text-emerald-400' : 'text-neutral-400 shrink-0'} />
                 <span>{isRefreshing ? 'Syncing...' : 'Sync Sheet'}</span>
-              </button>
-
-              {/* Add Entry Button */}
-              <button
-                type="button"
-                onClick={() => {
-                  setEditingRecord(null);
-                  setIsModalOpen(true);
-                }}
-                className="flex items-center gap-1.5 px-3.5 py-1.5 bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-500 hover:to-teal-500 text-white text-xs font-bold rounded-lg shadow-lg shadow-emerald-900/30 transition-all cursor-pointer"
-              >
-                <Plus size={15} />
-                <span>New Entry</span>
               </button>
             </div>
 
@@ -674,20 +673,6 @@ export const PaymentLedgerPage: React.FC = () => {
             initialReceipt={receiptModalData}
           />
         )}
-
-        {/* Floating Action Button (FAB) for mobile - matches Screenshot 3 */}
-        <button
-          type="button"
-          onClick={() => {
-            setEditingRecord(null);
-            setIsModalOpen(true);
-          }}
-          title="New Entry"
-          aria-label="New Entry"
-          className="ledger-fab"
-        >
-          <Plus size={28} strokeWidth={2.5} />
-        </button>
       </div>
     </div>
   );

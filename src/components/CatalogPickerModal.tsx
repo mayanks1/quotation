@@ -3,6 +3,7 @@ import { X, Search, Plus, Check, Trash2, Tag, Layers, ChevronDown, ChevronUp, Ed
 import { CatalogItem, LineItem } from '../types/quotation';
 import { storage } from '../services/storage';
 import { useToast, useConfirm } from '../context/ToastContext';
+import { useLockBodyScroll } from '../hooks/useLockBodyScroll';
 
 interface Props {
   isOpen: boolean;
@@ -17,6 +18,7 @@ export const CatalogPickerModal: React.FC<Props> = ({
   onAddItems,
   mode = onAddItems ? 'picker' : 'manage'
 }) => {
+  useLockBodyScroll(isOpen);
   const toast = useToast();
   const { confirm } = useConfirm();
   const [catalogItems, setCatalogItems] = useState<CatalogItem[]>([]);

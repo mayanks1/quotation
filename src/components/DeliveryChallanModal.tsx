@@ -5,6 +5,7 @@ import {
 } from 'lucide-react';
 import { Quotation } from '../types/quotation';
 import { useToast } from '../context/ToastContext';
+import { useLockBodyScroll } from '../hooks/useLockBodyScroll';
 
 interface Props {
   isOpen: boolean;
@@ -21,6 +22,7 @@ interface EquipmentItem {
 }
 
 export const DeliveryChallanModal: React.FC<Props> = ({ isOpen, onClose, quotation }) => {
+  useLockBodyScroll(isOpen);
   const toast = useToast();
 
   const defaultGatePassNo = `TLW-GP-${new Date().getFullYear()}-${quotation.quotationNumber.replace(/^TLW-QT-/i, '').replace(/[^a-zA-Z0-9-]/g, '') || '001'}`;

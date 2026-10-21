@@ -1,28 +1,28 @@
 import React, { useState } from 'react';
-import { 
-  Users, UserPlus, Shield, ShieldAlert, ShieldCheck, 
-  Trash2, Edit, CheckCircle2, XCircle, Lock, Key, 
+import {
+  Users, UserPlus, Shield, ShieldAlert, ShieldCheck,
+  Trash2, Edit, CheckCircle2, XCircle, Lock, Key,
   Crown, Briefcase, User, Mail, Phone, Sparkles, Check, AlertTriangle,
   Building2, Plus, ExternalLink, ArrowRight, RefreshCw, FolderPlus,
   CheckCheck, Globe, Zap, Layers, Search, Filter, CreditCard
 } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
 import { useToast, useConfirm } from '../context/ToastContext';
-import { 
-  SaaSUser, UserRole, UserStatus, UserPermissions, 
-  DEFAULT_PERMISSIONS_BY_ROLE, SaaSOrganization, SaaSPlan, MASTER_SUPER_ADMIN_EMAIL 
+import {
+  SaaSUser, UserRole, UserStatus, UserPermissions,
+  DEFAULT_PERMISSIONS_BY_ROLE, SaaSOrganization, SaaSPlan, MASTER_SUPER_ADMIN_EMAIL
 } from '../types/auth';
 
 export const UsersPage: React.FC = () => {
-  const { 
-    user: currentUser, 
-    users, 
+  const {
+    user: currentUser,
+    users,
     organization: currentOrganization,
     organizations,
-    isSuperAdmin, 
-    hasPermission, 
-    createUser, 
-    updateUserById, 
+    isSuperAdmin,
+    hasPermission,
+    createUser,
+    updateUserById,
     deleteUserById,
     switchOrganization,
     createWorkspace,
@@ -31,7 +31,7 @@ export const UsersPage: React.FC = () => {
     isPaymentLedgerEnabled,
     setPaymentLedgerEnabled,
   } = useAuth();
-  
+
   const toast = useToast();
   const confirm = useConfirm();
 
@@ -124,8 +124,8 @@ export const UsersPage: React.FC = () => {
       permissions: {
         ...DEFAULT_PERMISSIONS_BY_ROLE[target.role],
         ...target.permissions,
-        canViewPaymentLedger: target.permissions?.canViewPaymentLedger !== undefined 
-          ? Boolean(target.permissions.canViewPaymentLedger) 
+        canViewPaymentLedger: target.permissions?.canViewPaymentLedger !== undefined
+          ? Boolean(target.permissions.canViewPaymentLedger)
           : Boolean(DEFAULT_PERMISSIONS_BY_ROLE[target.role]?.canViewPaymentLedger),
       },
     });
@@ -355,9 +355,8 @@ export const UsersPage: React.FC = () => {
     const orgUsersCount = users.filter((u) => u.organizationId === org.id).length;
     const ok = await confirm({
       title: `Delete Workspace "${org.name}"?`,
-      message: `Are you sure you want to delete this organization workspace? ${
-        orgUsersCount > 0 ? `It currently has ${orgUsersCount} assigned team member(s).` : ''
-      } All workspace context will be removed.`,
+      message: `Are you sure you want to delete this organization workspace? ${orgUsersCount > 0 ? `It currently has ${orgUsersCount} assigned team member(s).` : ''
+        } All workspace context will be removed.`,
       confirmText: 'Delete Workspace',
       danger: true,
     });
@@ -388,7 +387,7 @@ export const UsersPage: React.FC = () => {
 
   return (
     <div className="max-w-6xl mx-auto space-y-6">
-      
+
       {/* Top Header Card */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 bg-white p-6 rounded-2xl border border-slate-200/80 shadow-sm">
         <div className="flex items-center gap-3">
@@ -401,8 +400,8 @@ export const UsersPage: React.FC = () => {
                 {activeTab === 'members' ? 'Team & Role Management' : 'Organization Workspaces'}
               </h1>
               <span className="text-xs font-bold px-2 py-0.5 rounded-full bg-purple-100 text-purple-700">
-                {activeTab === 'members' 
-                  ? `${users.length} Member${users.length !== 1 ? 's' : ''}` 
+                {activeTab === 'members'
+                  ? `${users.length} Member${users.length !== 1 ? 's' : ''}`
                   : `${organizations.length} Workspace${organizations.length !== 1 ? 's' : ''}`
                 }
               </span>
@@ -449,21 +448,19 @@ export const UsersPage: React.FC = () => {
       {/* System Modules & Suite Features Switch */}
       <div className="bg-slate-900 text-white p-4 sm:p-5 rounded-2xl border border-slate-800 shadow-sm flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div className="flex items-center gap-3.5">
-          <div className={`w-11 h-11 rounded-2xl flex items-center justify-center shrink-0 border transition-colors ${
-            isPaymentLedgerEnabled 
-              ? 'bg-emerald-500/20 text-emerald-400 border-emerald-500/30' 
+          <div className={`w-11 h-11 rounded-2xl flex items-center justify-center shrink-0 border transition-colors ${isPaymentLedgerEnabled
+              ? 'bg-emerald-500/20 text-emerald-400 border-emerald-500/30'
               : 'bg-slate-800/80 text-slate-500 border-slate-700'
-          }`}>
+            }`}>
             <CreditCard size={22} />
           </div>
           <div>
             <div className="flex items-center gap-2">
               <span className="font-bold text-sm text-white">Payment Ledger Module</span>
-              <span className={`text-[10px] font-extrabold uppercase px-2 py-0.5 rounded-full border ${
-                isPaymentLedgerEnabled
+              <span className={`text-[10px] font-extrabold uppercase px-2 py-0.5 rounded-full border ${isPaymentLedgerEnabled
                   ? 'bg-emerald-500/20 text-emerald-400 border-emerald-500/30'
                   : 'bg-rose-500/20 text-rose-300 border-rose-500/30'
-              }`}>
+                }`}>
                 {isPaymentLedgerEnabled ? 'Module Active' : 'Module Hidden'}
               </span>
             </div>
@@ -510,34 +507,30 @@ export const UsersPage: React.FC = () => {
         <div className="flex items-center gap-2">
           <button
             onClick={() => setActiveTab('members')}
-            className={`flex items-center gap-2 px-4 py-2.5 text-xs font-bold rounded-xl transition-all ${
-              activeTab === 'members'
+            className={`flex items-center gap-2 px-4 py-2.5 text-xs font-bold rounded-xl transition-all ${activeTab === 'members'
                 ? 'bg-purple-600 text-white shadow-sm'
                 : 'text-slate-600 hover:text-slate-900 hover:bg-slate-100'
-            }`}
+              }`}
           >
             <Users size={15} />
             <span>Team Members</span>
-            <span className={`px-1.5 py-0.2 rounded-full text-[10px] font-extrabold ${
-              activeTab === 'members' ? 'bg-white/20 text-white' : 'bg-slate-200 text-slate-700'
-            }`}>
+            <span className={`px-1.5 py-0.2 rounded-full text-[10px] font-extrabold ${activeTab === 'members' ? 'bg-white/20 text-white' : 'bg-slate-200 text-slate-700'
+              }`}>
               {users.length}
             </span>
           </button>
 
           <button
             onClick={() => setActiveTab('workspaces')}
-            className={`flex items-center gap-2 px-4 py-2.5 text-xs font-bold rounded-xl transition-all ${
-              activeTab === 'workspaces'
+            className={`flex items-center gap-2 px-4 py-2.5 text-xs font-bold rounded-xl transition-all ${activeTab === 'workspaces'
                 ? 'bg-purple-600 text-white shadow-sm'
                 : 'text-slate-600 hover:text-slate-900 hover:bg-slate-100'
-            }`}
+              }`}
           >
             <Building2 size={15} />
             <span>Workspaces &amp; Organizations</span>
-            <span className={`px-1.5 py-0.2 rounded-full text-[10px] font-extrabold ${
-              activeTab === 'workspaces' ? 'bg-white/20 text-white' : 'bg-slate-200 text-slate-700'
-            }`}>
+            <span className={`px-1.5 py-0.2 rounded-full text-[10px] font-extrabold ${activeTab === 'workspaces' ? 'bg-white/20 text-white' : 'bg-slate-200 text-slate-700'
+              }`}>
               {organizations.length}
             </span>
             <span className="text-[9px] uppercase tracking-wider font-extrabold px-1.5 py-0.5 rounded bg-purple-100 text-purple-700 border border-purple-200 ml-1">
@@ -559,7 +552,7 @@ export const UsersPage: React.FC = () => {
       {/* TAB 1: TEAM MEMBERS */}
       {activeTab === 'members' && (
         <div className="space-y-4">
-          
+
           {/* Master Super Admin Notice Card */}
           <div className="p-4 bg-purple-50/70 border border-purple-200/80 rounded-2xl flex items-start gap-3 text-xs text-purple-900 leading-relaxed">
             <Crown size={20} className="text-purple-600 shrink-0 mt-0.5" />
@@ -655,9 +648,8 @@ export const UsersPage: React.FC = () => {
                                   className="w-10 h-10 rounded-xl object-cover border border-slate-200 shrink-0"
                                 />
                               ) : (
-                                <div className={`w-10 h-10 rounded-xl flex items-center justify-center font-bold text-sm shrink-0 ${
-                                  isUserOwner ? 'bg-purple-100 text-purple-700' : 'bg-blue-100 text-blue-700'
-                                }`}>
+                                <div className={`w-10 h-10 rounded-xl flex items-center justify-center font-bold text-sm shrink-0 ${isUserOwner ? 'bg-purple-100 text-purple-700' : 'bg-blue-100 text-blue-700'
+                                  }`}>
                                   {u.name.charAt(0).toUpperCase()}
                                 </div>
                               )}
@@ -720,43 +712,38 @@ export const UsersPage: React.FC = () => {
                           {/* Permissions Matrix */}
                           <td className="py-3.5 px-4">
                             <div className="flex flex-wrap gap-1.5 max-w-sm">
-                              <span className={`px-2 py-0.5 rounded text-[10px] font-semibold flex items-center gap-1 ${
-                                u.permissions.canEditBankDetails
+                              <span className={`px-2 py-0.5 rounded text-[10px] font-semibold flex items-center gap-1 ${u.permissions.canEditBankDetails
                                   ? 'bg-emerald-50 text-emerald-700 border border-emerald-200'
                                   : 'bg-slate-50 text-slate-400 border border-slate-200 line-through'
-                              }`}>
+                                }`}>
                                 Bank / UPI
                               </span>
 
-                              <span className={`px-2 py-0.5 rounded text-[10px] font-semibold flex items-center gap-1 ${
-                                u.permissions.canDeleteQuotes
+                              <span className={`px-2 py-0.5 rounded text-[10px] font-semibold flex items-center gap-1 ${u.permissions.canDeleteQuotes
                                   ? 'bg-emerald-50 text-emerald-700 border border-emerald-200'
                                   : 'bg-slate-50 text-slate-400 border border-slate-200 line-through'
-                              }`}>
+                                }`}>
                                 Delete Quotes
                               </span>
 
-                              <span className={`px-2 py-0.5 rounded text-[10px] font-semibold flex items-center gap-1 ${
-                                u.permissions.canManageUsers
+                              <span className={`px-2 py-0.5 rounded text-[10px] font-semibold flex items-center gap-1 ${u.permissions.canManageUsers
                                   ? 'bg-purple-50 text-purple-700 border border-purple-200'
                                   : 'bg-slate-50 text-slate-400 border border-slate-200 line-through'
-                              }`}>
+                                }`}>
                                 Manage Users
                               </span>
 
-                              <span className={`px-2 py-0.5 rounded text-[10px] font-semibold flex items-center gap-1 ${
-                                u.permissions.canRestoreBackups
+                              <span className={`px-2 py-0.5 rounded text-[10px] font-semibold flex items-center gap-1 ${u.permissions.canRestoreBackups
                                   ? 'bg-amber-50 text-amber-700 border border-amber-200'
                                   : 'bg-slate-50 text-slate-400 border border-slate-200 line-through'
-                              }`}>
+                                }`}>
                                 Restore DB
                               </span>
 
-                              <span className={`px-2 py-0.5 rounded text-[10px] font-semibold flex items-center gap-1 ${
-                                isPaymentLedgerEnabled && (isUserOwner || u.permissions.canViewPaymentLedger)
+                              <span className={`px-2 py-0.5 rounded text-[10px] font-semibold flex items-center gap-1 ${isPaymentLedgerEnabled && (isUserOwner || u.permissions.canViewPaymentLedger)
                                   ? 'bg-blue-50 text-blue-700 border border-blue-200'
                                   : 'bg-slate-50 text-slate-400 border border-slate-200 line-through'
-                              }`}>
+                                }`}>
                                 Ledger Access
                               </span>
                             </div>
@@ -767,11 +754,10 @@ export const UsersPage: React.FC = () => {
                             <button
                               onClick={() => canManage && handleToggleStatus(u)}
                               disabled={!canManage || isUserOwner}
-                              className={`inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-[11px] font-bold transition-all ${
-                                u.status === 'active'
+                              className={`inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-[11px] font-bold transition-all ${u.status === 'active'
                                   ? 'bg-emerald-100 text-emerald-800 hover:bg-emerald-200'
                                   : 'bg-rose-100 text-rose-800 hover:bg-rose-200'
-                              } ${(!canManage || isUserOwner) ? 'cursor-default opacity-90' : 'cursor-pointer'}`}
+                                } ${(!canManage || isUserOwner) ? 'cursor-default opacity-90' : 'cursor-pointer'}`}
                             >
                               {u.status === 'active' ? (
                                 <>
@@ -825,11 +811,11 @@ export const UsersPage: React.FC = () => {
       {/* TAB 2: WORKSPACES & ORGANIZATIONS */}
       {activeTab === 'workspaces' && (
         <div className="space-y-6">
-          
+
           {/* Active Workspace Focus Banner */}
           <div className="bg-gradient-to-r from-purple-900 to-indigo-900 text-white rounded-2xl p-6 shadow-xl relative overflow-hidden">
             <div className="absolute right-0 top-0 w-80 h-full bg-white/5 rounded-full blur-3xl pointer-events-none" />
-            
+
             <div className="flex flex-col md:flex-row md:items-center justify-between gap-6 relative z-10">
               <div className="space-y-2">
                 <div className="flex items-center gap-2">
@@ -841,11 +827,11 @@ export const UsersPage: React.FC = () => {
                     {currentOrganization?.plan?.toUpperCase()} TIER
                   </span>
                 </div>
-                
+
                 <h2 className="text-2xl font-black tracking-tight text-white flex items-center gap-2">
                   <span>{currentOrganization?.name || 'Tisha LED Walls'}</span>
                 </h2>
-                
+
                 <p className="text-xs text-purple-200/80 max-w-xl">
                   All quotes, clients, proposals, and ledger records created in this session are isolated inside this organization workspace.
                 </p>
@@ -876,23 +862,22 @@ export const UsersPage: React.FC = () => {
               const orgMembers = users.filter((u) => (u.organizationId || 'org_tisha_main') === org.id);
 
               return (
-                <div 
-                  key={org.id} 
-                  className={`bg-white rounded-2xl border p-5 shadow-sm transition-all flex flex-col justify-between ${
-                    isActive 
-                      ? 'border-purple-500 ring-2 ring-purple-500/20 shadow-purple-500/10' 
+                <div
+                  key={org.id}
+                  className={`bg-white rounded-2xl border p-5 shadow-sm transition-all flex flex-col justify-between ${isActive
+                      ? 'border-purple-500 ring-2 ring-purple-500/20 shadow-purple-500/10'
                       : 'border-slate-200 hover:border-slate-300'
-                  }`}
+                    }`}
                 >
                   <div className="space-y-4">
                     {/* Header: Logo, Name, Badge */}
                     <div className="flex items-start justify-between gap-3">
                       <div className="flex items-center gap-3 min-w-0">
                         {org.logoUrl ? (
-                          <img 
-                            src={org.logoUrl} 
-                            alt={org.name} 
-                            className="w-12 h-12 rounded-xl object-contain border border-slate-200 p-1 bg-white shrink-0" 
+                          <img
+                            src={org.logoUrl}
+                            alt={org.name}
+                            className="w-12 h-12 rounded-xl object-contain border border-slate-200 p-1 bg-white shrink-0"
                           />
                         ) : (
                           <div className="w-12 h-12 rounded-xl bg-purple-100 text-purple-700 flex items-center justify-center font-black text-lg border border-purple-200 shrink-0">
@@ -909,11 +894,10 @@ export const UsersPage: React.FC = () => {
                         </div>
                       </div>
 
-                      <span className={`text-[9.5px] uppercase font-extrabold px-2 py-0.5 rounded-full border shrink-0 ${
-                        org.plan === 'enterprise' 
-                          ? 'bg-purple-50 text-purple-700 border-purple-200' 
+                      <span className={`text-[9.5px] uppercase font-extrabold px-2 py-0.5 rounded-full border shrink-0 ${org.plan === 'enterprise'
+                          ? 'bg-purple-50 text-purple-700 border-purple-200'
                           : 'bg-blue-50 text-blue-700 border-blue-200'
-                      }`}>
+                        }`}>
                         {org.plan}
                       </span>
                     </div>
@@ -991,7 +975,7 @@ export const UsersPage: React.FC = () => {
       {isCreateModalOpen && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-4 bg-slate-950/60 backdrop-blur-sm overflow-hidden">
           <div className="bg-white rounded-2xl max-w-lg w-full max-h-[90vh] flex flex-col shadow-2xl border border-slate-200 overflow-hidden animate-in fade-in zoom-in-95 duration-150">
-            
+
             {/* Modal Header */}
             <div className="flex items-center justify-between p-4 sm:p-5 border-b border-slate-100 shrink-0 bg-white">
               <div className="flex items-center gap-2.5">
@@ -1018,7 +1002,7 @@ export const UsersPage: React.FC = () => {
 
             <form onSubmit={handleSubmitUser} className="flex flex-col flex-1 min-h-0 overflow-hidden">
               <div className="p-4 sm:p-5 overflow-y-auto flex-1 space-y-4 text-xs">
-                
+
                 {/* Organization / Workspace Picker */}
                 <div>
                   <label className="block font-bold text-slate-700 mb-1">
@@ -1061,7 +1045,7 @@ export const UsersPage: React.FC = () => {
                       required
                       value={formData.email}
                       onChange={(e) => setFormData({ ...formData, email: e.target.value })}
-                      placeholder="ramesh@tishaledwalls.com"
+                      placeholder="sales@tishaledwalls.com"
                       className="w-full px-3 py-2 border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-purple-500/20 focus:border-purple-500 font-mono"
                     />
                   </div>
@@ -1113,11 +1097,10 @@ export const UsersPage: React.FC = () => {
                       <div
                         key={r.id}
                         onClick={() => handleRoleChange(r.id as UserRole)}
-                        className={`cursor-pointer p-2.5 rounded-xl border text-center transition-all ${
-                          formData.role === r.id
+                        className={`cursor-pointer p-2.5 rounded-xl border text-center transition-all ${formData.role === r.id
                             ? 'border-purple-500 bg-purple-50 text-purple-900 font-bold shadow-sm'
                             : 'border-slate-200 hover:border-slate-300 text-slate-600'
-                        }`}
+                          }`}
                       >
                         <div className="font-bold text-xs">{r.label}</div>
                         <div className="text-[10px] text-slate-500 mt-0.5">{r.desc}</div>
@@ -1206,7 +1189,7 @@ export const UsersPage: React.FC = () => {
       {isWorkspaceModalOpen && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-4 bg-slate-950/60 backdrop-blur-sm overflow-hidden">
           <div className="bg-white rounded-2xl max-w-lg w-full max-h-[90vh] flex flex-col shadow-2xl border border-slate-200 overflow-hidden animate-in fade-in zoom-in-95 duration-150">
-            
+
             {/* Modal Header */}
             <div className="flex items-center justify-between p-4 sm:p-5 border-b border-slate-100 shrink-0 bg-white">
               <div className="flex items-center gap-2.5">
@@ -1233,7 +1216,7 @@ export const UsersPage: React.FC = () => {
 
             <form onSubmit={handleSubmitWorkspace} className="flex flex-col flex-1 min-h-0 overflow-hidden">
               <div className="p-4 sm:p-5 overflow-y-auto flex-1 space-y-4 text-xs">
-                
+
                 <div>
                   <label className="block font-bold text-slate-700 mb-1">
                     Organization / Company Name *

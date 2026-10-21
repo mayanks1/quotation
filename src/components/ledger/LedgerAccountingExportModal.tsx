@@ -19,6 +19,7 @@ import {
   downloadLedgerFile,
 } from '../../services/ledgerExport';
 import { storage } from '../../services/storage';
+import { useLockBodyScroll } from '../../hooks/useLockBodyScroll';
 
 interface Props {
   isOpen: boolean;
@@ -39,6 +40,7 @@ export const LedgerAccountingExportModal: React.FC<Props> = ({
   allClients = [],
   initialYear = 'all',
 }) => {
+  useLockBodyScroll(isOpen);
   const [selectedYear, setSelectedYear] = useState<string>(initialYear);
   const [statusFilter, setStatusFilter] = useState<StatusFilterOption>('all');
   const [selectedClient, setSelectedClient] = useState<string>('all');
@@ -122,38 +124,39 @@ export const LedgerAccountingExportModal: React.FC<Props> = ({
   const fmt = (n: number) => '₹' + Number(n || 0).toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/60 backdrop-blur-xs p-3 sm:p-4 overflow-y-auto">
-      <div className="bg-white rounded-2xl shadow-2xl w-full max-w-2xl overflow-hidden border border-slate-200">
+    <div className="fixed inset-0 z-[1050] flex items-center justify-center bg-slate-900/60 backdrop-blur-xs p-2 sm:p-4 overflow-y-auto">
+      <div className="bg-white rounded-2xl shadow-2xl w-full max-w-2xl max-h-[96vh] sm:max-h-[92vh] flex flex-col overflow-hidden border border-slate-200">
         
         {/* Modal Header */}
-        <div className="px-6 py-4 bg-slate-900 text-white flex items-center justify-between">
-          <div className="flex items-center gap-3">
-            <div className="w-10 h-10 rounded-xl bg-teal-600 flex items-center justify-center text-white shadow-md">
-              <FileSpreadsheet size={20} />
+        <div className="px-4 py-3 sm:px-6 sm:py-4 bg-slate-900 text-white flex items-start sm:items-center justify-between gap-2.5 shrink-0">
+          <div className="flex items-center gap-2.5 sm:gap-3 min-w-0">
+            <div className="w-9 h-9 sm:w-10 sm:h-10 rounded-xl bg-teal-600 flex items-center justify-center text-white shadow-md shrink-0">
+              <FileSpreadsheet size={19} className="sm:w-5 sm:h-5" />
             </div>
-            <div>
-              <h3 className="font-bold text-base tracking-tight text-white flex items-center gap-2">
-                Payment Ledger &amp; Collections Exporter
-                <span className="text-[10px] font-bold px-2 py-0.5 rounded bg-teal-500/20 text-teal-300 border border-teal-500/30 uppercase">
+            <div className="min-w-0">
+              <h3 className="font-bold text-sm sm:text-base tracking-tight text-white flex flex-wrap items-center gap-1.5 sm:gap-2">
+                <span>Payment Ledger Exporter</span>
+                <span className="text-[9px] sm:text-[10px] font-bold px-1.5 py-0.5 rounded bg-teal-500/20 text-teal-300 border border-teal-500/30 uppercase shrink-0 whitespace-nowrap">
                   Receipts &bull; Tally XML
                 </span>
               </h3>
-              <p className="text-xs text-slate-400 mt-0.5">
-                Export cash/bank collections, recovery registers &amp; Tally Prime Receipt vouchers
+              <p className="text-[11px] sm:text-xs text-slate-400 mt-0.5 leading-snug line-clamp-1 sm:line-clamp-none">
+                Export cash/bank collections, recovery registers &amp; Tally Prime vouchers
               </p>
             </div>
           </div>
 
           <button
             onClick={onClose}
-            className="p-1.5 rounded-lg text-slate-400 hover:text-white hover:bg-slate-800 transition-colors cursor-pointer"
+            className="p-1.5 rounded-lg text-slate-400 hover:text-white hover:bg-slate-800 transition-colors cursor-pointer shrink-0"
+            title="Close modal"
           >
             <X size={18} />
           </button>
         </div>
 
         {/* Modal Body */}
-        <div className="p-6 space-y-5 bg-slate-50/50 text-xs">
+        <div className="flex-1 overflow-y-auto p-3.5 sm:p-6 space-y-4 sm:space-y-5 bg-slate-50/50 text-xs">
           
           {/* Filters Grid */}
           <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 bg-white p-4 rounded-xl border border-slate-200 shadow-2xs">
@@ -313,14 +316,14 @@ export const LedgerAccountingExportModal: React.FC<Props> = ({
         </div>
 
         {/* Footer */}
-        <div className="px-6 py-3.5 bg-white border-t border-slate-200 flex items-center justify-between text-xs">
-          <span className="text-slate-400">
+        <div className="px-4 py-3 sm:px-6 sm:py-3.5 bg-white border-t border-slate-200 flex items-center justify-between text-xs shrink-0">
+          <span className="text-slate-400 text-[11px] sm:text-xs truncate">
             Payment Ledger Inflow &bull; Tally Prime XML v1.0
           </span>
           <button
             type="button"
             onClick={onClose}
-            className="px-4 py-1.5 bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold rounded-lg transition-colors border border-slate-300 cursor-pointer"
+            className="px-4 py-1.5 bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold rounded-lg transition-colors border border-slate-300 cursor-pointer shrink-0 ml-2"
           >
             Close
           </button>

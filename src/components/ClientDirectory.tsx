@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import { Users, Search, Plus, Phone, Mail, Building, FileText, Trash2, Pencil, X, Save } from 'lucide-react';
 import { ClientProfile } from '../types/quotation';
 import { useToast, useConfirm } from '../context/ToastContext';
+import { useLockBodyScroll } from '../hooks/useLockBodyScroll';
 
 interface Props {
   clients: ClientProfile[];
@@ -21,6 +22,7 @@ export const ClientDirectory: React.FC<Props> = ({
   const [search, setSearch] = useState('');
   const [isAdding, setIsAdding] = useState(false);
   const [editingClient, setEditingClient] = useState<ClientProfile | null>(null);
+  useLockBodyScroll(Boolean(editingClient));
 
   const [newClient, setNewClient] = useState<ClientProfile>({
     name: '',

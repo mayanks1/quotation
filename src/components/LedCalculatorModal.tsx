@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { X, Calculator, Plus, Monitor, Zap, Box, Sliders } from 'lucide-react';
 import { LineItem } from '../types/quotation';
+import { useLockBodyScroll } from '../hooks/useLockBodyScroll';
 
 interface Props {
   isOpen: boolean;
@@ -74,6 +75,7 @@ const PITCH_SPECS: Record<'P2' | 'P3' | 'P4', PitchSpec> = {
 };
 
 export const LedCalculatorModal: React.FC<Props> = ({ isOpen, onClose, onAddLineItem }) => {
+  useLockBodyScroll(isOpen);
   const [pitch, setPitch] = useState<'P2' | 'P3' | 'P4'>('P3');
   const [type, setType] = useState<'Indoor' | 'Outdoor'>('Indoor');
 

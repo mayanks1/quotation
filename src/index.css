@@ -61,6 +61,19 @@
   scrollbar-width: none !important;
 }
 
+/* Restrict background scroll and eliminate scroll chaining when modal is open */
+body.modal-open,
+html.modal-open {
+  overflow: hidden !important;
+  overscroll-behavior: none !important;
+}
+
+/* Modal containers own their own scroll without bubbling to the background page */
+.modal-backdrop,
+.fixed.inset-0 {
+  overscroll-behavior: contain !important;
+}
+
 /* Print Stylesheet for native PDF / Paper Printing */
 @media print {
   body {

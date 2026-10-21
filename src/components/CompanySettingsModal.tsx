@@ -9,6 +9,7 @@ import { useToast, useConfirm } from '../context/ToastContext';
 import { useAuth } from '../context/AuthContext';
 import { Lock } from 'lucide-react';
 import { CompanyStampModal } from './CompanyStampModal';
+import { useLockBodyScroll } from '../hooks/useLockBodyScroll';
 
 interface Props {
   isOpen: boolean;
@@ -38,6 +39,7 @@ export const CompanySettingsModal: React.FC<Props> = ({
   onRestoreBackup,
   onOpenCatalog
 }) => {
+  useLockBodyScroll(isOpen);
   const toast = useToast();
   const { confirm } = useConfirm();
   const { isSuperAdmin, hasPermission, user } = useAuth();

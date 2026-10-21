@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useRef } from 'react';
 import {
   X, Share2, FileText, Download, Copy, Check,
   MessageSquare, ExternalLink, Loader2, Smartphone,
@@ -12,11 +12,13 @@ import {
   generateWhatsAppReceiptUrl,
   generateWhatsAppBalanceReminderUrl
 } from '../services/whatsapp';
-import { generateQuotationPDFFile, exportQuotationPDF } from '../services/pdfGenerator';
+import { generateQuotationPDFFile, exportQuotationPDF, generateQuotationPDFDoc } from '../services/pdfGenerator';
 import { getQuotationExpiryStatus, formatQuotationReminderText, generateWhatsAppReminderUrl } from '../utils/quotationExpiry';
 import { createReceiptFromQuotation } from '../utils/receiptHelper';
 import { DeliveryChallanModal } from './DeliveryChallanModal';
 import { useToast } from '../context/ToastContext';
+import { useLockBodyScroll } from '../hooks/useLockBodyScroll';
+import { PdfGeneratingOverlay } from './PdfGeneratingOverlay';
 
 interface Props {
   quotation: Quotation | null;
@@ -29,6 +31,7 @@ export const ShareQuotationModal: React.FC<Props> = ({
   isOpen,
   onClose,
 }) => {
+  useLockBodyScroll(isOpen);
   const toast = useToast();
   const [customPhone, setCustomPhone] = useState<string>('');
   const [isGeneratingPdf, setIsGeneratingPdf] = useState<boolean>(false);
@@ -38,6 +41,14 @@ export const ShareQuotationModal: React.FC<Props> = ({
   const [copied, setCopied] = useState<boolean>(false);
   const [reminderCopied, setReminderCopied] = useState<boolean>(false);
   const [isGatePassOpen, setIsGatePassOpen] = useState<boolean>(false);
+  const cancelPdfRef = useRef(false);
+
+  const handleCancelPdf = () => {
+    cancelPdfRef.current = true;
+    setIsGeneratingPdf(false);
+    setIsDownloadingPdf(false);
+    toast.info('PDF generation cancelled.');
+  };
 
   // Sync phone from quotation when opened
   React.useEffect(() => {
@@ -61,9 +72,13 @@ export const ShareQuotationModal: React.FC<Props> = ({
 
   // 1. Share PDF Document (Mobile Native Web Share API or Desktop Download + WhatsApp)
   const handleSharePDF = async () => {
+    cancelPdfRef.current = false;
     setIsGeneratingPdf(true);
+    await new Promise((r) => setTimeout(r, 60));
     try {
       const { file, filename } = await generateQuotationPDFFile(quotation);
+
+      if (cancelPdfRef.current) return;
 
       // Check if native Web Share with files is supported (Android, iOS Safari/Chrome, macOS)
       if (typeof navigator !== 'undefined' && navigator.canShare && navigator.canShare({ files: [file] })) {
@@ -85,6 +100,8 @@ export const ShareQuotationModal: React.FC<Props> = ({
         }
       }
 
+      if (cancelPdfRef.current) return;
+
       // Desktop / Non-WebShare Fallback:
       // Download the PDF file directly to device
       const blobUrl = URL.createObjectURL(file);
@@ -103,8 +120,10 @@ export const ShareQuotationModal: React.FC<Props> = ({
       toast.success(`PDF downloaded as "${filename}". Opening WhatsApp to attach file!`);
       onClose();
     } catch (err) {
-      console.error('PDF share error:', err);
-      toast.error('Failed to generate PDF for sharing. Please try again.');
+      if (!cancelPdfRef.current) {
+        console.error('PDF share error:', err);
+        toast.error('Failed to generate PDF for sharing. Please try again.');
+      }
     } finally {
       setIsGeneratingPdf(false);
     }
@@ -112,13 +131,19 @@ export const ShareQuotationModal: React.FC<Props> = ({
 
   // 2. Direct Download PDF
   const handleDownloadPDF = async () => {
+    cancelPdfRef.current = false;
     setIsDownloadingPdf(true);
+    await new Promise((r) => setTimeout(r, 60));
     try {
-      await exportQuotationPDF(quotation);
+      const { pdf, filename } = await generateQuotationPDFDoc(quotation);
+      if (cancelPdfRef.current) return;
+      pdf.save(filename);
       toast.success(`PDF downloaded for ${quotation.quotationNumber}`);
     } catch (err) {
-      console.error('Download error:', err);
-      toast.error('Failed to download PDF.');
+      if (!cancelPdfRef.current) {
+        console.error('Download error:', err);
+        toast.error('Failed to download PDF.');
+      }
     } finally {
       setIsDownloadingPdf(false);
     }
@@ -592,6 +617,20 @@ export const ShareQuotationModal: React.FC<Props> = ({
           quotation={quotation}
         />
       )}
+
+      {/* Premium Full-Screen PDF Generating Overlay */}
+      <PdfGeneratingOverlay
+        isOpen={isGeneratingPdf || isDownloadingPdf}
+        title={quotation.documentType === 'invoice' ? 'Invoice is Generating...' : 'Quotation is Generating...'}
+        subtitle={
+          isGeneratingPdf
+            ? 'Preparing high-resolution PDF for WhatsApp sharing...'
+            : 'Rendering official document & preparing download...'
+        }
+        documentRef={quotation.documentType === 'invoice' ? (quotation.invoiceNumber || quotation.quotationNumber) : quotation.quotationNumber}
+        clientName={quotation.client?.name || quotation.client?.company}
+        onCancel={handleCancelPdf}
+      />
     </div>
   );
 };

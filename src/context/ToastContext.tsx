@@ -1,5 +1,6 @@
 import React, { createContext, useContext, useState, useCallback } from 'react';
 import { CheckCircle2, AlertCircle, AlertTriangle, Info, X, Trash2, HelpCircle } from 'lucide-react';
+import { useLockBodyScroll } from '../hooks/useLockBodyScroll';
 
 export type ToastType = 'success' | 'error' | 'warning' | 'info';
 
@@ -37,6 +38,7 @@ export const ToastProvider: React.FC<{ children: React.ReactNode }> = ({ childre
     options: ConfirmOptions;
     resolve: (value: boolean) => void;
   } | null>(null);
+  useLockBodyScroll(Boolean(confirmDialog?.isOpen));
 
   const removeToast = useCallback((id: string) => {
     setToasts((prev) => prev.filter((t) => t.id !== id));

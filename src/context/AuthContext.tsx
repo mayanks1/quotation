@@ -15,7 +15,7 @@ const DEFAULT_ORG: SaaSOrganization = {
   slug: 'tisha-led-walls',
   logoUrl: 'https://res.cloudinary.com/dcfouzaii/image/upload/f_auto,q_auto,w_160/v1763444919/logo_a6xmsh.png',
   phone: '+91 98100 12345',
-  email: 'contact@tishaledwalls.com',
+  email: 'tishaledwalls@gmail.com',
   plan: 'pro',
   planValidUntil: '2027-12-31',
   quotesLimit: 1000,
@@ -38,7 +38,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       if (stored !== null) {
         return JSON.parse(stored);
       }
-    } catch (e) {}
+    } catch (e) { }
     return true; // Default: Enabled
   });
 
@@ -80,7 +80,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         const found = organizations.find((o) => o.id === activeId);
         if (found) return found;
       }
-    } catch (e) {}
+    } catch (e) { }
     return DEFAULT_ORG;
   });
   const [isLoading, setIsLoading] = useState(true);
@@ -94,7 +94,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
           id: 'module_payment_ledger',
           profile: { enabled, updated_at: new Date().toISOString() },
           updated_at: new Date().toISOString(),
-        }, { onConflict: 'id' }).catch(() => {});
+        }, { onConflict: 'id' }).catch(() => { });
       }
     } catch (e) {
       console.warn('Failed saving module setting:', e);
@@ -361,7 +361,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     if (organization) {
       localStorage.setItem(SESSION_KEY, JSON.stringify({ user: updated, organization }));
     }
-    cloudSync.updateCloudUser(user.id, data).catch(() => {});
+    cloudSync.updateCloudUser(user.id, data).catch(() => { });
   };
 
   const updateOrganization = (data: Partial<SaaSOrganization>) => {
@@ -691,7 +691,7 @@ export const useAuth = () => {
       deleteUserById: async () => ({ success: false, error: 'Auth provider not ready' }),
       hasPermission: () => false,
       isPaymentLedgerEnabled: true,
-      setPaymentLedgerEnabled: async () => {},
+      setPaymentLedgerEnabled: async () => { },
     };
   }
   return ctx;
