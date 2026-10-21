@@ -63,7 +63,7 @@ export const CompanySettingsModal: React.FC<Props> = ({
   const [testingConn, setTestingConn] = useState(false);
   const [testResult, setTestResult] = useState<{ success: boolean; message: string; tableReady?: boolean } | null>(null);
 
-  const formRef = useRef<HTMLFormElement>(null);
+  const formRef = useRef<HTMLDivElement>(null);
   const [activeTabId, setActiveTabId] = useState<string>('section-company');
 
   const tabs = [
@@ -203,10 +203,13 @@ export const CompanySettingsModal: React.FC<Props> = ({
           })}
         </div>
 
-        <form ref={formRef} onSubmit={handleSubmit} className="overflow-y-auto flex-1 p-6 space-y-6 scroll-smooth">
+        <form onSubmit={handleSubmit} className="flex flex-col flex-1 min-h-0 overflow-hidden">
 
-          {/* Logo, Stamp & Basic Info */}
-          <div id="section-company" className="scroll-mt-4">
+          {/* Scrollable Content Body */}
+          <div ref={formRef} className="overflow-y-auto flex-1 p-6 space-y-6 scroll-smooth">
+
+            {/* Logo, Stamp & Basic Info */}
+            <div id="section-company" className="scroll-mt-4">
             <h4 className="text-xs font-bold text-slate-500 uppercase tracking-wider mb-3">Company Details &amp; Branding</h4>
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 mb-4">
               
@@ -767,12 +770,14 @@ export const CompanySettingsModal: React.FC<Props> = ({
             )}
           </div>
 
-          {/* Action Footer */}
-          <div className="pt-3 border-t border-slate-100 flex justify-end gap-2.5">
+          </div>
+
+          {/* Fixed Action Footer */}
+          <div className="px-6 py-3.5 bg-slate-50 border-t border-slate-200 flex justify-end gap-2.5 shrink-0 z-10 shadow-xs">
             <button
               type="button"
               onClick={onClose}
-              className="px-4 py-2 rounded-lg border border-slate-200 text-slate-700 text-xs font-semibold hover:bg-slate-50"
+              className="px-4 py-2 rounded-lg border border-slate-200 text-slate-700 text-xs font-semibold hover:bg-slate-100 transition-colors cursor-pointer"
             >
               Cancel
             </button>
