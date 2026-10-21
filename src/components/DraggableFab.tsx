@@ -10,8 +10,8 @@ interface DraggableFabProps {
 
 export const DraggableFab: React.FC<DraggableFabProps> = ({
   onClick,
-  icon = <Plus size={24} className="stroke-[2.5]" />,
-  label = 'New Entry',
+  icon = <Plus size={26} className="stroke-[2.5]" />,
+  label,
   title = 'Add New Entry (Drag to move)'
 }) => {
   const [position, setPosition] = useState<{ x: number; y: number } | null>(() => {
@@ -190,12 +190,14 @@ export const DraggableFab: React.FC<DraggableFabProps> = ({
       }}
       className={`fixed ${
         !position ? 'bottom-6 right-6' : ''
-      } z-40 flex items-center justify-center w-14 h-14 sm:w-auto sm:h-auto sm:px-5 sm:py-3.5 rounded-full bg-gradient-to-r from-emerald-500 via-teal-500 to-emerald-600 hover:from-emerald-400 hover:to-teal-400 text-white shadow-[0_10px_35px_rgba(16,185,129,0.55)] border-2 border-emerald-300/40 cursor-grab active:cursor-grabbing select-none group transition-shadow duration-200 ${
+      } z-40 flex items-center justify-center ${
+        label ? 'w-14 h-14 sm:w-auto sm:h-auto sm:px-5 sm:py-3.5' : 'w-14 h-14'
+      } rounded-full bg-gradient-to-r from-emerald-500 via-teal-500 to-emerald-600 hover:from-emerald-400 hover:to-teal-400 text-white shadow-[0_10px_35px_rgba(16,185,129,0.55)] border-2 border-emerald-300/40 cursor-grab active:cursor-grabbing select-none group transition-shadow duration-200 ${
         isDragging
           ? 'scale-110 shadow-[0_16px_45px_rgba(16,185,129,0.75)] ring-4 ring-emerald-400/30'
           : 'hover:scale-105 active:scale-95'
       }`}
-      aria-label={label}
+      aria-label={label || title}
       title={title}
     >
       <span className="shrink-0 transition-transform duration-300 group-hover:rotate-90 pointer-events-none">

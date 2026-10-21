@@ -695,7 +695,6 @@ export const PaymentLedgerPage: React.FC = () => {
             setEditingRecord(null);
             setIsModalOpen(true);
           }}
-          label="New Entry"
           title="Add New Ledger Entry (Drag to move anywhere)"
         />
       </div>
