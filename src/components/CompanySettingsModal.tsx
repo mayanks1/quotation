@@ -674,30 +674,31 @@ export const CompanySettingsModal: React.FC<Props> = ({
             </p>
 
             {/* Daily Automated Backup & Retention Card */}
-            <div className="bg-gradient-to-r from-blue-50/70 via-indigo-50/50 to-slate-50 border border-blue-200/80 rounded-xl p-3.5 space-y-2.5">
+            <div className="bg-gradient-to-r from-blue-50/70 via-indigo-50/40 to-slate-50 border border-blue-200/80 rounded-xl p-3.5 space-y-3">
               <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
-                <div className="flex items-center gap-2.5">
-                  <div className="w-8 h-8 rounded-lg bg-blue-600 text-white flex items-center justify-center shrink-0 shadow-xs">
-                    <Archive size={16} />
+                <div className="flex items-start sm:items-center gap-3">
+                  <div className="w-9 h-9 rounded-lg bg-blue-600 text-white flex items-center justify-center shrink-0 shadow-xs">
+                    <Archive size={17} />
                   </div>
                   <div>
-                    <div className="flex items-center gap-2">
-                      <span className="text-xs font-bold text-slate-800">Daily Automated Backup &amp; Retention</span>
-                      <span className={`text-[10px] font-bold px-1.5 py-0.2 rounded-full border ${
+                    <div className="flex flex-wrap items-center gap-2">
+                      <span className="text-xs font-bold text-slate-800">Daily Automated Backup</span>
+                      <span className={`inline-flex items-center gap-1 text-[10px] font-bold px-2 py-0.5 rounded-full border whitespace-nowrap shrink-0 ${
                         backupConfig.enabled
                           ? 'bg-emerald-50 text-emerald-700 border-emerald-200'
                           : 'bg-slate-100 text-slate-600 border-slate-200'
                       }`}>
-                        {backupConfig.enabled ? `Active • Keep Last ${backupConfig.retentionLimit}` : 'Paused'}
+                        <span className={`w-1.5 h-1.5 rounded-full ${backupConfig.enabled ? 'bg-emerald-500' : 'bg-slate-400'}`}></span>
+                        <span>{backupConfig.enabled ? `Active • Keep Last ${backupConfig.retentionLimit}` : 'Paused'}</span>
                       </span>
                     </div>
-                    <p className="text-[11px] text-slate-500">
-                      Automated snapshots saved daily with old backup cleanup (keeps last {backupConfig.retentionLimit} backups).
+                    <p className="text-[11px] text-slate-500 mt-0.5 leading-snug">
+                      Snapshots saved daily with automated cleanup (keeps last {backupConfig.retentionLimit} backups).
                     </p>
                   </div>
                 </div>
 
-                <div className="flex items-center gap-2 shrink-0 self-end sm:self-center">
+                <div className="flex items-center gap-2 shrink-0 sm:self-center">
                   <button
                     type="button"
                     onClick={async () => {
@@ -709,14 +710,14 @@ export const CompanySettingsModal: React.FC<Props> = ({
                         toast.error('Backup error: ' + e?.message);
                       }
                     }}
-                    className="inline-flex items-center gap-1 px-2.5 py-1.5 bg-white hover:bg-blue-50 text-blue-700 border border-blue-200 rounded-lg text-xs font-bold shadow-2xs transition-colors cursor-pointer"
+                    className="inline-flex items-center gap-1 px-3 py-1.5 bg-white hover:bg-blue-50 text-blue-700 border border-blue-200 rounded-lg text-xs font-bold shadow-2xs transition-colors cursor-pointer whitespace-nowrap"
                   >
                     <span>Backup Now</span>
                   </button>
                   <button
                     type="button"
                     onClick={() => setIsBackupModalOpen(true)}
-                    className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-blue-600 hover:bg-blue-700 active:scale-95 text-white rounded-lg text-xs font-bold transition-all shadow-xs cursor-pointer"
+                    className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-blue-600 hover:bg-blue-700 active:scale-95 text-white rounded-lg text-xs font-bold transition-all shadow-xs cursor-pointer whitespace-nowrap"
                   >
                     <span>Manage Backups &amp; Drive</span>
                   </button>
