@@ -19,6 +19,7 @@ import { useToast } from './context/ToastContext';
 import { useAuth } from './context/AuthContext';
 import { useIdleTimeout } from './hooks/useIdleTimeout';
 import { passcodeService } from './services/passcodeService';
+import { backupService } from './services/backupService';
 import { LedgerPasscodeModal } from './components/ledger/LedgerPasscodeModal';
 import { Lock } from 'lucide-react';
 
@@ -119,6 +120,9 @@ export function App() {
         setActiveQuoteId(qList[0].id);
       }
     });
+
+    // Check & trigger automated daily backup once per calendar day
+    backupService.checkAndRunAutomatedDailyBackup();
   }, []);
 
   const handleRestoreBackup = () => {

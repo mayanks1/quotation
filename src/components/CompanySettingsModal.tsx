@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { X, Building2, Save, Image as ImageIcon, CreditCard, Download, Upload, Cloud, HardDrive, CheckCircle2, RefreshCw, AlertCircle, Trash2, PenTool, Package, Lock, MessageSquare, Sliders, Mail, KeyRound, Shield, Clock } from 'lucide-react';
+import { X, Building2, Save, Image as ImageIcon, CreditCard, Download, Upload, Cloud, HardDrive, CheckCircle2, RefreshCw, AlertCircle, Trash2, PenTool, Package, Lock, MessageSquare, Sliders, Mail, KeyRound, Shield, Clock, Archive } from 'lucide-react';
 import { CompanyProfile } from '../types/quotation';
 import { storage } from '../services/storage';
 import { DEFAULT_COMPANY } from '../config/defaults';
@@ -7,6 +7,7 @@ import { isSupabaseConfigured } from '../services/supabaseClient';
 import { cloudSync } from '../services/cloudSync';
 import { securityService, SecuritySettings } from '../services/securityService';
 import { passcodeService } from '../services/passcodeService';
+import { backupService } from '../services/backupService';
 import { useToast, useConfirm } from '../context/ToastContext';
 import { useAuth } from '../context/AuthContext';
 import { MASTER_SUPER_ADMIN_EMAIL } from '../types/auth';
@@ -14,6 +15,7 @@ import { CompanyStampModal } from './CompanyStampModal';
 import { MessageTemplatesModal } from './MessageTemplatesModal';
 import { WeeklyEmailSettingsModal } from './ledger/WeeklyEmailSettingsModal';
 import { ManageLedgerPasscodeModal } from './ledger/ManageLedgerPasscodeModal';
+import { BackupManagementModal } from './BackupManagementModal';
 import { useLockBodyScroll } from '../hooks/useLockBodyScroll';
 
 interface Props {
@@ -59,6 +61,8 @@ export const CompanySettingsModal: React.FC<Props> = ({
   const [isTemplatesModalOpen, setIsTemplatesModalOpen] = useState(false);
   const [isWeeklyEmailModalOpen, setIsWeeklyEmailModalOpen] = useState(false);
   const [isPasscodeModalOpen, setIsPasscodeModalOpen] = useState(false);
+  const [isBackupModalOpen, setIsBackupModalOpen] = useState(false);
+  const [backupConfig, setBackupConfig] = useState(() => backupService.getConfig());
   const [securitySettings, setSecuritySettings] = useState<SecuritySettings>(() => securityService.getSettings());
   const [testingConn, setTestingConn] = useState(false);
   const [testResult, setTestResult] = useState<{ success: boolean; message: string; tableReady?: boolean } | null>(null);
@@ -89,7 +93,9 @@ export const CompanySettingsModal: React.FC<Props> = ({
     if (isOpen) {
       setProfile(ensureCompanyProfile(company));
       setTestResult(null);
+      setBackupConfig(backupService.getConfig());
       securityService.loadFromCloud().then(setSecuritySettings);
+      backupService.loadFromCloud().then(() => setBackupConfig(backupService.getConfig()));
     }
   }, [isOpen, company]);
 
@@ -667,6 +673,57 @@ export const CompanySettingsModal: React.FC<Props> = ({
                 : ' To enable sync across devices, paste your Supabase URL & Key into the .env file.'}
             </p>
 
+            {/* Daily Automated Backup & Retention Card */}
+            <div className="bg-gradient-to-r from-blue-50/70 via-indigo-50/50 to-slate-50 border border-blue-200/80 rounded-xl p-3.5 space-y-2.5">
+              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+                <div className="flex items-center gap-2.5">
+                  <div className="w-8 h-8 rounded-lg bg-blue-600 text-white flex items-center justify-center shrink-0 shadow-xs">
+                    <Archive size={16} />
+                  </div>
+                  <div>
+                    <div className="flex items-center gap-2">
+                      <span className="text-xs font-bold text-slate-800">Daily Automated Backup &amp; Retention</span>
+                      <span className={`text-[10px] font-bold px-1.5 py-0.2 rounded-full border ${
+                        backupConfig.enabled
+                          ? 'bg-emerald-50 text-emerald-700 border-emerald-200'
+                          : 'bg-slate-100 text-slate-600 border-slate-200'
+                      }`}>
+                        {backupConfig.enabled ? `Active • Keep Last ${backupConfig.retentionLimit}` : 'Paused'}
+                      </span>
+                    </div>
+                    <p className="text-[11px] text-slate-500">
+                      Automated snapshots saved daily with old backup cleanup (keeps last {backupConfig.retentionLimit} backups).
+                    </p>
+                  </div>
+                </div>
+
+                <div className="flex items-center gap-2 shrink-0 self-end sm:self-center">
+                  <button
+                    type="button"
+                    onClick={async () => {
+                      try {
+                        const snap = await backupService.runDailyBackup({ isManual: true });
+                        setBackupConfig(backupService.getConfig());
+                        toast.success(`Backup "${snap.name}" captured & old backups cleaned!`);
+                      } catch (e: any) {
+                        toast.error('Backup error: ' + e?.message);
+                      }
+                    }}
+                    className="inline-flex items-center gap-1 px-2.5 py-1.5 bg-white hover:bg-blue-50 text-blue-700 border border-blue-200 rounded-lg text-xs font-bold shadow-2xs transition-colors cursor-pointer"
+                  >
+                    <span>Backup Now</span>
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setIsBackupModalOpen(true)}
+                    className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-blue-600 hover:bg-blue-700 active:scale-95 text-white rounded-lg text-xs font-bold transition-all shadow-xs cursor-pointer"
+                  >
+                    <span>Manage Backups &amp; Drive</span>
+                  </button>
+                </div>
+              </div>
+            </div>
+
             <div className="flex flex-wrap gap-2 pt-1">
               {isSupabaseConfigured() && (
                 <button
@@ -838,6 +895,19 @@ export const CompanySettingsModal: React.FC<Props> = ({
         <ManageLedgerPasscodeModal
           isOpen={isPasscodeModalOpen}
           onClose={() => setIsPasscodeModalOpen(false)}
+        />
+      )}
+
+      {isBackupModalOpen && (
+        <BackupManagementModal
+          isOpen={isBackupModalOpen}
+          onClose={() => {
+            setIsBackupModalOpen(false);
+            setBackupConfig(backupService.getConfig());
+          }}
+          onRestoreComplete={() => {
+            if (onRestoreBackup) onRestoreBackup();
+          }}
         />
       )}
     </div>
