@@ -127,6 +127,9 @@ export const UsersPage: React.FC = () => {
         canViewPaymentLedger: target.permissions?.canViewPaymentLedger !== undefined
           ? Boolean(target.permissions.canViewPaymentLedger)
           : Boolean(DEFAULT_PERMISSIONS_BY_ROLE[target.role]?.canViewPaymentLedger),
+        canManageEmailDigest: target.permissions?.canManageEmailDigest !== undefined
+          ? Boolean(target.permissions.canManageEmailDigest)
+          : Boolean(DEFAULT_PERMISSIONS_BY_ROLE[target.role]?.canManageEmailDigest),
       },
     });
     setIsCreateModalOpen(true);
@@ -768,6 +771,14 @@ export const UsersPage: React.FC = () => {
                               }`}>
                                 Ledger Access
                               </span>
+
+                              <span className={`px-2 py-0.5 rounded-md text-[10px] font-semibold flex items-center gap-1 ${
+                                isUserOwner || u.permissions.canManageEmailDigest
+                                  ? 'bg-indigo-950/80 text-indigo-300 border border-indigo-500/30'
+                                  : 'bg-slate-950/60 text-slate-600 border border-white/5 line-through'
+                              }`}>
+                                Email Digest
+                              </span>
                             </div>
                           </td>
 
@@ -1158,6 +1169,7 @@ export const UsersPage: React.FC = () => {
                   <div className={`space-y-1.5 ${!isSuperAdmin ? 'opacity-70 pointer-events-none' : ''}`}>
                     {[
                       { key: 'canViewPaymentLedger', label: 'Can Access Payment Ledger', desc: 'Allows viewing payments, financial transactions & client ledger' },
+                      { key: 'canManageEmailDigest', label: 'Can Manage Email Digest & Reports', desc: 'Allows configuring weekly schedules, recipient lists, email templates & instant test dispatches' },
                       { key: 'canEditBankDetails', label: 'Can Edit Bank Details & UPI IDs', desc: 'Allows altering UPI ID & bank account on quotations (High Risk)', danger: true },
                       { key: 'canDeleteQuotes', label: 'Can Permanently Delete Quotations', desc: 'Allows deleting proposals from database' },
                       { key: 'canManageUsers', label: 'Can Manage Team Users', desc: 'Allows creating and editing team accounts' },

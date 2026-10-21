@@ -11,6 +11,7 @@ export interface UserPermissions {
   canManageClients: boolean;   // Edit or delete clients in directory
   canExportData: boolean;      // Download CSV & bulk audit logs
   canViewPaymentLedger?: boolean; // Access & view Payment Ledger dashboard
+  canManageEmailDigest?: boolean; // Configure & trigger weekly email digest and templates
 }
 
 export interface SaaSUser {
@@ -100,6 +101,7 @@ export const DEFAULT_PERMISSIONS_BY_ROLE: Record<UserRole, UserPermissions> = {
     canManageClients: true,
     canExportData: true,
     canViewPaymentLedger: true,
+    canManageEmailDigest: true,
   },
   admin: {
     canEditBankDetails: false,
@@ -110,6 +112,7 @@ export const DEFAULT_PERMISSIONS_BY_ROLE: Record<UserRole, UserPermissions> = {
     canManageClients: true,
     canExportData: true,
     canViewPaymentLedger: true,
+    canManageEmailDigest: true,
   },
   manager: {
     canEditBankDetails: false,
@@ -120,6 +123,7 @@ export const DEFAULT_PERMISSIONS_BY_ROLE: Record<UserRole, UserPermissions> = {
     canManageClients: true,
     canExportData: true,
     canViewPaymentLedger: true,
+    canManageEmailDigest: false,
   },
   member: {
     canEditBankDetails: false,
@@ -130,5 +134,6 @@ export const DEFAULT_PERMISSIONS_BY_ROLE: Record<UserRole, UserPermissions> = {
     canManageClients: false,
     canExportData: false,
     canViewPaymentLedger: false,
+    canManageEmailDigest: false,
   },
 };

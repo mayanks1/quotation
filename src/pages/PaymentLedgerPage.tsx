@@ -24,6 +24,7 @@ import RecordModal from '../components/ledger/RecordModal';
 import NoteModal from '../components/ledger/NoteModal';
 import ConfirmModal from '../components/ledger/ConfirmModal';
 import { useAuth } from '../context/AuthContext';
+import { MASTER_SUPER_ADMIN_EMAIL } from '../types/auth';
 import { useToast } from '../context/ToastContext';
 import { LedgerAccountingExportModal } from '../components/ledger/LedgerAccountingExportModal';
 import { PaymentReceiptModal } from '../components/PaymentReceiptModal';
@@ -38,6 +39,9 @@ const MONTH_NAMES = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Se
 
 export const PaymentLedgerPage: React.FC = () => {
   const toast = useToast();
+  const { user, isSuperAdmin, hasPermission } = useAuth();
+  const isMasterSuperAdmin = (user?.email || '').toLowerCase().trim() === MASTER_SUPER_ADMIN_EMAIL.toLowerCase().trim();
+  const canManageEmailDigest = isSuperAdmin || hasPermission('canManageEmailDigest') || user?.role === 'owner' || user?.role === 'admin' || isMasterSuperAdmin;
 
   const [records, setRecords] = useState<LedgerRecord[]>([]);
   const [trashedRecords, setTrashedRecords] = useState<LedgerRecord[]>(() => getTrashedRecords());
@@ -648,16 +652,18 @@ export const PaymentLedgerPage: React.FC = () => {
                 <span>Export</span>
               </button>
 
-              {/* Weekly Email Digest Automation (Super Admin) */}
-              <button
-                type="button"
-                onClick={() => setIsEmailSettingsOpen(true)}
-                className="flex items-center justify-center gap-1.5 px-3 py-2 bg-indigo-950/60 hover:bg-indigo-900/80 border border-indigo-500/40 text-xs font-semibold rounded-xl text-indigo-300 hover:text-white transition-all cursor-pointer active:scale-95 shrink-0 whitespace-nowrap shadow-xs"
-                title="Configure automated weekly email digest, recipients & instant test (Super Admin: admin@tishaledwalls.com)"
-              >
-                <Mail size={13} className="text-indigo-400 shrink-0" />
-                <span className="hidden md:inline">Email Digest</span>
-              </button>
+              {/* Weekly Email Digest Automation (Super Admin & Admin) */}
+              {canManageEmailDigest && (
+                <button
+                  type="button"
+                  onClick={() => setIsEmailSettingsOpen(true)}
+                  className="flex items-center justify-center gap-1.5 px-3 py-2 bg-indigo-950/60 hover:bg-indigo-900/80 border border-indigo-500/40 text-xs font-semibold rounded-xl text-indigo-300 hover:text-white transition-all cursor-pointer active:scale-95 shrink-0 whitespace-nowrap shadow-xs"
+                  title="Configure automated weekly email digest, recipients & instant test (Super Admin & Admin)"
+                >
+                  <Mail size={13} className="text-indigo-400 shrink-0" />
+                  <span className="hidden md:inline">Email Digest</span>
+                </button>
+              )}
 
               {/* Add New Entry Button (Desktop / Tablet) */}
               <button
@@ -821,8 +827,8 @@ export const PaymentLedgerPage: React.FC = () => {
           />
         )}
 
-        {/* Weekly Email Settings & Instant Test Modal (Super Admin) */}
-        {isEmailSettingsOpen && (
+        {/* Weekly Email Settings & Instant Test Modal (Super Admin & Admin) */}
+        {canManageEmailDigest && isEmailSettingsOpen && (
           <WeeklyEmailSettingsModal
             isOpen={isEmailSettingsOpen}
             onClose={() => setIsEmailSettingsOpen(false)}

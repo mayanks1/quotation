@@ -183,12 +183,12 @@ interface Props {
 
 export const WeeklyEmailSettingsModal: React.FC<Props> = ({ isOpen, onClose }) => {
   useLockBodyScroll(isOpen);
-  const toast = useToast();
-  const { user } = useAuth();
+  const { user, isSuperAdmin, hasPermission } = useAuth();
 
-  // Strict check: Only primary super admin (admin@tishaledwalls.com) has access
+  // Super Admin & Admin / Permissions Matrix check
   const userEmail = (user?.email || '').toLowerCase().trim();
-  const isSuperAdminUser = userEmail === MASTER_SUPER_ADMIN_EMAIL.toLowerCase().trim();
+  const isMasterSuperAdmin = userEmail === MASTER_SUPER_ADMIN_EMAIL.toLowerCase().trim();
+  const isSuperAdminUser = isSuperAdmin || hasPermission('canManageEmailDigest') || user?.role === 'owner' || user?.role === 'admin' || isMasterSuperAdmin;
 
   // Active Tab: 'schedule' | 'template' | 'sender' | 'preview'
   const [activeTab, setActiveTab] = useState<'schedule' | 'template' | 'sender' | 'preview'>('schedule');
@@ -334,6 +334,32 @@ export const WeeklyEmailSettingsModal: React.FC<Props> = ({ isOpen, onClose }) =
   };
 
   if (!isOpen) return null;
+
+  // Strict Super Admin Access Guard
+  if (!isSuperAdminUser) {
+    return (
+      <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/75 backdrop-blur-sm p-4 animate-in fade-in duration-150">
+        <div className="bg-slate-900 text-white rounded-2xl shadow-2xl max-w-md w-full p-6 border border-slate-800 text-center space-y-4">
+          <div className="w-12 h-12 rounded-2xl bg-rose-500/10 border border-rose-500/30 text-rose-400 flex items-center justify-center mx-auto">
+            <Lock size={24} />
+          </div>
+          <div>
+            <h3 className="text-base font-bold text-white">Access Restricted</h3>
+            <p className="text-xs text-slate-400 mt-1.5 leading-relaxed">
+              Email Digest configuration is restricted to Super Admin and Admin roles.
+            </p>
+          </div>
+          <button
+            type="button"
+            onClick={onClose}
+            className="w-full py-2 bg-slate-800 hover:bg-slate-700 text-white rounded-xl text-xs font-bold transition-all cursor-pointer"
+          >
+            Close
+          </button>
+        </div>
+      </div>
+    );
+  }
 
   // Handle Save Configuration
   const handleSave = async (e?: React.FormEvent) => {
@@ -498,7 +524,7 @@ SELECT cron.schedule(
                   Financial Email Automation &amp; Templates
                 </h3>
                 <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-indigo-500/20 text-indigo-300 border border-indigo-500/30 flex items-center gap-1">
-                  <ShieldCheck size={11} /> Super Admin
+                  <ShieldCheck size={11} /> Super Admin &amp; Admin
                 </span>
               </div>
               <p className="text-xs text-slate-400 mt-0.5">
@@ -581,9 +607,9 @@ SELECT cron.schedule(
             <div className="p-4 rounded-xl bg-rose-500/10 border border-rose-500/30 flex items-start gap-3 text-rose-200">
               <Lock size={20} className="text-rose-400 shrink-0 mt-0.5" />
               <div className="text-xs space-y-1">
-                <div className="font-bold text-rose-300 text-sm">Access Restricted to Super Admin</div>
+                <div className="font-bold text-rose-300 text-sm">Access Restricted to Super Admin &amp; Admin</div>
                 <div className="text-slate-300 leading-relaxed">
-                  Only the primary super administrator (<strong>{MASTER_SUPER_ADMIN_EMAIL}</strong>) is authorized to modify email schedules, templates, sender hooks, and test dispatches.
+                  Only authorized Super Admin or Admin accounts can modify email schedules, templates, sender hooks, and test dispatches.
                 </div>
                 <div className="text-[11px] text-slate-400 pt-1">
                   Signed in as: <code className="text-rose-300">{userEmail || 'Anonymous'}</code>

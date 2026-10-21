@@ -7,6 +7,7 @@ import { isSupabaseConfigured } from '../services/supabaseClient';
 import { cloudSync } from '../services/cloudSync';
 import { useToast, useConfirm } from '../context/ToastContext';
 import { useAuth } from '../context/AuthContext';
+import { MASTER_SUPER_ADMIN_EMAIL } from '../types/auth';
 import { CompanyStampModal } from './CompanyStampModal';
 import { MessageTemplatesModal } from './MessageTemplatesModal';
 import { WeeklyEmailSettingsModal } from './ledger/WeeklyEmailSettingsModal';
@@ -44,6 +45,8 @@ export const CompanySettingsModal: React.FC<Props> = ({
   const toast = useToast();
   const { confirm } = useConfirm();
   const { isSuperAdmin, hasPermission, user } = useAuth();
+  const isMasterSuperAdmin = (user?.email || '').toLowerCase().trim() === MASTER_SUPER_ADMIN_EMAIL.toLowerCase().trim();
+  const canManageEmailDigest = isSuperAdmin || hasPermission('canManageEmailDigest') || user?.role === 'owner' || user?.role === 'admin' || isMasterSuperAdmin;
   const canEditBank = isSuperAdmin || hasPermission('canEditBankDetails');
   const canRestore = isSuperAdmin || hasPermission('canRestoreBackups');
 
@@ -461,34 +464,36 @@ export const CompanySettingsModal: React.FC<Props> = ({
             </p>
           </div>
 
-          {/* Automated Weekly Email Reports */}
-          <div className="bg-gradient-to-r from-indigo-50/80 to-purple-50/80 p-4 rounded-xl border border-indigo-200/80 space-y-2.5 shadow-xs">
-            <div className="flex items-center justify-between gap-3">
-              <div className="flex items-center gap-3">
-                <div className="w-8 h-8 rounded-lg bg-indigo-600 text-white flex items-center justify-center shrink-0 shadow-xs">
-                  <Mail size={16} />
-                </div>
-                <div>
-                  <div className="flex items-center gap-2">
-                    <span className="text-xs font-bold text-slate-800">Weekly Email Financial Digest</span>
-                    <span className="text-[10px] font-bold px-1.5 py-0.5 rounded-full bg-indigo-100 text-indigo-700 border border-indigo-200">
-                      Super Admin
-                    </span>
+          {/* Automated Weekly Email Reports (Super Admin & Admin) */}
+          {canManageEmailDigest && (
+            <div className="bg-gradient-to-r from-indigo-50/80 to-purple-50/80 p-4 rounded-xl border border-indigo-200/80 space-y-2.5 shadow-xs">
+              <div className="flex items-center justify-between gap-3">
+                <div className="flex items-center gap-3">
+                  <div className="w-8 h-8 rounded-lg bg-indigo-600 text-white flex items-center justify-center shrink-0 shadow-xs">
+                    <Mail size={16} />
                   </div>
-                  <p className="text-[11px] text-slate-500">
-                    Automated weekly collections &amp; dues summary to configured recipients
-                  </p>
+                  <div>
+                    <div className="flex items-center gap-2">
+                      <span className="text-xs font-bold text-slate-800">Weekly Email Financial Digest</span>
+                      <span className="text-[10px] font-bold px-1.5 py-0.5 rounded-full bg-indigo-100 text-indigo-700 border border-indigo-200">
+                        Super Admin &amp; Admin
+                      </span>
+                    </div>
+                    <p className="text-[11px] text-slate-500">
+                      Automated weekly collections &amp; dues summary to configured recipients
+                    </p>
+                  </div>
                 </div>
+                <button
+                  type="button"
+                  onClick={() => setIsWeeklyEmailModalOpen(true)}
+                  className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-indigo-600 hover:bg-indigo-700 active:scale-95 text-white rounded-lg text-xs font-bold transition-all shadow-xs cursor-pointer shrink-0"
+                >
+                  <span>Configure</span>
+                </button>
               </div>
-              <button
-                type="button"
-                onClick={() => setIsWeeklyEmailModalOpen(true)}
-                className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-indigo-600 hover:bg-indigo-700 active:scale-95 text-white rounded-lg text-xs font-bold transition-all shadow-xs cursor-pointer shrink-0"
-              >
-                <span>Configure</span>
-              </button>
             </div>
-          </div>
+          )}
 
           {/* Database & Cloud Sync Section */}
           <div className="bg-slate-50/80 p-4 rounded-xl border border-slate-200/80 space-y-3">
@@ -674,7 +679,7 @@ export const CompanySettingsModal: React.FC<Props> = ({
         />
       )}
 
-      {isWeeklyEmailModalOpen && (
+      {canManageEmailDigest && isWeeklyEmailModalOpen && (
         <WeeklyEmailSettingsModal
           isOpen={isWeeklyEmailModalOpen}
           onClose={() => setIsWeeklyEmailModalOpen(false)}
