@@ -9,6 +9,7 @@ interface Props {
   onClose: () => void;
   onSuccess: () => void;
   title?: string;
+  persistSessionUnlock?: boolean;
 }
 
 export const LedgerPasscodeModal: React.FC<Props> = ({
@@ -16,6 +17,7 @@ export const LedgerPasscodeModal: React.FC<Props> = ({
   onClose,
   onSuccess,
   title = 'Payment Ledger Security Access',
+  persistSessionUnlock = true,
 }) => {
   useLockBodyScroll(isOpen);
   const toast = useToast();
@@ -80,8 +82,12 @@ export const LedgerPasscodeModal: React.FC<Props> = ({
 
     const isValid = passcodeService.verify(passcode);
     if (isValid) {
-      passcodeService.unlockSession();
-      toast.success('Payment Ledger unlocked!');
+      if (persistSessionUnlock) {
+        passcodeService.unlockSession();
+        toast.success('Payment Ledger unlocked!');
+      } else {
+        toast.success('Passcode verified!');
+      }
       onSuccess();
     } else {
       setErrorMsg('Incorrect passcode. Please try again.');

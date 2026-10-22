@@ -1688,6 +1688,7 @@ export const UsersPage: React.FC = () => {
           }}
           onSuccess={handleLedgerPasscodeSuccess}
           title={pendingLedgerEnabled ? "Enter Security Passcode to Enable Ledger" : "Enter Security Passcode to Hide Ledger"}
+          persistSessionUnlock={false}
         />
       )}
 

@@ -30,15 +30,18 @@ import { LedgerAccountingExportModal } from '../components/ledger/LedgerAccounti
 import { PaymentReceiptModal } from '../components/PaymentReceiptModal';
 import { storage } from '../services/storage';
 import { PaymentReceipt } from '../types/receipt';
-import { Calendar, Check, ChevronDown, FileSpreadsheet, Plus, RotateCcw, Mail, KeyRound } from 'lucide-react';
+import { useNavigate } from 'react-router-dom';
+import { Calendar, Check, ChevronDown, FileSpreadsheet, Plus, RotateCcw, Mail, KeyRound, Lock } from 'lucide-react';
 import { DraggableFab } from '../components/DraggableFab';
 import { WeeklyEmailSettingsModal } from '../components/ledger/WeeklyEmailSettingsModal';
 import { ManageLedgerPasscodeModal } from '../components/ledger/ManageLedgerPasscodeModal';
+import { passcodeService } from '../services/passcodeService';
 import '../components/ledger/ledger.css';
 
 const MONTH_NAMES = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
 
 export const PaymentLedgerPage: React.FC = () => {
+  const navigate = useNavigate();
   const toast = useToast();
   const { confirm } = useConfirm();
   const { user, organization, isSuperAdmin, hasPermission } = useAuth();
@@ -703,6 +706,21 @@ export const PaymentLedgerPage: React.FC = () => {
               >
                 <KeyRound size={13} className="text-amber-400 shrink-0" />
                 <span className="hidden md:inline">Passcode</span>
+              </button>
+
+              {/* Quick Lock Ledger */}
+              <button
+                type="button"
+                onClick={() => {
+                  passcodeService.lockSession();
+                  toast.info('Payment Ledger locked.');
+                  navigate('/quotes');
+                }}
+                className="flex items-center justify-center gap-1.5 px-3 py-2 bg-neutral-800/90 hover:bg-neutral-700 border border-neutral-700/80 text-xs font-semibold rounded-xl text-rose-400 hover:text-rose-300 transition-all cursor-pointer active:scale-95 shrink-0 whitespace-nowrap"
+                title="Lock Payment Ledger and exit"
+              >
+                <Lock size={13} className="text-rose-400 shrink-0" />
+                <span className="hidden md:inline">Lock</span>
               </button>
 
               {/* Weekly Email Digest Automation (Super Admin & Admin) */}

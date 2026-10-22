@@ -138,12 +138,12 @@ export const CloudFailoverModal: React.FC<Props> = ({ isOpen, onClose }) => {
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 backdrop-blur-sm animate-fade-in">
       <div className="bg-neutral-900 border border-neutral-800 w-full max-w-2xl rounded-2xl shadow-2xl overflow-hidden flex flex-col max-h-[90vh]">
         {/* Header */}
-        <div className="flex items-center justify-between px-4 sm:px-6 py-3.5 sm:py-4 border-b border-neutral-800 bg-neutral-950/60">
-          <div className="flex items-center gap-3 min-w-0 pr-2">
-            <div className="w-9 h-9 sm:w-10 sm:h-10 rounded-xl bg-blue-500/10 border border-blue-500/20 flex items-center justify-center text-blue-400 shrink-0">
+        <div className="flex items-start sm:items-center justify-between px-4 sm:px-6 py-3.5 sm:py-4 border-b border-neutral-800 bg-neutral-950/60 gap-3">
+          <div className="flex items-start sm:items-center gap-3 min-w-0 flex-1">
+            <div className="w-9 h-9 sm:w-10 sm:h-10 rounded-xl bg-blue-500/10 border border-blue-500/20 flex items-center justify-center text-blue-400 shrink-0 mt-0.5 sm:mt-0">
               <Cloud size={20} />
             </div>
-            <div className="min-w-0">
+            <div className="min-w-0 flex-1">
               <div className="flex items-center gap-2 flex-wrap">
                 <h3 className="font-bold text-white text-sm sm:text-base leading-tight">
                   0% Downtime Cloud Failover
@@ -152,14 +152,14 @@ export const CloudFailoverModal: React.FC<Props> = ({ isOpen, onClose }) => {
                   Dual-Engine
                 </span>
               </div>
-              <p className="text-[11px] sm:text-xs text-neutral-400 mt-0.5 leading-snug truncate sm:whitespace-normal">
+              <p className="text-[11px] sm:text-xs text-neutral-400 mt-1 leading-relaxed">
                 Choose your Primary database. The secondary database automatically mirrors in background.
               </p>
             </div>
           </div>
           <button
             onClick={onClose}
-            className="text-neutral-400 hover:text-white p-2 rounded-lg hover:bg-neutral-800 transition-colors shrink-0 cursor-pointer"
+            className="text-neutral-400 hover:text-white p-1.5 sm:p-2 rounded-lg hover:bg-neutral-800 transition-colors shrink-0 -mr-1 cursor-pointer"
           >
             <X size={18} />
           </button>
@@ -374,15 +374,15 @@ export const CloudFailoverModal: React.FC<Props> = ({ isOpen, onClose }) => {
             {syncProgress && (
               <div className="text-[11px] font-mono text-cyan-300 bg-cyan-950/60 p-2.5 rounded-lg border border-cyan-500/30 flex items-center gap-2">
                 <span className="w-1.5 h-1.5 rounded-full bg-cyan-400 animate-ping shrink-0" />
-                <span className="truncate">{syncProgress}</span>
+                <span className="break-words">{syncProgress}</span>
               </div>
             )}
           </div>
         </div>
 
         {/* Footer */}
-        <div className="px-4 sm:px-6 py-3 border-t border-neutral-800 bg-neutral-950 flex items-center justify-between text-[11px] text-neutral-400">
-          <span className="truncate mr-2">Failover Strategy: Automatic Circuit Breaker</span>
+        <div className="px-4 sm:px-6 py-3 border-t border-neutral-800 bg-neutral-950 flex items-center justify-between text-[11px] text-neutral-400 gap-3">
+          <span className="mr-2">Failover Strategy: Automatic Circuit Breaker</span>
           <button
             onClick={onClose}
             className="px-4 py-1.5 bg-neutral-800 hover:bg-neutral-700 text-white rounded-lg font-semibold text-xs transition-colors shrink-0 cursor-pointer"

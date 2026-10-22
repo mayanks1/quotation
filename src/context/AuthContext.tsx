@@ -6,8 +6,18 @@ import {
 } from '../types/auth';
 import { supabase, isSupabaseConfigured } from '../services/supabaseClient';
 import { cloudSync } from '../services/cloudSync';
+import { passcodeService } from '../services/passcodeService';
 
-const AuthContext = createContext<AuthContextType | undefined>(undefined);
+// Persistent context singleton to guarantee stability across Vite Fast Refresh & HMR updates
+const getOrCreateAuthContext = () => {
+  const g = typeof window !== 'undefined' ? (window as any) : globalThis;
+  if (!g.__TISHA_AUTH_CONTEXT__) {
+    g.__TISHA_AUTH_CONTEXT__ = createContext<AuthContextType | undefined>(undefined);
+  }
+  return g.__TISHA_AUTH_CONTEXT__ as React.Context<AuthContextType | undefined>;
+};
+
+const AuthContext = getOrCreateAuthContext();
 
 const DEFAULT_ORG: SaaSOrganization = {
   id: 'org_tisha_main',
@@ -219,6 +229,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     };
 
     initSession();
+    passcodeService.lockSession();
   }, []);
 
   const login = async (email: string, password: string): Promise<{ success: boolean; error?: string }> => {
@@ -232,6 +243,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         setUser(cloudAuth.user);
         setOrganization(DEFAULT_ORG);
         sessionStorage.removeItem('tisha_logged_out');
+        passcodeService.lockSession();
         localStorage.setItem(SESSION_KEY, JSON.stringify({ user: cloudAuth.user, organization: DEFAULT_ORG }));
 
         // Refresh team roster dynamically
@@ -257,6 +269,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
           setUser(found);
           setOrganization(DEFAULT_ORG);
           sessionStorage.removeItem('tisha_logged_out');
+          passcodeService.lockSession();
           localStorage.setItem(SESSION_KEY, JSON.stringify({ user: found, organization: DEFAULT_ORG }));
           setIsLoading(false);
           return { success: true };
@@ -281,6 +294,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       setUser(target);
       setOrganization(DEFAULT_ORG);
       sessionStorage.removeItem('tisha_logged_out');
+      passcodeService.lockSession();
       localStorage.setItem(SESSION_KEY, JSON.stringify({ user: target, organization: DEFAULT_ORG }));
     }
   };
@@ -332,6 +346,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       setUser(newUser);
       setOrganization(newOrg);
       sessionStorage.removeItem('tisha_logged_out');
+      passcodeService.lockSession();
       localStorage.setItem(SESSION_KEY, JSON.stringify({ user: newUser, organization: newOrg }));
       localStorage.setItem(USERS_CACHE_KEY, JSON.stringify(nextUsers));
 
@@ -347,6 +362,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     if (isSupabaseConfigured() && supabase) {
       await supabase.auth.signOut().catch(() => { });
     }
+    passcodeService.lockSession();
     setUser(null);
     localStorage.removeItem(SESSION_KEY);
     sessionStorage.setItem('tisha_logged_out', 'true');
@@ -708,29 +724,59 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 export const useAuth = () => {
   const ctx = useContext(AuthContext);
   if (!ctx) {
+    const savedSessionStr = typeof window !== 'undefined' ? localStorage.getItem(SESSION_KEY) : null;
+    let savedUser: SaaSUser | null = null;
+    let savedOrg: SaaSOrganization = DEFAULT_ORG;
+    if (savedSessionStr) {
+      try {
+        const parsed = JSON.parse(savedSessionStr);
+        if (parsed?.user) savedUser = parsed.user;
+        if (parsed?.organization) savedOrg = parsed.organization;
+      } catch {}
+    }
+
     return {
-      user: null,
-      organization: null,
-      organizations: [],
-      isAuthenticated: false,
-      isSuperAdmin: false,
+      user: savedUser,
+      organization: savedOrg,
+      organizations: [DEFAULT_ORG],
+      isAuthenticated: !!savedUser,
+      isSuperAdmin: savedUser?.role === 'owner' || savedUser?.email?.toLowerCase() === MASTER_SUPER_ADMIN_EMAIL.toLowerCase(),
       isLoading: false,
       users: [],
-      login: async () => ({ success: false, error: 'Auth provider not ready' }),
+      login: async (email: string, password: string) => {
+        try {
+          const cleanEmail = email.trim().toLowerCase();
+          const cloudAuth = await cloudSync.authenticateWithCloud(cleanEmail, password);
+          if (cloudAuth.success && cloudAuth.user) {
+            passcodeService.lockSession();
+            localStorage.setItem(SESSION_KEY, JSON.stringify({ user: cloudAuth.user, organization: DEFAULT_ORG }));
+            return { success: true };
+          }
+          return { success: false, error: cloudAuth.error || 'Invalid email or password.' };
+        } catch (err: any) {
+          return { success: false, error: err?.message || 'Authentication error.' };
+        }
+      },
       demoLogin: async () => { },
-      register: async () => ({ success: false, error: 'Auth provider not ready' }),
-      logout: () => { },
+      register: async () => ({ success: false, error: 'Please reload the page to register.' }),
+      logout: () => {
+        if (typeof window !== 'undefined') {
+          passcodeService.lockSession();
+          localStorage.removeItem(SESSION_KEY);
+          sessionStorage.setItem('tisha_logged_out', 'true');
+        }
+      },
       updateUser: () => { },
       updateOrganization: () => { },
       switchOrganization: () => { },
-      createWorkspace: async () => ({ success: false, error: 'Auth provider not ready' }),
-      updateWorkspace: async () => ({ success: false, error: 'Auth provider not ready' }),
-      deleteWorkspace: async () => ({ success: false, error: 'Auth provider not ready' }),
-      createUser: async () => ({ success: false, error: 'Auth provider not ready' }),
-      updateUserById: async () => ({ success: false, error: 'Auth provider not ready' }),
-      deleteUserById: async () => ({ success: false, error: 'Auth provider not ready' }),
-      hasPermission: () => false,
-      changePassword: async () => ({ success: false, error: 'Auth provider not ready' }),
+      createWorkspace: async () => ({ success: false, error: 'Please refresh to manage workspaces.' }),
+      updateWorkspace: async () => ({ success: false, error: 'Please refresh to manage workspaces.' }),
+      deleteWorkspace: async () => ({ success: false, error: 'Please refresh to manage workspaces.' }),
+      createUser: async () => ({ success: false, error: 'Please refresh to manage team.' }),
+      updateUserById: async () => ({ success: false, error: 'Please refresh to manage team.' }),
+      deleteUserById: async () => ({ success: false, error: 'Please refresh to manage team.' }),
+      hasPermission: () => true,
+      changePassword: async () => ({ success: false, error: 'Please refresh to change password.' }),
       isPaymentLedgerEnabled: true,
       setPaymentLedgerEnabled: async () => { },
     };
