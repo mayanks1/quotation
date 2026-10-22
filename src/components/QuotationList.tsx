@@ -48,8 +48,13 @@ type AmountFilter = 'all' | 'under_25k' | '25k_to_100k' | 'above_100k';
 // Helper to robustly parse DD-MM-YYYY, YYYY-MM-DD or standard strings to epoch ms
 const parseDateToMs = (dateStr?: string): number | null => {
   if (!dateStr || typeof dateStr !== 'string') return null;
-  const trimmed = dateStr.trim();
+  let trimmed = dateStr.trim();
   if (!trimmed) return null;
+
+  // Handle range like "24-10-2026 to 26-10-2026"
+  if (trimmed.toLowerCase().includes(' to ')) {
+    trimmed = trimmed.toLowerCase().split(' to ')[0].trim();
+  }
 
   // DD-MM-YYYY or DD/MM/YYYY
   const dmyMatch = trimmed.match(/^(\d{1,2})[-/](\d{1,2})[-/](\d{4})$/);
@@ -462,6 +467,18 @@ export const QuotationList: React.FC<Props> = ({
       const res = await storage.manualSyncToLedger(quote);
       if (res.success) {
         toast.success(res.message);
+      } else if (res.isTrash) {
+        toast.info(res.message, { duration: 6000 });
+        const shouldGo = await confirm({
+          title: 'Already in Ledger Trash',
+          message: 'Already copied! This quotation entry was moved to Ledger Trash. Please restore it from Ledger Trash, or first delete it from Ledger Trash and then sync from here.',
+          confirmText: 'Open Ledger Trash',
+          cancelText: 'Dismiss',
+          variant: 'warning',
+        });
+        if (shouldGo) {
+          window.location.href = '/ledger?tab=trash';
+        }
       } else {
         toast.error(res.message);
       }

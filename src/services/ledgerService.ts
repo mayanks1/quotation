@@ -41,7 +41,15 @@ export function normalizeClient(n?: string | null): string {
 
 export function parseDate(dateStr?: string | null): Date {
   if (!dateStr) return new Date(0);
-  const cleaned = String(dateStr).trim().replace(/\s+/g, "");
+  const rawStr = String(dateStr).trim();
+  
+  // Handle text range like "24-10-2026 to 26-10-2026" or "24/10/2026 to 26/10/2026"
+  if (rawStr.toLowerCase().includes(" to ")) {
+    const startPart = rawStr.toLowerCase().split(" to ")[0].trim();
+    return parseDate(startPart);
+  }
+
+  const cleaned = rawStr.replace(/\s+/g, "");
 
   // Handle multi-day range format: e.g. "17-19/01/2026"
   if (cleaned.includes("/") && cleaned.includes("-")) {
@@ -179,12 +187,18 @@ export function fromDbRow(row: any, index: number = 0): LedgerRecord {
     rawDate = `${safeYear}-${m}-${d}`;
   }
 
+  // Clean and sanitize any historical over-long screen_size descriptions
+  let cleanSize = (row.screen_size || '').trim();
+  if (cleanSize.length > 35 && (cleanSize.includes(' - ') || cleanSize.includes('('))) {
+    cleanSize = cleanSize.split(/[\n\r]|(?:\s+-\s+)|\s*\(|\s+with\s+/i)[0].trim();
+  }
+
   return {
     id: row.id,
     date: formatDate(rawDate),
     isoDate: rawDate,
     client: normalizeClient(row.client_name || 'Direct Client'),
-    size: row.screen_size || '',
+    size: cleanSize,
     amount: total,
     paidAmount: paid,
     pendingAmount: pending,
@@ -620,9 +634,12 @@ export async function emptyTrash(): Promise<void> {
   saveTrashedRecords([]);
 
   if (isSupabaseConfigured() && supabase) {
-    for (const r of currentTrash) {
-      if (r.id) {
-        supabase.from('payment_ledger').delete().eq('id', r.id).catch(console.warn);
+    const ids = currentTrash.map(r => r.id).filter(Boolean);
+    if (ids.length > 0) {
+      try {
+        await supabase.from('payment_ledger').delete().in('id', ids);
+      } catch (err) {
+        console.warn('Supabase emptyTrash error:', err);
       }
     }
   }
@@ -660,13 +677,93 @@ export async function saveQuickNote(record: LedgerRecord, note: string): Promise
   }
 }
 
+// Helper to extract clean, concise screen size / dimensions from line items for the ledger
+export function extractScreenSize(lineItems?: LineItem[]): string {
+  if (!lineItems || lineItems.length === 0) return 'Standard LED Setup';
+
+  const sizes: string[] = [];
+
+  for (const item of lineItems) {
+    // 1. Explicit dimensions if set
+    if (item.dimensions?.widthFt && item.dimensions?.heightFt) {
+      sizes.push(`${item.dimensions.widthFt}x${item.dimensions.heightFt} ft`);
+      continue;
+    }
+    if (item.dimensions?.sqFt) {
+      sizes.push(`${item.dimensions.sqFt} sqft`);
+      continue;
+    }
+
+    const desc = (item.description || '').trim();
+    if (!desc) continue;
+
+    // 2. Regex for dimension patterns like "12x8", "16 x 10 ft", "100ft", "100 sqft"
+    const dimMatch = desc.match(/\b(\d+[\s]*[xX×*][\s]*\d+(?:\s*(?:ft|feet|m|meter))?)\b/i);
+    const sqftMatch = desc.match(/\b(\d+[\s]*(?:sq\.?ft|sqft|ft|feet))\b/i);
+    const pitchMatch = desc.match(/\b(P\d+(?:\.\d+)?)\b/i);
+
+    if (dimMatch) {
+      const dim = dimMatch[1].replace(/\s+/g, '');
+      sizes.push(pitchMatch ? `${pitchMatch[1]} ${dim}` : dim);
+    } else if (sqftMatch) {
+      const sqft = sqftMatch[1].replace(/\s+/g, '');
+      sizes.push(pitchMatch ? `${pitchMatch[1]} ${sqft}` : sqft);
+    } else {
+      // 3. Fallback: extract clean short model name (before ' - ', ' (', '\n', or 'with')
+      let shortTitle = desc.split(/[\n\r]|(?:\s+-\s+)|\s*\(|\s+with\s+/i)[0].trim();
+      if (shortTitle.length > 25) {
+        shortTitle = shortTitle.slice(0, 22).trim() + '...';
+      }
+      if (shortTitle) {
+        sizes.push(shortTitle);
+      }
+    }
+  }
+
+  if (sizes.length === 0) {
+    return `${lineItems.length} Screen${lineItems.length > 1 ? 's' : ''}`;
+  }
+
+  const unique = [...new Set(sizes)];
+  return unique.slice(0, 2).join(', ');
+}
+
+// Find if a quotation is currently in ledger trash
+export function findTrashedLedgerRecord(quotationId: string, quotationNumber?: string): LedgerRecord | null {
+  const trashed = getTrashedRecords();
+  return trashed.find(r => 
+    r.linkedQuotationId === quotationId || 
+    r.id === `led_inv_${quotationId}` ||
+    (quotationNumber && (
+      r.invoiceNumber === quotationNumber ||
+      (r.note && r.note.includes(quotationNumber))
+    ))
+  ) || null;
+}
+
 // 6. Quotation-to-Ledger Bridge: Sync Invoiced Quotation Automatically or Manually
-export async function syncInvoicedQuotation(quotation: Quotation, force: boolean = false): Promise<void> {
+export async function syncInvoicedQuotation(
+  quotation: Quotation, 
+  force: boolean = false
+): Promise<{ success: boolean; isTrash?: boolean; message: string }> {
+  // Check if this quotation entry was moved to Ledger Trash
+  const trashedRecord = findTrashedLedgerRecord(quotation.id, quotation.quotationNumber);
+  if (trashedRecord) {
+    return {
+      success: false,
+      isTrash: true,
+      message: 'Already copied! This entry is in Ledger Trash. Please restore it from Ledger Trash or first delete it from Ledger Trash, and then sync from here.'
+    };
+  }
+
   // Guard clause: Only create/update ledger entry if quotation is formally invoiced or forced
   const isInvoiced = quotation.status === 'invoiced' || Boolean(quotation.invoiceNumber) || quotation.documentType === 'invoice';
 
   if (!isInvoiced && !force) {
-    return;
+    return {
+      success: true,
+      message: 'Quotation is not invoiced. Skipped auto-sync.'
+    };
   }
 
   // Calculate quotation financials
@@ -685,15 +782,6 @@ export async function syncInvoicedQuotation(quotation: Quotation, force: boolean
     status = 'Partial';
   }
 
-  // Extract Screen Size description from line items
-  const screenDescriptions = quotation.lineItems
-    .filter(i => {
-      const desc = (i.description || '').toLowerCase();
-      return desc.includes('led') || desc.includes('screen') || desc.includes('wall') || desc.includes('p2') || desc.includes('p3') || desc.includes('curved');
-    })
-    .map(i => i.description)
-    .join(' | ');
-
   const invoiceNum = quotation.invoiceNumber || quotation.quotationNumber;
   const invoiceDateStr = quotation.invoiceDate || quotation.quotationDate || quotation.eventDate;
 
@@ -705,7 +793,7 @@ export async function syncInvoicedQuotation(quotation: Quotation, force: boolean
     date: parseDateToISO(invoiceDateStr),
     client_name: normalizeClient(quotation.client?.company || quotation.client?.name || 'Direct Client'),
     event_venue: quotation.venue || null,
-    screen_size: screenDescriptions || `${quotation.lineItems.length} Screen / AV Items`,
+    screen_size: extractScreenSize(quotation.lineItems),
     total_amount: grandTotal,
     paid_amount: paidAmount,
     status: status,
@@ -741,6 +829,11 @@ export async function syncInvoicedQuotation(quotation: Quotation, force: boolean
   try {
     localStorage.setItem(LEDGER_STORAGE_KEY, JSON.stringify(memoryLedgerRecords));
   } catch (e) {}
+
+  return {
+    success: true,
+    message: `Quotation ${quotation.quotationNumber} synced to Payment Ledger successfully.`
+  };
 }
 
 // 7. Handle Quotation Deletion: Remove linked ledger record if deleted

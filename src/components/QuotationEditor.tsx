@@ -28,7 +28,7 @@ import { DeliveryChallanModal } from './DeliveryChallanModal';
 import { PaymentReceiptModal } from './PaymentReceiptModal';
 import { createReceiptFromQuotation } from '../utils/receiptHelper';
 import { OFFICIAL_TISHA_STAMP } from '../config/officialStamp';
-import { useToast } from '../context/ToastContext';
+import { useToast, useConfirm } from '../context/ToastContext';
 
 interface Props {
   quotation: Quotation;
@@ -174,6 +174,7 @@ export const QuotationEditor: React.FC<Props> = ({
   onOpenSettings,
 }) => {
   const toast = useToast();
+  const { confirm } = useConfirm();
   const [exporting, setExporting] = useState(false);
   const [isLedCalcOpen, setIsLedCalcOpen] = useState(false);
   const [isCatalogOpen, setIsCatalogOpen] = useState(false);
@@ -238,9 +239,15 @@ export const QuotationEditor: React.FC<Props> = ({
 
   // Date picker refs
   const eventDatePickerRef = useRef<HTMLInputElement>(null);
+  const eventEndDatePickerRef = useRef<HTMLInputElement>(null);
   const quoteDatePickerRef = useRef<HTMLInputElement>(null);
   const validDatePickerRef = useRef<HTMLInputElement>(null);
   const invoiceDatePickerRef = useRef<HTMLInputElement>(null);
+
+  // Event Date Range Mode
+  const [isEventRange, setIsEventRange] = useState<boolean>(() => {
+    return Boolean(quotation.eventEndDate || (quotation.eventDate && quotation.eventDate.includes(' to ')));
+  });
 
   // Document Type & Invoicing
   const isInvoice = quotation.documentType === 'invoice';
@@ -461,30 +468,60 @@ export const QuotationEditor: React.FC<Props> = ({
     toast.success(`Created Revision R${nextRev}: ${nextQuoteNumber}`);
   };
 
-  // Helper to check if event date is earlier than validUntil. If so, align validUntil to event date.
-  const handleEventDateChange = (newEventDate: string) => {
+  // Helper to sync validUntil with event dates:
+  // - In case of date range: set Valid Until to Event To
+  // - In case of single date: if event date is earlier than validUntil, align validUntil to event date
+  const handleEventDateChange = (newEventDate: string, newEndDate?: string) => {
     let updatedValidUntil = quotation.validUntil;
-    if (newEventDate && newEventDate.length === 10) {
-      const eventDateObj = parseDateStr(newEventDate);
-      const validUntilObj = parseDateStr(quotation.validUntil);
-      if (eventDateObj && validUntilObj && eventDateObj.getTime() < validUntilObj.getTime()) {
-        updatedValidUntil = newEventDate;
-        toast.info(`Valid Until set to ${newEventDate} to match earlier Event Date.`);
+    const isRange = newEndDate === '' ? false : (isEventRange || Boolean(newEndDate) || newEventDate.includes(' to ') || Boolean(quotation.eventEndDate));
+    const endDate = newEndDate !== undefined 
+      ? newEndDate 
+      : (quotation.eventEndDate || (newEventDate.includes(' to ') ? newEventDate.split(' to ')[1]?.trim() : ''));
+    const startDate = newEventDate.includes(' to ') ? newEventDate.split(' to ')[0].trim() : newEventDate;
+
+    if (isRange) {
+      if (endDate && endDate.length === 10) {
+        updatedValidUntil = endDate;
+      }
+    } else {
+      if (startDate && startDate.length === 10) {
+        const eventDateObj = parseDateStr(startDate);
+        const validUntilObj = parseDateStr(quotation.validUntil);
+        if (eventDateObj && validUntilObj && eventDateObj.getTime() < validUntilObj.getTime()) {
+          updatedValidUntil = startDate;
+          toast.info(`Valid Until set to ${startDate} to match earlier Event Date.`);
+        }
       }
     }
-    onChange({ ...quotation, eventDate: newEventDate, validUntil: updatedValidUntil });
+    onChange({ 
+      ...quotation, 
+      eventDate: newEventDate, 
+      eventEndDate: newEndDate !== undefined ? (newEndDate || undefined) : quotation.eventEndDate,
+      validUntil: updatedValidUntil 
+    });
   };
 
-  // If quotation has an eventDate earlier than validUntil, auto-sync validUntil
+  // Auto-sync Valid Until with Event Date:
+  // - In case of date range: set Valid Until on Event To
+  // - In case of single date: if event date is earlier than validUntil, align validUntil to event date
   useEffect(() => {
-    if (quotation.eventDate && quotation.validUntil) {
-      const eventDateObj = parseDateStr(quotation.eventDate);
-      const validUntilObj = parseDateStr(quotation.validUntil);
-      if (eventDateObj && validUntilObj && eventDateObj.getTime() < validUntilObj.getTime()) {
-        onChange({ ...quotation, validUntil: quotation.eventDate });
+    if (quotation.validUntil) {
+      const isRange = isEventRange || Boolean(quotation.eventEndDate) || quotation.eventDate?.includes(' to ');
+      if (isRange) {
+        const endDate = quotation.eventEndDate || (quotation.eventDate?.includes(' to ') ? quotation.eventDate.split(' to ')[1]?.trim() : '');
+        if (endDate && endDate.length === 10 && quotation.validUntil !== endDate) {
+          onChange({ ...quotation, validUntil: endDate });
+        }
+      } else if (quotation.eventDate) {
+        const startDate = quotation.eventDate.includes(' to ') ? quotation.eventDate.split(' to ')[0].trim() : quotation.eventDate;
+        const eventDateObj = parseDateStr(startDate);
+        const validUntilObj = parseDateStr(quotation.validUntil);
+        if (eventDateObj && validUntilObj && eventDateObj.getTime() < validUntilObj.getTime()) {
+          onChange({ ...quotation, validUntil: startDate });
+        }
       }
     }
-  }, [quotation.eventDate]);
+  }, [quotation.eventDate, quotation.eventEndDate, isEventRange]);
 
   // Migrate old broken SVG signature once on mount if present
   useEffect(() => {
@@ -760,6 +797,18 @@ export const QuotationEditor: React.FC<Props> = ({
                         const res = await storage.manualSyncToLedger(quotation);
                         if (res.success) {
                           toast.success(res.message);
+                        } else if (res.isTrash) {
+                          toast.info(res.message, { duration: 6000 });
+                          const shouldGo = await confirm({
+                            title: 'Already in Ledger Trash',
+                            message: 'Already copied! This quotation entry was moved to Ledger Trash. Please restore it from Ledger Trash, or first delete it from Ledger Trash and then sync from here.',
+                            confirmText: 'Open Ledger Trash',
+                            cancelText: 'Dismiss',
+                            variant: 'warning',
+                          });
+                          if (shouldGo) {
+                            window.location.href = '/ledger?tab=trash';
+                          }
                         } else {
                           toast.error(res.message);
                         }
@@ -1119,51 +1168,152 @@ export const QuotationEditor: React.FC<Props> = ({
                   </>
                 )}
 
-                <div className="flex items-center justify-between md:justify-end gap-2">
-                  <span className="text-blue-600 font-semibold">Event Date:</span>
-                  <div className="relative flex items-center">
-                    <input
-                      value={quotation.eventDate || ''}
-                      placeholder="DD-MM-YYYY"
-                      maxLength={10}
-                      onChange={(e) => {
-                        const formatted = formatDMYInput(e.target.value, quotation.eventDate || '');
-                        handleEventDateChange(formatted);
-                      }}
-                      onBlur={(e) => {
-                        const validated = validateDMY(e.target.value);
-                        if (validated !== e.target.value) {
-                          handleEventDateChange(validated);
-                        }
-                      }}
-                      className="font-bold text-blue-600 w-36 text-right pr-5 border-0 border-b border-transparent hover:border-slate-300 focus:border-blue-500 focus:outline-none placeholder:text-blue-300 placeholder:font-normal"
-                    />
-                    <button
-                      type="button"
-                      title="Pick Event Date from calendar"
-                      onClick={() => {
-                        if (eventDatePickerRef.current?.showPicker) {
-                          eventDatePickerRef.current.showPicker();
-                        } else {
-                          eventDatePickerRef.current?.click();
-                        }
-                      }}
-                      className="absolute right-0 text-slate-400 hover:text-blue-600 p-0.5 transition-colors no-print"
-                    >
-                      <Calendar size={13} />
-                    </button>
-                    <input
-                      ref={eventDatePickerRef}
-                      type="date"
-                      className="sr-only"
-                      onChange={(e) => {
-                        if (e.target.value) {
-                          const [y, m, d] = e.target.value.split('-');
-                          handleEventDateChange(`${d}-${m}-${y}`);
-                        }
-                      }}
-                    />
+                {/* Event Date Section: Single Date or Range Selection */}
+                <div className="space-y-1.5 pt-0.5">
+                  <div className="flex items-center justify-between md:justify-end gap-2">
+                    <div className="flex items-center gap-1.5">
+                      <span className="text-blue-600 font-semibold text-xs whitespace-nowrap">
+                        {isEventRange ? 'Event From:' : 'Event Date:'}
+                      </span>
+                      {/* Range / Single Mode Toggle */}
+                      <button
+                        type="button"
+                        onClick={() => {
+                          const nextRange = !isEventRange;
+                          setIsEventRange(nextRange);
+                          if (!nextRange) {
+                            const startDate = quotation.eventDate?.includes(' to ')
+                              ? quotation.eventDate.split(' to ')[0].trim()
+                              : quotation.eventDate;
+                            handleEventDateChange(startDate || '', '');
+                            toast.info('Switched to Single Event Date');
+                          } else {
+                            toast.info('Switched to Event Date Range (From - To)');
+                          }
+                        }}
+                        className="text-[10px] font-bold px-1.5 py-0.5 rounded-md border transition-all no-print cursor-pointer bg-blue-50 hover:bg-blue-100 text-blue-700 border-blue-200"
+                        title={isEventRange ? "Switch to Single Event Date" : "Switch to Multi-Day Event Range (From - To)"}
+                      >
+                        {isEventRange ? '✕ Single Date' : '↔ Date Range'}
+                      </button>
+                    </div>
+
+                    <div className="relative flex items-center">
+                      <input
+                        value={isEventRange && quotation.eventDate?.includes(' to ') ? quotation.eventDate.split(' to ')[0].trim() : (quotation.eventDate || '')}
+                        placeholder="DD-MM-YYYY"
+                        maxLength={10}
+                        onChange={(e) => {
+                          const val = formatDMYInput(e.target.value, quotation.eventDate || '');
+                          if (isEventRange) {
+                            const currentEnd = quotation.eventEndDate || (quotation.eventDate?.includes(' to ') ? quotation.eventDate.split(' to ')[1]?.trim() : '');
+                            const combined = currentEnd ? `${val} to ${currentEnd}` : val;
+                            handleEventDateChange(combined, currentEnd);
+                          } else {
+                            handleEventDateChange(val, '');
+                          }
+                        }}
+                        onBlur={(e) => {
+                          const validated = validateDMY(e.target.value);
+                          if (isEventRange) {
+                            const currentEnd = quotation.eventEndDate || (quotation.eventDate?.includes(' to ') ? quotation.eventDate.split(' to ')[1]?.trim() : '');
+                            const combined = currentEnd ? `${validated} to ${currentEnd}` : validated;
+                            handleEventDateChange(combined, currentEnd);
+                          } else if (validated !== e.target.value) {
+                            handleEventDateChange(validated, '');
+                          }
+                        }}
+                        className="font-bold text-blue-600 w-28 sm:w-32 text-right pr-5 border-0 border-b border-transparent hover:border-slate-300 focus:border-blue-500 focus:outline-none placeholder:text-blue-300 placeholder:font-normal text-xs"
+                      />
+                      <button
+                        type="button"
+                        title="Pick Start Date from calendar"
+                        onClick={() => {
+                          if (eventDatePickerRef.current?.showPicker) {
+                            eventDatePickerRef.current.showPicker();
+                          } else {
+                            eventDatePickerRef.current?.click();
+                          }
+                        }}
+                        className="absolute right-0 text-slate-400 hover:text-blue-600 p-0.5 transition-colors no-print cursor-pointer"
+                      >
+                        <Calendar size={13} />
+                      </button>
+                      <input
+                        ref={eventDatePickerRef}
+                        type="date"
+                        className="sr-only"
+                        onChange={(e) => {
+                          if (e.target.value) {
+                            const [y, m, d] = e.target.value.split('-');
+                            const formatted = `${d}-${m}-${y}`;
+                            if (isEventRange) {
+                              const currentEnd = quotation.eventEndDate || (quotation.eventDate?.includes(' to ') ? quotation.eventDate.split(' to ')[1]?.trim() : '');
+                              const combined = currentEnd ? `${formatted} to ${currentEnd}` : formatted;
+                              handleEventDateChange(combined, currentEnd);
+                            } else {
+                              handleEventDateChange(formatted, '');
+                            }
+                          }
+                        }}
+                      />
+                    </div>
                   </div>
+
+                  {/* Second Row: Event To (Only in Range Mode) */}
+                  {isEventRange && (
+                    <div className="flex items-center justify-between md:justify-end gap-2 animate-fadeIn">
+                      <span className="text-indigo-600 font-semibold text-xs whitespace-nowrap">Event To:</span>
+                      <div className="relative flex items-center">
+                        <input
+                          value={quotation.eventEndDate || (quotation.eventDate?.includes(' to ') ? quotation.eventDate.split(' to ')[1]?.trim() : '') || ''}
+                          placeholder="DD-MM-YYYY"
+                          maxLength={10}
+                          onChange={(e) => {
+                            const val = formatDMYInput(e.target.value, quotation.eventEndDate || '');
+                            const currentStart = quotation.eventDate?.includes(' to ') ? quotation.eventDate.split(' to ')[0].trim() : (quotation.eventDate || '');
+                            const combined = currentStart ? `${currentStart} to ${val}` : val;
+                            handleEventDateChange(combined, val);
+                          }}
+                          onBlur={(e) => {
+                            const validated = validateDMY(e.target.value);
+                            const currentStart = quotation.eventDate?.includes(' to ') ? quotation.eventDate.split(' to ')[0].trim() : (quotation.eventDate || '');
+                            const combined = currentStart ? `${currentStart} to ${validated}` : validated;
+                            handleEventDateChange(combined, validated);
+                          }}
+                          className="font-bold text-indigo-600 w-28 sm:w-32 text-right pr-5 border-0 border-b border-transparent hover:border-slate-300 focus:border-indigo-500 focus:outline-none placeholder:text-indigo-300 placeholder:font-normal text-xs"
+                        />
+                        <button
+                          type="button"
+                          title="Pick End Date from calendar"
+                          onClick={() => {
+                            if (eventEndDatePickerRef.current?.showPicker) {
+                              eventEndDatePickerRef.current.showPicker();
+                            } else {
+                              eventEndDatePickerRef.current?.click();
+                            }
+                          }}
+                          className="absolute right-0 text-slate-400 hover:text-indigo-600 p-0.5 transition-colors no-print cursor-pointer"
+                        >
+                          <Calendar size={13} />
+                        </button>
+                        <input
+                          ref={eventEndDatePickerRef}
+                          type="date"
+                          className="sr-only"
+                          onChange={(e) => {
+                            if (e.target.value) {
+                              const [y, m, d] = e.target.value.split('-');
+                              const formatted = `${d}-${m}-${y}`;
+                              const currentStart = quotation.eventDate?.includes(' to ') ? quotation.eventDate.split(' to ')[0].trim() : (quotation.eventDate || '');
+                              const combined = currentStart ? `${currentStart} to ${formatted}` : formatted;
+                              handleEventDateChange(combined, formatted);
+                            }
+                          }}
+                        />
+                      </div>
+                    </div>
+                  )}
                 </div>
               </div>
             </div>

@@ -25,7 +25,7 @@ import NoteModal from '../components/ledger/NoteModal';
 import ConfirmModal from '../components/ledger/ConfirmModal';
 import { useAuth } from '../context/AuthContext';
 import { MASTER_SUPER_ADMIN_EMAIL } from '../types/auth';
-import { useToast } from '../context/ToastContext';
+import { useToast, useConfirm } from '../context/ToastContext';
 import { LedgerAccountingExportModal } from '../components/ledger/LedgerAccountingExportModal';
 import { PaymentReceiptModal } from '../components/PaymentReceiptModal';
 import { storage } from '../services/storage';
@@ -40,6 +40,7 @@ const MONTH_NAMES = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Se
 
 export const PaymentLedgerPage: React.FC = () => {
   const toast = useToast();
+  const { confirm } = useConfirm();
   const { user, organization, isSuperAdmin, hasPermission } = useAuth();
   const isMasterSuperAdmin = (user?.email || '').toLowerCase().trim() === MASTER_SUPER_ADMIN_EMAIL.toLowerCase().trim();
   const canManageEmailDigest = isSuperAdmin || hasPermission('canManageEmailDigest') || user?.role === 'owner' || user?.role === 'admin' || isMasterSuperAdmin;
@@ -403,11 +404,30 @@ export const PaymentLedgerPage: React.FC = () => {
 
   // Empty Trash Permanently
   const handleEmptyTrash = async () => {
-    if (window.confirm('Are you sure you want to permanently delete all items in Trash? This action cannot be undone.')) {
+    const trashedCount = trashedRecords.length;
+    if (trashedCount === 0) {
+      toast.info('Trash is already empty');
+      return;
+    }
+
+    if (!canDelete) {
+      toast.warning('Locked: Only Super Admin can empty the trash.');
+      return;
+    }
+
+    const confirmed = await confirm({
+      title: 'Empty Entire Trash Bin?',
+      message: `Are you sure you want to permanently delete all ${trashedCount} record${trashedCount > 1 ? 's' : ''} in the Trash Bin? This action is permanent and cannot be undone.`,
+      confirmText: `Permanently Delete All (${trashedCount})`,
+      cancelText: 'Cancel',
+      variant: 'danger',
+    });
+
+    if (confirmed) {
       try {
         await emptyTrash();
         setTrashedRecords([]);
-        toast.success('Trash emptied successfully.');
+        toast.success(`Trash emptied successfully. ${trashedCount} record${trashedCount > 1 ? 's' : ''} permanently removed.`);
       } catch (err) {
         console.error(err);
         toast.error('Failed to empty trash');

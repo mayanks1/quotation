@@ -11,6 +11,7 @@ export function buildQuotationHTML(quotation: Quotation, upiQrDataUrl?: string):
     quotationDate,
     validUntil,
     eventDate,
+    eventEndDate,
     venue,
     company,
     client,
@@ -26,6 +27,10 @@ export function buildQuotationHTML(quotation: Quotation, upiQrDataUrl?: string):
     advancePercentage = 70,
     paidAmount = 0,
   } = quotation;
+
+  const displayEventDate = eventDate 
+    ? (eventEndDate && !eventDate.includes('to') ? `${eventDate} to ${eventEndDate}` : eventDate)
+    : '';
 
   const subtotal = lineItems.reduce((acc, item) => acc + getItemAmount(item), 0);
   const discountedSubtotal = Math.max(0, subtotal - discountAmount);
@@ -116,10 +121,10 @@ export function buildQuotationHTML(quotation: Quotation, upiQrDataUrl?: string):
               <td style="text-align:right;color:#64748b;padding:2px 6px;">Revision:</td>
               <td style="text-align:right;font-weight:700;color:#1e40af;padding:2px 0;">Rev ${quotation.revisionNumber}${quotation.parentQuoteNumber ? ` <span style="font-size:9.5px;color:#64748b;font-weight:normal;">(${esc(quotation.parentQuoteNumber)})</span>` : ''}</td>
             </tr>` : ''}
-            ${eventDate ? `
+            ${displayEventDate ? `
             <tr>
               <td style="text-align:right;color:#64748b;padding:2px 6px;">Event Date:</td>
-              <td style="text-align:right;font-weight:600;color:#2563eb;padding:2px 0;">${esc(eventDate)}</td>
+              <td style="text-align:right;font-weight:600;color:#2563eb;padding:2px 0;">${esc(displayEventDate)}</td>
             </tr>` : ''}
           </table>
         </div>
@@ -143,7 +148,7 @@ export function buildQuotationHTML(quotation: Quotation, upiQrDataUrl?: string):
         <div style="width:260px;background:#f0f9ff;border:1px solid #bae6fd;border-radius:6px;padding:9px 12px;">
           <div style="font-size:10px;font-weight:700;color:#0369a1;text-transform:uppercase;letter-spacing:0.8px;margin-bottom:3px;">EVENT / SETUP VENUE:</div>
           <div style="font-size:11.5px;font-weight:600;color:#0f172a;line-height:1.4;">${nl2br(venue)}</div>
-          ${eventDate ? `<div style="font-size:11px;color:#0369a1;margin-top:3px;font-weight:600;">Scheduled Date: ${esc(eventDate)}</div>` : ''}
+          ${displayEventDate ? `<div style="font-size:11px;color:#0369a1;margin-top:3px;font-weight:600;">Scheduled Date: ${esc(displayEventDate)}</div>` : ''}
         </div>` : ''}
       </div>
 

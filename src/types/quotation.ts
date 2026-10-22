@@ -72,6 +72,7 @@ export interface Quotation {
   quotationDate: string;
   validUntil: string;
   eventDate?: string;
+  eventEndDate?: string;
   venue?: string;
   status: QuotationStatus;
   organizationId?: string;

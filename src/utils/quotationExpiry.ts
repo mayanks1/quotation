@@ -14,8 +14,13 @@ export interface ExpiryStatus {
  */
 export const parseDateStr = (dateStr?: string): Date | null => {
   if (!dateStr || typeof dateStr !== 'string') return null;
-  const trimmed = dateStr.trim();
+  let trimmed = dateStr.trim();
   if (!trimmed) return null;
+
+  // Handle range like "24-10-2026 to 26-10-2026"
+  if (trimmed.toLowerCase().includes(' to ')) {
+    trimmed = trimmed.toLowerCase().split(' to ')[0].trim();
+  }
 
   const dmyMatch = trimmed.match(/^(\d{1,2})[-/](\d{1,2})[-/](\d{4})$/);
   if (dmyMatch) {

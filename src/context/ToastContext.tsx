@@ -20,12 +20,14 @@ export interface ConfirmOptions {
   variant?: 'danger' | 'warning' | 'info';
 }
 
+export type ToastOptions = string | { duration?: number; title?: string };
+
 interface ToastContextValue {
-  showToast: (message: string, type?: ToastType, title?: string) => void;
-  success: (message: string, title?: string) => void;
-  error: (message: string, title?: string) => void;
-  warning: (message: string, title?: string) => void;
-  info: (message: string, title?: string) => void;
+  showToast: (message: string, type?: ToastType, titleOrOptions?: ToastOptions) => void;
+  success: (message: string, titleOrOptions?: ToastOptions) => void;
+  error: (message: string, titleOrOptions?: ToastOptions) => void;
+  warning: (message: string, titleOrOptions?: ToastOptions) => void;
+  info: (message: string, titleOrOptions?: ToastOptions) => void;
   confirm: (options: ConfirmOptions) => Promise<boolean>;
 }
 
@@ -45,9 +47,22 @@ export const ToastProvider: React.FC<{ children: React.ReactNode }> = ({ childre
   }, []);
 
   const showToast = useCallback(
-    (message: string, type: ToastType = 'info', title?: string) => {
+    (message: string, type: ToastType = 'info', titleOrOptions?: ToastOptions) => {
       const id = `toast-${Date.now()}-${Math.random().toString(36).slice(2, 7)}`;
-      const duration = type === 'error' ? 5000 : 3800;
+      let duration = type === 'error' ? 5000 : 3800;
+      let title: string | undefined = undefined;
+
+      if (typeof titleOrOptions === 'string') {
+        title = titleOrOptions;
+      } else if (titleOrOptions && typeof titleOrOptions === 'object') {
+        if (typeof titleOrOptions.title === 'string') {
+          title = titleOrOptions.title;
+        }
+        if (typeof titleOrOptions.duration === 'number' && titleOrOptions.duration > 0) {
+          duration = titleOrOptions.duration;
+        }
+      }
+
       setToasts((prev) => [...prev, { id, message, title, type, duration }]);
 
       setTimeout(() => {
@@ -57,10 +72,10 @@ export const ToastProvider: React.FC<{ children: React.ReactNode }> = ({ childre
     [removeToast]
   );
 
-  const success = useCallback((msg: string, title?: string) => showToast(msg, 'success', title), [showToast]);
-  const error = useCallback((msg: string, title?: string) => showToast(msg, 'error', title), [showToast]);
-  const warning = useCallback((msg: string, title?: string) => showToast(msg, 'warning', title), [showToast]);
-  const info = useCallback((msg: string, title?: string) => showToast(msg, 'info', title), [showToast]);
+  const success = useCallback((msg: string, opt?: ToastOptions) => showToast(msg, 'success', opt), [showToast]);
+  const error = useCallback((msg: string, opt?: ToastOptions) => showToast(msg, 'error', opt), [showToast]);
+  const warning = useCallback((msg: string, opt?: ToastOptions) => showToast(msg, 'warning', opt), [showToast]);
+  const info = useCallback((msg: string, opt?: ToastOptions) => showToast(msg, 'info', opt), [showToast]);
 
   const confirm = useCallback((options: ConfirmOptions): Promise<boolean> => {
     return new Promise((resolve) => {
@@ -106,7 +121,9 @@ export const ToastProvider: React.FC<{ children: React.ReactNode }> = ({ childre
             </div>
 
             <div className="flex-1 min-w-0 pr-1">
-              {t.title && <div className="text-xs font-bold tracking-tight text-white mb-0.5">{t.title}</div>}
+              {typeof t.title === 'string' && t.title && (
+                <div className="text-xs font-bold tracking-tight text-white mb-0.5">{t.title}</div>
+              )}
               <div className="text-xs font-medium text-slate-200 leading-snug">{t.message}</div>
             </div>
 

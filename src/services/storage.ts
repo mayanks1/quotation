@@ -690,10 +690,9 @@ export const storage = {
   },
 
   // Manual sync a quotation to the ledger (regardless of auto-sync setting)
-  async manualSyncToLedger(quotation: Quotation): Promise<{ success: boolean; message: string }> {
+  async manualSyncToLedger(quotation: Quotation): Promise<{ success: boolean; isTrash?: boolean; message: string }> {
     try {
-      await syncInvoicedQuotation(quotation, true);
-      return { success: true, message: `Quotation ${quotation.quotationNumber} synced to Payment Ledger successfully.` };
+      return await syncInvoicedQuotation(quotation, true);
     } catch (err: any) {
       return { success: false, message: `Failed to sync: ${err?.message || String(err)}` };
     }

@@ -47,7 +47,15 @@ export default function DataTable({
   onGenerateReceipt
 }) {
   const [searchTerm, setSearchTerm] = useState('');
-  const [statusFilter, setStatusFilter] = useState('ALL'); // 'ALL' | 'Received' | 'Partial' | 'Pending' | 'TRASH'
+  const [statusFilter, setStatusFilter] = useState(() => {
+    if (typeof window !== 'undefined') {
+      const params = new URLSearchParams(window.location.search);
+      if (params.get('tab') === 'trash' || window.location.hash === '#trash') {
+        return 'TRASH';
+      }
+    }
+    return 'ALL';
+  }); // 'ALL' | 'Received' | 'Partial' | 'Pending' | 'TRASH'
   const [sortField, setSortField] = useState('date');
   const [sortAsc, setSortAsc] = useState(false); // default: FALSE for Latest data on top!
   const [currentPage, setCurrentPage] = useState(1);
@@ -846,20 +854,24 @@ Thank you for your continuous business!
                       <button
                         type="button"
                         onClick={() => onRestoreRecord && onRestoreRecord(record)}
-                        className="btn btn-icon-sm"
+                        className="btn"
                         style={{
-                          background: 'rgba(16, 185, 129, 0.15)',
-                          border: '1px solid rgba(16, 185, 129, 0.35)',
+                          width: 'auto',
+                          height: '28px',
+                          background: 'rgba(16, 185, 129, 0.18)',
+                          border: '1px solid rgba(16, 185, 129, 0.45)',
                           color: '#34d399',
-                          padding: '6px 12px',
+                          padding: '0 10px',
+                          borderRadius: '6px',
                           display: 'inline-flex',
                           alignItems: 'center',
-                          gap: '5px'
+                          gap: '6px',
+                          cursor: 'pointer'
                         }}
                         title="Restore entry to Active Ledger"
                       >
-                        <RotateCcw size={14} />
-                        <span style={{ fontSize: '11px', fontWeight: 700 }}>Restore</span>
+                        <RotateCcw size={13} style={{ flexShrink: 0 }} />
+                        <span style={{ fontSize: '11px', fontWeight: 700, whiteSpace: 'nowrap' }}>Restore</span>
                       </button>
                       <button 
                         type="button"
@@ -1022,8 +1034,36 @@ Thank you for your continuous business!
                       </div>
                     )}
                   </td>
-                  <td className="hide-mobile" style={{ color: 'var(--text-muted)' }}>
-                    {record.size || '—'}
+                  <td className="hide-mobile" style={{ maxWidth: '240px' }}>
+                    {record.size ? (
+                      <span
+                        title={record.size}
+                        style={{
+                          display: 'inline-flex',
+                          alignItems: 'center',
+                          gap: '5px',
+                          maxWidth: '220px',
+                          padding: '3px 8px',
+                          borderRadius: '8px',
+                          background: 'rgba(56, 189, 248, 0.08)',
+                          border: '1px solid rgba(56, 189, 248, 0.22)',
+                          color: '#38bdf8',
+                          fontSize: '12px',
+                          fontWeight: 600,
+                          lineHeight: '1.2'
+                        }}
+                      >
+                        <span style={{
+                          overflow: 'hidden',
+                          textOverflow: 'ellipsis',
+                          whiteSpace: 'nowrap'
+                        }}>
+                          {record.size}
+                        </span>
+                      </span>
+                    ) : (
+                      <span style={{ color: 'var(--text-dim)', fontSize: '13px' }}>—</span>
+                    )}
                   </td>
                   <td>
                     <span className="amount-text">
@@ -1081,20 +1121,25 @@ Thank you for your continuous business!
                           <button
                             type="button"
                             onClick={() => onRestoreRecord && onRestoreRecord(record)}
-                            className="btn btn-icon-sm"
+                            className="btn"
                             style={{
-                              background: 'rgba(16, 185, 129, 0.15)',
-                              border: '1px solid rgba(16, 185, 129, 0.35)',
+                              width: 'auto',
+                              height: '28px',
+                              background: 'rgba(16, 185, 129, 0.18)',
+                              border: '1px solid rgba(16, 185, 129, 0.45)',
                               color: '#34d399',
-                              padding: '5px 11px',
+                              padding: '0 11px',
+                              borderRadius: '6px',
                               display: 'inline-flex',
                               alignItems: 'center',
-                              gap: '5px'
+                              gap: '6px',
+                              cursor: 'pointer',
+                              transition: 'all 0.15s ease'
                             }}
                             title="Restore entry to Active Ledger"
                           >
-                            <RotateCcw size={13} />
-                            <span style={{ fontSize: '11.5px', fontWeight: 600 }}>Restore</span>
+                            <RotateCcw size={13} style={{ flexShrink: 0 }} />
+                            <span style={{ fontSize: '11.5px', fontWeight: 700, whiteSpace: 'nowrap' }}>Restore</span>
                           </button>
                           <button 
                             type="button"
