@@ -79,13 +79,13 @@ export const CompanySettingsModal: React.FC<Props> = ({
   const [activeTabId, setActiveTabId] = useState<string>('section-company');
 
   const tabs = [
-    { id: 'section-company', label: 'Company & Branding', icon: Building2 },
-    { id: 'section-banking', label: 'Bank Details', icon: CreditCard },
-    { id: 'section-templates', label: 'WhatsApp Templates', icon: MessageSquare },
-    ...(onOpenCatalog ? [{ id: 'section-catalog', label: 'Equipment Catalog', icon: Package }] : []),
-    ...(canManageEmailDigest ? [{ id: 'section-email-digest', label: 'Weekly Email Digest', icon: Mail }] : []),
-    { id: 'section-security', label: 'Security & Passcode', icon: Shield },
-    { id: 'section-storage', label: 'Storage & Cloud', icon: HardDrive },
+    { id: 'section-company', label: 'Company & Branding', shortLabel: 'Branding', icon: Building2 },
+    { id: 'section-banking', label: 'Bank Details', shortLabel: 'Banking', icon: CreditCard },
+    { id: 'section-templates', label: 'WhatsApp Templates', shortLabel: 'Templates', icon: MessageSquare },
+    ...(onOpenCatalog ? [{ id: 'section-catalog', label: 'Equipment Catalog', shortLabel: 'Catalog', icon: Package }] : []),
+    ...(canManageEmailDigest ? [{ id: 'section-email-digest', label: 'Weekly Email Digest', shortLabel: 'Email Digest', icon: Mail }] : []),
+    { id: 'section-security', label: 'Security & Passcode', shortLabel: 'Security', icon: Shield },
+    { id: 'section-storage', label: 'Storage & Cloud', shortLabel: 'Storage', icon: HardDrive },
   ];
 
   const scrollToSection = (id: string) => {
@@ -187,25 +187,25 @@ export const CompanySettingsModal: React.FC<Props> = ({
   };
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm p-4">
-      <div className="bg-white text-slate-900 rounded-2xl shadow-2xl max-w-2xl w-full max-h-[90vh] flex flex-col overflow-hidden border border-slate-100">
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm p-3 sm:p-4 animate-fade-in">
+      <div className="bg-white text-slate-900 rounded-2xl shadow-2xl max-w-3xl w-full max-h-[92vh] flex flex-col overflow-hidden border border-slate-100">
         
         {/* Header */}
-        <div className="flex items-center justify-between px-6 py-4 bg-slate-900 text-white">
-          <div className="flex items-center gap-2.5">
-            <Building2 className="text-blue-400" size={22} />
-            <div>
-              <h3 className="text-lg font-bold">Company Profile &amp; System Settings</h3>
-              <p className="text-xs text-slate-400">Configure company branding, banking, templates, equipment catalog &amp; security preferences</p>
+        <div className="flex items-center justify-between px-4 sm:px-6 py-3.5 sm:py-4 bg-slate-900 text-white shrink-0">
+          <div className="flex items-center gap-2.5 min-w-0 flex-1 mr-2">
+            <Building2 className="text-blue-400 shrink-0" size={22} />
+            <div className="min-w-0">
+              <h3 className="text-base sm:text-lg font-bold leading-tight truncate">Company Profile &amp; System Settings</h3>
+              <p className="text-[11px] sm:text-xs text-slate-400 leading-tight mt-0.5 truncate sm:whitespace-normal">Configure company branding, banking, templates, equipment catalog &amp; security preferences</p>
             </div>
           </div>
-          <button onClick={onClose} className="text-slate-400 hover:text-white p-1 rounded-lg">
+          <button onClick={onClose} className="text-slate-400 hover:text-white p-1 rounded-lg transition-colors shrink-0 cursor-pointer">
             <X size={20} />
           </button>
         </div>
 
         {/* Navigation Tabs Bar */}
-        <div className="bg-slate-100/90 border-b border-slate-200 px-4 py-2 flex items-center gap-1.5 overflow-x-auto no-scrollbar shrink-0">
+        <div className="bg-slate-100/90 border-b border-slate-200 px-3 sm:px-4 py-2 flex items-center gap-1.5 overflow-x-auto no-scrollbar shrink-0">
           {tabs.map((tab) => {
             const Icon = tab.icon;
             const isActive = activeTabId === tab.id;
@@ -214,14 +214,15 @@ export const CompanySettingsModal: React.FC<Props> = ({
                 key={tab.id}
                 type="button"
                 onClick={() => scrollToSection(tab.id)}
-                className={`inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold whitespace-nowrap transition-all cursor-pointer ${
+                className={`inline-flex items-center gap-1.5 px-2.5 sm:px-3 py-1.5 rounded-lg text-xs font-semibold whitespace-nowrap transition-all cursor-pointer shrink-0 ${
                   isActive
                     ? 'bg-blue-600 text-white shadow-xs'
                     : 'bg-white hover:bg-slate-200/80 text-slate-600 hover:text-slate-900 border border-slate-200/80 shadow-2xs'
                 }`}
               >
                 <Icon size={13} className={isActive ? 'text-white' : 'text-slate-500'} />
-                <span>{tab.label}</span>
+                <span className="hidden sm:inline">{tab.label}</span>
+                <span className="inline sm:hidden">{tab.shortLabel || tab.label}</span>
               </button>
             );
           })}
@@ -230,7 +231,7 @@ export const CompanySettingsModal: React.FC<Props> = ({
         <form onSubmit={handleSubmit} className="flex flex-col flex-1 min-h-0 overflow-hidden">
 
           {/* Scrollable Content Body */}
-          <div ref={formRef} className="overflow-y-auto flex-1 p-6 space-y-6 scroll-smooth">
+          <div ref={formRef} className="overflow-y-auto flex-1 p-4 sm:p-6 space-y-4 sm:space-y-6 scroll-smooth">
 
             {/* Logo, Stamp & Basic Info */}
             <div id="section-company" className="scroll-mt-4">
@@ -561,20 +562,20 @@ export const CompanySettingsModal: React.FC<Props> = ({
 
           {/* Automated Weekly Email Reports (Super Admin & Admin) */}
           {canManageEmailDigest && (
-            <div id="section-email-digest" className="scroll-mt-4 bg-gradient-to-r from-indigo-50/80 to-purple-50/80 p-4 rounded-xl border border-indigo-200/80 space-y-2.5 shadow-xs">
-              <div className="flex items-center justify-between gap-3">
-                <div className="flex items-center gap-3">
-                  <div className="w-8 h-8 rounded-lg bg-indigo-600 text-white flex items-center justify-center shrink-0 shadow-xs">
+            <div id="section-email-digest" className="scroll-mt-4 bg-gradient-to-r from-indigo-50/80 to-purple-50/80 p-3.5 sm:p-4 rounded-xl border border-indigo-200/80 space-y-2.5 shadow-xs">
+              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+                <div className="flex items-start sm:items-center gap-3 min-w-0 flex-1">
+                  <div className="w-8 h-8 rounded-lg bg-indigo-600 text-white flex items-center justify-center shrink-0 shadow-xs mt-0.5 sm:mt-0">
                     <Mail size={16} />
                   </div>
-                  <div>
-                    <div className="flex items-center gap-2">
+                  <div className="min-w-0 flex-1">
+                    <div className="flex flex-wrap items-center gap-1.5 sm:gap-2">
                       <span className="text-xs font-bold text-slate-800">Weekly Email Financial Digest</span>
-                      <span className="text-[10px] font-bold px-1.5 py-0.5 rounded-full bg-indigo-100 text-indigo-700 border border-indigo-200">
+                      <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-indigo-100 text-indigo-700 border border-indigo-200 whitespace-nowrap shrink-0">
                         Super Admin &amp; Admin
                       </span>
                     </div>
-                    <p className="text-[11px] text-slate-500">
+                    <p className="text-[11px] text-slate-500 mt-0.5 leading-relaxed">
                       Automated weekly collections &amp; dues summary to configured recipients
                     </p>
                   </div>
@@ -582,7 +583,7 @@ export const CompanySettingsModal: React.FC<Props> = ({
                 <button
                   type="button"
                   onClick={() => setIsWeeklyEmailModalOpen(true)}
-                  className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-indigo-600 hover:bg-indigo-700 active:scale-95 text-white rounded-lg text-xs font-bold transition-all shadow-xs cursor-pointer shrink-0"
+                  className="inline-flex items-center justify-center gap-1.5 px-3.5 py-1.5 bg-indigo-600 hover:bg-indigo-700 active:scale-95 text-white rounded-lg text-xs font-bold transition-all shadow-xs cursor-pointer shrink-0 w-full sm:w-auto"
                 >
                   <span>Configure</span>
                 </button>
@@ -591,13 +592,13 @@ export const CompanySettingsModal: React.FC<Props> = ({
           )}
 
           {/* Security, Passcode & Idle Timeout */}
-          <div id="section-security" className="scroll-mt-4 bg-slate-50/80 p-4 rounded-xl border border-slate-200/80 space-y-3.5">
-            <div className="flex items-center justify-between">
+          <div id="section-security" className="scroll-mt-4 bg-slate-50/80 p-3.5 sm:p-4 rounded-xl border border-slate-200/80 space-y-3.5">
+            <div className="flex flex-wrap items-center justify-between gap-2">
               <div className="flex items-center gap-2 text-xs font-bold text-slate-700 uppercase tracking-wider">
-                <Shield size={16} className="text-indigo-600" />
+                <Shield size={16} className="text-indigo-600 shrink-0" />
                 <span>Security, Passcode &amp; Idle Timeout</span>
               </div>
-              <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-indigo-50 text-indigo-700 border border-indigo-200 flex items-center gap-1">
+              <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-indigo-50 text-indigo-700 border border-indigo-200 flex items-center gap-1 whitespace-nowrap shrink-0">
                 <KeyRound size={11} /> Passcode Protected
               </span>
             </div>
@@ -719,11 +720,11 @@ export const CompanySettingsModal: React.FC<Props> = ({
             {/* Daily Automated Backup & Retention Card */}
             <div className="bg-gradient-to-r from-blue-50/70 via-indigo-50/40 to-slate-50 border border-blue-200/80 rounded-xl p-3.5 space-y-3">
               <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
-                <div className="flex items-start sm:items-center gap-3">
-                  <div className="w-9 h-9 rounded-lg bg-blue-600 text-white flex items-center justify-center shrink-0 shadow-xs">
+                <div className="flex items-start sm:items-center gap-3 min-w-0 flex-1">
+                  <div className="w-9 h-9 rounded-lg bg-blue-600 text-white flex items-center justify-center shrink-0 shadow-xs mt-0.5 sm:mt-0">
                     <Archive size={17} />
                   </div>
-                  <div>
+                  <div className="min-w-0 flex-1">
                     <div className="flex flex-wrap items-center gap-2">
                       <span className="text-xs font-bold text-slate-800">Daily Automated Backup</span>
                       <span className={`inline-flex items-center gap-1 text-[10px] font-bold px-2 py-0.5 rounded-full border whitespace-nowrap shrink-0 ${
@@ -741,7 +742,7 @@ export const CompanySettingsModal: React.FC<Props> = ({
                   </div>
                 </div>
 
-                <div className="flex items-center gap-2 shrink-0 sm:self-center">
+                <div className="flex flex-wrap items-center gap-2 shrink-0 w-full sm:w-auto pt-1 sm:pt-0">
                   <button
                     type="button"
                     onClick={async () => {
@@ -753,14 +754,14 @@ export const CompanySettingsModal: React.FC<Props> = ({
                         toast.error('Backup error: ' + e?.message);
                       }
                     }}
-                    className="inline-flex items-center gap-1 px-3 py-1.5 bg-white hover:bg-blue-50 text-blue-700 border border-blue-200 rounded-lg text-xs font-bold shadow-2xs transition-colors cursor-pointer whitespace-nowrap"
+                    className="flex-1 sm:flex-none inline-flex items-center justify-center gap-1 px-3 py-1.5 bg-white hover:bg-blue-50 text-blue-700 border border-blue-200 rounded-lg text-xs font-bold shadow-2xs transition-colors cursor-pointer whitespace-nowrap"
                   >
                     <span>Backup Now</span>
                   </button>
                   <button
                     type="button"
                     onClick={() => setIsBackupModalOpen(true)}
-                    className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-blue-600 hover:bg-blue-700 active:scale-95 text-white rounded-lg text-xs font-bold transition-all shadow-xs cursor-pointer whitespace-nowrap"
+                    className="flex-1 sm:flex-none inline-flex items-center justify-center gap-1.5 px-3 py-1.5 bg-blue-600 hover:bg-blue-700 active:scale-95 text-white rounded-lg text-xs font-bold transition-all shadow-xs cursor-pointer whitespace-nowrap"
                   >
                     <span>Manage Backups &amp; Drive</span>
                   </button>
@@ -769,13 +770,13 @@ export const CompanySettingsModal: React.FC<Props> = ({
             </div>
 
             {/* Auto-Copy Invoiced Quotations to Payment Ledger Card */}
-            <div className="bg-gradient-to-r from-emerald-50/70 via-teal-50/40 to-slate-50 border border-emerald-200/80 rounded-xl p-3.5 space-y-3">
-              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
-                <div className="flex items-start sm:items-center gap-3">
-                  <div className="w-9 h-9 rounded-lg bg-emerald-600 text-white flex items-center justify-center shrink-0 shadow-xs">
+            <div className="bg-gradient-to-r from-emerald-50/70 via-teal-50/40 to-slate-50 border border-emerald-200/80 rounded-xl p-3.5">
+              <div className="flex items-start justify-between gap-3">
+                <div className="flex items-start gap-3 min-w-0 flex-1">
+                  <div className="w-9 h-9 rounded-lg bg-emerald-600 text-white flex items-center justify-center shrink-0 shadow-xs mt-0.5">
                     <BookOpen size={17} />
                   </div>
-                  <div>
+                  <div className="min-w-0 flex-1">
                     <div className="flex flex-wrap items-center gap-2">
                       <span className="text-xs font-bold text-slate-800">Auto-Copy Invoiced Quotations to Ledger</span>
                       <span className={`inline-flex items-center gap-1 text-[10px] font-bold px-2 py-0.5 rounded-full border whitespace-nowrap shrink-0 ${
@@ -787,13 +788,13 @@ export const CompanySettingsModal: React.FC<Props> = ({
                         <span>{autoLedgerSync ? 'Active / On' : 'Disabled / Off'}</span>
                       </span>
                     </div>
-                    <p className="text-[11px] text-slate-500 mt-0.5 leading-snug">
+                    <p className="text-[11px] text-slate-500 mt-1 leading-relaxed">
                       When enabled, any quotation marked as <strong>Invoiced</strong> automatically synchronizes into the Payment Ledger with sanitized dates, client names, and invoice totals.
                     </p>
                   </div>
                 </div>
 
-                <div className="flex items-center gap-2 shrink-0 sm:self-center">
+                <div className="shrink-0 pt-0.5">
                   <label className="relative inline-flex items-center cursor-pointer">
                     <input
                       type="checkbox"
@@ -813,41 +814,43 @@ export const CompanySettingsModal: React.FC<Props> = ({
             </div>
 
             {/* Dual-Cloud Failover & Primary Engine Selection Card */}
-            <div className="bg-slate-50 border border-slate-200/90 rounded-xl p-3.5 mb-1 flex items-center justify-between gap-3">
-              <div className="flex items-center gap-2.5">
-                <div className="w-8 h-8 rounded-lg bg-blue-100 text-blue-700 flex items-center justify-center shrink-0">
+            <div className="bg-slate-50 border border-slate-200/90 rounded-xl p-3.5 mb-1 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+              <div className="flex items-start sm:items-center gap-2.5 min-w-0 flex-1">
+                <div className="w-8 h-8 rounded-lg bg-blue-100 text-blue-700 flex items-center justify-center shrink-0 mt-0.5 sm:mt-0">
                   <Cloud size={16} />
                 </div>
-                <div>
+                <div className="min-w-0 flex-1">
                   <div className="text-xs font-bold text-slate-800 flex items-center gap-1.5 flex-wrap">
                     <span>Primary Database:</span>
-                    <span className="uppercase text-blue-700 bg-blue-100/80 px-2 py-0.5 rounded border border-blue-200 text-[10px] font-black">
+                    <span className="uppercase text-blue-700 bg-blue-100/80 px-2 py-0.5 rounded border border-blue-200 text-[10px] font-black shrink-0">
                       {failoverManager.getPrimaryEngine()}
                     </span>
                     <span className="text-slate-400 font-normal">➔ Auto-Mirror:</span>
-                    <span className="uppercase text-slate-600 bg-slate-200/70 px-1.5 py-0.5 rounded text-[10px] font-bold">
+                    <span className="uppercase text-slate-600 bg-slate-200/70 px-1.5 py-0.5 rounded text-[10px] font-bold shrink-0">
                       {failoverManager.getSecondaryEngine()}
                     </span>
                   </div>
-                  <div className="text-[11px] text-slate-500 mt-0.5">
+                  <div className="text-[11px] text-slate-500 mt-0.5 leading-relaxed">
                     Zero-downtime dual-cloud failover &amp; automatic background mirroring
                   </div>
                 </div>
               </div>
 
-              {canManageDowntimeSync ? (
-                <button
-                  type="button"
-                  onClick={() => setIsCloudFailoverModalOpen(true)}
-                  className="px-3 py-1.5 bg-blue-600 hover:bg-blue-500 text-white rounded-lg text-xs font-bold transition-all shadow-xs shrink-0 cursor-pointer"
-                >
-                  Configure Failover
-                </button>
-              ) : (
-                <span className="text-[10px] font-semibold text-slate-400 bg-slate-100 px-2.5 py-1 rounded-md border border-slate-200">
-                  Super Admin / Authorized Only
-                </span>
-              )}
+              <div className="shrink-0 w-full sm:w-auto flex sm:justify-end">
+                {canManageDowntimeSync ? (
+                  <button
+                    type="button"
+                    onClick={() => setIsCloudFailoverModalOpen(true)}
+                    className="w-full sm:w-auto px-3.5 py-1.5 bg-blue-600 hover:bg-blue-500 text-white rounded-lg text-xs font-bold transition-all shadow-xs cursor-pointer text-center justify-center inline-flex items-center gap-1.5"
+                  >
+                    <span>Configure Failover</span>
+                  </button>
+                ) : (
+                  <span className="inline-flex items-center justify-center text-[10px] font-semibold text-slate-500 bg-slate-100 px-2.5 py-1 rounded-md border border-slate-200 whitespace-nowrap w-full sm:w-auto">
+                    Super Admin / Authorized Only
+                  </span>
+                )}
+              </div>
             </div>
 
             <div className="flex flex-wrap gap-2 pt-1">
@@ -968,7 +971,7 @@ export const CompanySettingsModal: React.FC<Props> = ({
           </div>
 
           {/* Fixed Action Footer */}
-          <div className="px-6 py-3.5 bg-slate-50 border-t border-slate-200 flex justify-end gap-2.5 shrink-0 z-10 shadow-xs">
+          <div className="px-4 sm:px-6 py-3 sm:py-3.5 bg-slate-50 border-t border-slate-200 flex justify-end gap-2.5 shrink-0 z-10 shadow-xs">
             <button
               type="button"
               onClick={onClose}
