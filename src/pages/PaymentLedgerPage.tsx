@@ -318,7 +318,10 @@ export const PaymentLedgerPage: React.FC = () => {
       toast.info('Saving to Ledger...');
 
       updateRecord({ ...formData, id: editingRecord.id }, editingRecord.id || targetRow)
-        .then(() => {
+        .then((saved) => {
+          if (saved && saved.id) {
+            setRecords(prev => prev.map(r => r.id === editingRecord.id ? { ...saved, sheetRow: r.sheetRow } : r));
+          }
           toast.success('Record updated in Ledger!');
         })
         .catch(err => {

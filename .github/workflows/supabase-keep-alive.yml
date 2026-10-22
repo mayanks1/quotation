@@ -1,0 +1,30 @@
+name: Supabase Free Tier Keep-Alive
+
+on:
+  schedule:
+    # Runs every day at 04:00 UTC (09:30 AM IST)
+    - cron: '0 4 * * *'
+  workflow_dispatch: # Allows manual trigger from GitHub Actions tab
+
+jobs:
+  ping-supabase:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Ping Supabase PostgreSQL Database Endpoint
+        run: |
+          echo "Pinging Supabase REST database endpoint to keep project active..."
+          STATUS=$(curl -s -o /dev/null -w "%{http_code}" "https://dsyicahqdiavaidsjmvl.supabase.co/rest/v1/quotations?select=id&limit=1" \
+            -H "apikey: sb_publishable_1xz2VR6veUpoVGMxjtC18Q_1CRofOJn" \
+            -H "Authorization: Bearer sb_publishable_1xz2VR6veUpoVGMxjtC18Q_1CRofOJn")
+          echo "Database HTTP Status: $STATUS"
+
+          echo "Pinging Supabase Auth Health endpoint..."
+          AUTH_STATUS=$(curl -s -o /dev/null -w "%{http_code}" "https://dsyicahqdiavaidsjmvl.supabase.co/auth/v1/health")
+          echo "Auth Health HTTP Status: $AUTH_STATUS"
+
+          if [ "$STATUS" -eq 200 ] || [ "$AUTH_STATUS" -eq 200 ]; then
+            echo "SUCCESS: Supabase project is active and healthy."
+          else
+            echo "WARNING: Check Supabase dashboard, received unexpected status."
+            exit 1
+          fi

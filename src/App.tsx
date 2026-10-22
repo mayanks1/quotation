@@ -20,6 +20,7 @@ import { useAuth } from './context/AuthContext';
 import { useIdleTimeout } from './hooks/useIdleTimeout';
 import { passcodeService } from './services/passcodeService';
 import { backupService } from './services/backupService';
+import { pingSupabaseHealth } from './services/keepAliveService';
 import { LedgerPasscodeModal } from './components/ledger/LedgerPasscodeModal';
 import { Lock } from 'lucide-react';
 
@@ -123,6 +124,9 @@ export function App() {
 
     // Check & trigger automated daily backup once per calendar day
     backupService.checkAndRunAutomatedDailyBackup();
+
+    // Daily health ping to keep Supabase free tier active and avoid 7-day pause
+    pingSupabaseHealth();
   }, []);
 
   const handleRestoreBackup = () => {

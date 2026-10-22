@@ -49,9 +49,15 @@ export function parseDate(dateStr?: string | null): Date {
     return parseDate(startPart);
   }
 
+  // Handle dash range with spaces like "23/10/2026 - 25/10/2026"
+  if (rawStr.includes(" - ")) {
+    const startPart = rawStr.split(" - ")[0].trim();
+    return parseDate(startPart);
+  }
+
   const cleaned = rawStr.replace(/\s+/g, "");
 
-  // Handle multi-day range format: e.g. "17-19/01/2026"
+  // Handle multi-day range format: e.g. "17-19/01/2026" or "23-25/10/2026"
   if (cleaned.includes("/") && cleaned.includes("-")) {
     const parts = cleaned.split("/");
     if (parts.length >= 3) {
@@ -61,7 +67,7 @@ export function parseDate(dateStr?: string | null): Date {
       const dayRange = range.split("-");
       const d = parseInt(dayRange[0], 10);
       if (!isNaN(y) && !isNaN(m) && !isNaN(d)) {
-        return new Date(y, m - 1, d);
+        return new Date(y < 100 ? 2000 + y : y, m - 1, d);
       }
     }
   }
@@ -148,6 +154,9 @@ export function formatDate(d?: string | null): string {
   if (!d) return "";
   const str = String(d).trim();
   if (str.includes("-") && str.includes("/")) return str;
+  if (str.toLowerCase().includes(" to ")) return str;
+  if (str.includes(" - ")) return str;
+  if (str.includes("-") && str.split("-").length > 3) return str;
   const dt = parseDate(str);
   if (isNaN(dt.getTime())) return str;
   return `${String(dt.getDate()).padStart(2, "0")}/${String(dt.getMonth() + 1).padStart(2, "0")}/${dt.getFullYear()}`;
@@ -187,6 +196,37 @@ export function fromDbRow(row: any, index: number = 0): LedgerRecord {
     rawDate = `${safeYear}-${m}-${d}`;
   }
 
+  // Extract custom display date (e.g. "23-25/10/2026") from notes tag or client_id
+  let displayDate = '';
+  let cleanNotes = row.notes || '';
+
+  // 1. Check notes for [EventDate: ...] tag
+  if (cleanNotes.includes('[EventDate:')) {
+    const match = cleanNotes.match(/\[EventDate:\s*([^\]]+)\]/i);
+    if (match && match[1]) {
+      displayDate = match[1].trim();
+      cleanNotes = cleanNotes.replace(/\s*\[EventDate:[^\]]+\]/gi, '').trim();
+    }
+  }
+
+  // 2. Check client_id column (which stores exact date/range string)
+  if (!displayDate && row.client_id && typeof row.client_id === 'string') {
+    const cid = row.client_id.trim();
+    if (cid.includes('/') || cid.includes('-') || cid.includes(' to ')) {
+      displayDate = cid;
+    }
+  }
+
+  // 3. Fallback to formatting rawDate
+  if (!displayDate) {
+    displayDate = formatDate(rawDate);
+  }
+
+  // Clean note from default imported labels
+  if (cleanNotes.startsWith('Imported from Google Sheet') || cleanNotes.startsWith('Imported historical record')) {
+    cleanNotes = '';
+  }
+
   // Clean and sanitize any historical over-long screen_size descriptions
   let cleanSize = (row.screen_size || '').trim();
   if (cleanSize.length > 35 && (cleanSize.includes(' - ') || cleanSize.includes('('))) {
@@ -195,7 +235,7 @@ export function fromDbRow(row: any, index: number = 0): LedgerRecord {
 
   return {
     id: row.id,
-    date: formatDate(rawDate),
+    date: displayDate,
     isoDate: rawDate,
     client: normalizeClient(row.client_name || 'Direct Client'),
     size: cleanSize,
@@ -203,7 +243,7 @@ export function fromDbRow(row: any, index: number = 0): LedgerRecord {
     paidAmount: paid,
     pendingAmount: pending,
     status: (row.status as any) || (paid >= total ? 'Received' : paid > 0 ? 'Partial' : 'Pending'),
-    note: (row.notes && !row.notes.startsWith('Imported from Google Sheet') && !row.notes.startsWith('Imported historical record')) ? row.notes : '',
+    note: cleanNotes,
     sheetRow: index + 1,
     linkedQuotationId: row.linked_quotation_id || null,
     invoiceNumber: row.invoice_number || null,
@@ -242,16 +282,27 @@ export function toDbRow(entry: {
     ? amt
     : (entry.status === 'Partial' ? (parseFloat(String(entry.paidAmount)) || 0) : 0);
 
+  const cleanDateInput = String(entry.date || '').trim();
+
+  // Preserve the exact formatted date string (like "23-25/10/2026" or "23 to 25/10/2026")
+  let updatedNotes = entry.note?.trim() || '';
+  if (cleanDateInput) {
+    // Strip any old [EventDate: ...] tag first
+    updatedNotes = updatedNotes.replace(/\s*\[EventDate:[^\]]+\]/gi, '').trim();
+    updatedNotes = updatedNotes ? `${updatedNotes} [EventDate: ${cleanDateInput}]` : `[EventDate: ${cleanDateInput}]`;
+  }
+
   return {
     id: entry.id || `led_${Date.now()}_${Math.random().toString(36).slice(2, 6)}`,
     organization_id: entry.organizationId || 'org_tisha_main',
-    date: parseDateToISO(entry.date),
+    date: parseDateToISO(cleanDateInput),
     client_name: normalizeClient(entry.client),
+    client_id: cleanDateInput, // Preserves the exact display date / range in Supabase!
     screen_size: entry.size?.trim() || '',
     total_amount: Math.round(amt * 100) / 100,
     paid_amount: Math.round(paid * 100) / 100,
     status: entry.status,
-    notes: entry.note?.trim() || '',
+    notes: updatedNotes,
     payment_mode: entry.paymentMode || (entry.status === 'Received' ? 'bank_transfer' : 'unpaid'),
     transaction_ref: entry.transactionRef || null,
     event_venue: entry.eventVenue || null,
@@ -783,7 +834,8 @@ export async function syncInvoicedQuotation(
   }
 
   const invoiceNum = quotation.invoiceNumber || quotation.quotationNumber;
-  const invoiceDateStr = quotation.invoiceDate || quotation.quotationDate || quotation.eventDate;
+  const eventDateRange = quotation.eventDate || '';
+  const invoiceDateStr = quotation.eventDate || quotation.invoiceDate || quotation.quotationDate;
 
   const ledgerPayload = {
     id: `led_inv_${quotation.id}`,
@@ -792,6 +844,7 @@ export async function syncInvoicedQuotation(
     organization_id: 'org_tisha_main',
     date: parseDateToISO(invoiceDateStr),
     client_name: normalizeClient(quotation.client?.company || quotation.client?.name || 'Direct Client'),
+    client_id: eventDateRange || null,
     event_venue: quotation.venue || null,
     screen_size: extractScreenSize(quotation.lineItems),
     total_amount: grandTotal,
@@ -799,7 +852,7 @@ export async function syncInvoicedQuotation(
     status: status,
     payment_mode: quotation.paymentMode || (status === 'Received' ? 'bank_transfer' : 'unpaid'),
     transaction_ref: quotation.transactionRef || null,
-    notes: `Official Tax Invoice #${invoiceNum} (Ref Quote #${quotation.quotationNumber})`,
+    notes: `Official Tax Invoice #${invoiceNum} (Ref Quote #${quotation.quotationNumber})${eventDateRange ? ` [EventDate: ${eventDateRange}]` : ''}`,
     updated_at: new Date().toISOString()
   };
 
