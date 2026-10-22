@@ -2,6 +2,7 @@ import { supabase, isSupabaseConfigured } from './supabaseClient';
 import { Quotation, ClientProfile, CompanyProfile, CatalogItem } from '../types/quotation';
 import { SaaSOrganization } from '../types/auth';
 import { idb } from './indexedDb';
+import { failoverManager } from './failoverManager';
 
 export const cloudSync = {
   isEnabled(): boolean {
@@ -106,13 +107,23 @@ export const cloudSync = {
       const { error } = await supabase.from('quotations').upsert(row);
       if (error) {
         console.warn('Supabase quotation sync warning:', error.message);
+        failoverManager.reportSupabaseFailure(error);
+      } else {
+        failoverManager.reportSupabaseSuccess();
       }
     } catch (err) {
       console.warn('Cloud sync error (will retry next time):', err);
+      failoverManager.reportSupabaseFailure(err);
+    } finally {
+      // Background mirror to Firebase Firestore
+      failoverManager.mirrorQuotation(quote).catch(() => {});
     }
   },
 
   async deleteQuotation(id: string): Promise<void> {
+    // Mirror delete to Firebase
+    failoverManager.deleteMirroredQuotation(id).catch(() => {});
+
     if (!cloudSync.isEnabled() || !supabase) return;
 
     try {
@@ -123,6 +134,9 @@ export const cloudSync = {
   },
 
   async syncClient(client: ClientProfile): Promise<void> {
+    // Mirror to Firebase
+    failoverManager.mirrorClient(client).catch(() => {});
+
     if (!cloudSync.isEnabled() || !supabase || !client.name) return;
 
     try {
@@ -380,6 +394,27 @@ export const cloudSync = {
       };
     } catch (err) {
       console.warn('Failed pulling from cloud:', err);
+      failoverManager.reportSupabaseFailure(err);
+
+      // Automatic 0% downtime fallback: Retrieve from Firebase Firestore
+      try {
+        const fallbackQuotes = await failoverManager.getFallbackQuotations();
+        if (fallbackQuotes.length > 0) {
+          console.log(`[Failover] Recovered ${fallbackQuotes.length} quotations from Firebase secondary storage!`);
+          for (const fq of fallbackQuotes) {
+            await idb.saveQuotation(fq);
+          }
+          const mergedQuotes = await idb.getAllQuotations();
+          const mergedClients = await idb.getAllClients();
+          return { 
+            quotations: mergedQuotes, 
+            clients: mergedClients,
+          };
+        }
+      } catch (fbErr) {
+        console.warn('Firebase failover attempt failed:', fbErr);
+      }
+
       return null;
     }
   },

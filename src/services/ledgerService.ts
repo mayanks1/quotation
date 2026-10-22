@@ -1,5 +1,6 @@
 import { supabase, isSupabaseConfigured } from './supabaseClient';
 import { Quotation, getItemAmount } from '../types/quotation';
+import { failoverManager } from './failoverManager';
 
 export interface LedgerRecord {
   id: string;
@@ -354,7 +355,9 @@ export async function fetchLedgerRecords(): Promise<LedgerRecord[]> {
 
       if (error) {
         console.warn('Supabase fetch ledger warning:', error.message);
+        failoverManager.reportSupabaseFailure(error);
       } else if (data) {
+        failoverManager.reportSupabaseSuccess();
         const formatted = data
           .map((row, idx) => fromDbRow(row, idx))
           .filter(r => !r.isDeleted && !trashedIds.has(r.id));
@@ -404,6 +407,19 @@ export async function fetchLedgerRecords(): Promise<LedgerRecord[]> {
       }
     } catch (err) {
       console.warn('Failed to fetch ledger from Supabase:', err);
+      failoverManager.reportSupabaseFailure(err);
+
+      // Automatic 0% downtime fallback: Retrieve from Firebase Firestore
+      try {
+        const fallbackLedger = await failoverManager.getFallbackLedger();
+        if (fallbackLedger && fallbackLedger.length > 0) {
+          console.log(`[Failover] Recovered ${fallbackLedger.length} ledger records from Firebase secondary storage!`);
+          memoryLedgerRecords = fallbackLedger.filter(r => !r.isDeleted && !trashedIds.has(r.id));
+          return memoryLedgerRecords;
+        }
+      } catch (fbErr) {
+        console.warn('Firebase ledger fallback error:', fbErr);
+      }
     }
   }
 
@@ -442,9 +458,15 @@ export async function addRecord(entry: {
     const { error } = await supabase.from('payment_ledger').insert([row]);
     if (error) {
       console.error('Supabase addRecord error:', error.message);
+      failoverManager.reportSupabaseFailure(error);
       throw new Error(error.message);
+    } else {
+      failoverManager.reportSupabaseSuccess();
     }
   }
+
+  // Background mirror to Firebase Firestore
+  failoverManager.mirrorLedgerRecord(formattedRecord).catch(() => {});
 
   return formattedRecord;
 }
@@ -492,9 +514,15 @@ export async function updateRecord(
 
     if (error) {
       console.error('Supabase updateRecord error:', error.message);
+      failoverManager.reportSupabaseFailure(error);
       throw new Error(error.message);
+    } else {
+      failoverManager.reportSupabaseSuccess();
     }
   }
+
+  // Background mirror to Firebase Firestore
+  failoverManager.mirrorLedgerRecord(updatedRecord).catch(() => {});
 
   return updatedRecord;
 }
@@ -609,6 +637,11 @@ export async function moveToTrash(recordIdOrRow: string | number): Promise<Ledge
     } catch (err) {
       console.warn('Supabase moveToTrash sync warning:', err);
     }
+  }
+
+  // Delete from Firebase secondary mirror
+  if (targetId) {
+    failoverManager.deleteMirroredLedgerRecord(targetId).catch(() => {});
   }
 
   return trashedRecord;

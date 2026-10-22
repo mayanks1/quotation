@@ -697,4 +697,12 @@ export const storage = {
       return { success: false, message: `Failed to sync: ${err?.message || String(err)}` };
     }
   },
+
+  // Direct accessor aliases
+  getQuotations(includeDeleted = false, organizationId?: string): Quotation[] {
+    return storage.getAllQuotations(includeDeleted, organizationId);
+  },
+  getClients(organizationId?: string): ClientProfile[] {
+    return storage.getAllClients(organizationId);
+  },
 };

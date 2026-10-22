@@ -3,13 +3,14 @@ import { NavLink, useNavigate, useLocation } from 'react-router-dom';
 import {
   FileText, Settings, Check, Plus, Users,
   LogOut, Shield, ChevronDown, User, Sparkles, Building2,
-  Lock, Crown, Briefcase, UserCheck, CreditCard, Package, KeyRound
+  Lock, Crown, Briefcase, UserCheck, CreditCard, Package, KeyRound, Cloud
 } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
 import { useToast } from '../context/ToastContext';
 import { passcodeService } from '../services/passcodeService';
 import { LedgerPasscodeModal } from './ledger/LedgerPasscodeModal';
 import { ChangePasswordModal } from './ChangePasswordModal';
+import { CloudFailoverModal } from './common/CloudFailoverModal';
 
 interface Props {
   onOpenSettings: () => void;
@@ -34,6 +35,7 @@ export const HeaderNav: React.FC<Props> = ({
   const [isUserMenuOpen, setIsUserMenuOpen] = useState(false);
   const [isPasscodeModalOpen, setIsPasscodeModalOpen] = useState(false);
   const [isChangePasswordOpen, setIsChangePasswordOpen] = useState(false);
+  const [isCloudModalOpen, setIsCloudModalOpen] = useState(false);
   const menuRef = useRef<HTMLDivElement>(null);
 
   const canCreate = isSuperAdmin || hasPermission('canCreateQuotes');
@@ -165,6 +167,17 @@ export const HeaderNav: React.FC<Props> = ({
 
           {/* Right side CTAs */}
           <div className="flex items-center gap-2 flex-shrink-0">
+            <button
+              type="button"
+              onClick={() => setIsCloudModalOpen(true)}
+              title="Click to view 0% Downtime Cloud Failover & Backup Status"
+              className="flex items-center gap-1 sm:gap-1.5 text-[11px] font-medium text-cyan-400 hover:text-cyan-300 bg-cyan-950/40 hover:bg-cyan-950/60 border border-cyan-800/50 px-2 sm:px-2.5 py-1 rounded-full whitespace-nowrap shadow-inner transition-colors cursor-pointer"
+            >
+              <Cloud size={13} className="text-cyan-400 shrink-0" />
+              <span className="hidden sm:inline">0% Downtime Sync</span>
+              <span className="sm:hidden text-[10px] font-bold">Cloud</span>
+            </button>
+
             {canCreate && (
               <button
                 onClick={onCreateNew}
@@ -294,6 +307,18 @@ export const HeaderNav: React.FC<Props> = ({
                         <KeyRound size={14} className="text-amber-400" />
                         <span>Change Password</span>
                       </button>
+
+                      <button
+                        type="button"
+                        onClick={() => {
+                          setIsUserMenuOpen(false);
+                          setIsCloudModalOpen(true);
+                        }}
+                        className="w-full flex items-center gap-2.5 px-3.5 py-2 text-xs hover:bg-neutral-800/80 transition-colors text-left text-cyan-300 font-semibold cursor-pointer"
+                      >
+                        <Cloud size={14} className="text-cyan-400" />
+                        <span>Cloud Failover &amp; Backup</span>
+                      </button>
                     </div>
 
                     {/* Multi-Workspace Switcher: Only Super Admin can view & switch all workspaces */}
@@ -368,6 +393,7 @@ export const HeaderNav: React.FC<Props> = ({
                 )}
               </div>
             )}
+
 
             <div className="hidden xl:flex items-center gap-1.5 text-[11px] font-medium text-emerald-400 bg-emerald-950/50 border border-emerald-800/50 px-2.5 py-1 rounded-full whitespace-nowrap shadow-inner">
               <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse" />
@@ -457,6 +483,14 @@ export const HeaderNav: React.FC<Props> = ({
           <ChangePasswordModal
             isOpen={isChangePasswordOpen}
             onClose={() => setIsChangePasswordOpen(false)}
+          />
+        )}
+
+        {/* 0% Downtime Cloud Failover Modal */}
+        {isCloudModalOpen && (
+          <CloudFailoverModal
+            isOpen={isCloudModalOpen}
+            onClose={() => setIsCloudModalOpen(false)}
           />
         )}
       </div>
