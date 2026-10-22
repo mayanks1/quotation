@@ -192,6 +192,28 @@ export const cloudSync = {
   },
 
   async pullAllFromCloud(): Promise<{ quotations: Quotation[]; clients: ClientProfile[]; company?: CompanyProfile } | null> {
+    // Check if user set Firebase as Primary Engine
+    if (failoverManager.getPrimaryEngine() === 'firebase') {
+      try {
+        const fallbackQuotes = await failoverManager.getFallbackQuotations();
+        if (fallbackQuotes && fallbackQuotes.length > 0) {
+          failoverManager.reportPrimarySuccess();
+          for (const fq of fallbackQuotes) {
+            await idb.saveQuotation(fq);
+          }
+          const mergedQuotes = await idb.getAllQuotations();
+          const mergedClients = await idb.getAllClients();
+          return {
+            quotations: mergedQuotes,
+            clients: mergedClients,
+          };
+        }
+      } catch (fbErr) {
+        console.warn('Firebase primary pull failed, falling back to Supabase:', fbErr);
+        failoverManager.reportPrimaryFailure(fbErr);
+      }
+    }
+
     if (!cloudSync.isEnabled() || !supabase) return null;
 
     try {

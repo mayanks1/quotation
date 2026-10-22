@@ -91,9 +91,6 @@ export const HeaderNav: React.FC<Props> = ({
             <div className="shrink-0">
               <div className="font-black text-xs sm:text-sm lg:text-base tracking-tight flex items-center gap-1.5 whitespace-nowrap">
                 <span>{organization?.name || 'TISHA LED WALLS'}</span>
-                <span className="text-[9px] sm:text-[10px] uppercase font-extrabold tracking-wider px-1.5 py-0.5 rounded bg-blue-500/20 text-blue-400 border border-blue-500/30 flex-shrink-0">
-                  {organization?.plan?.toUpperCase() || 'PRO'}
-                </span>
               </div>
               <div className="text-[10px] text-neutral-400 hidden xl:block leading-tight mt-0.5">
                 Quotation &amp; Ledger Suite

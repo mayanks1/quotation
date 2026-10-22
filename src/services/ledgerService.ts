@@ -346,6 +346,25 @@ export async function fetchLedgerRecords(): Promise<LedgerRecord[]> {
     }
   }
 
+  // Check if user set Firebase as Primary Engine
+  if (failoverManager.getPrimaryEngine() === 'firebase') {
+    try {
+      const fallbackLedger = await failoverManager.getFallbackLedger();
+      if (fallbackLedger && fallbackLedger.length > 0) {
+        failoverManager.reportPrimarySuccess();
+        const formatted = fallbackLedger.filter(r => !r.isDeleted && !trashedIds.has(r.id));
+        memoryLedgerRecords = formatted;
+        try {
+          localStorage.setItem(LEDGER_STORAGE_KEY, JSON.stringify(formatted));
+        } catch (e) {}
+        return formatted;
+      }
+    } catch (fbErr) {
+      console.warn('Firebase primary fetch failed, falling back to Supabase:', fbErr);
+      failoverManager.reportPrimaryFailure(fbErr);
+    }
+  }
+
   if (isSupabaseConfigured() && supabase) {
     try {
       const { data, error } = await supabase

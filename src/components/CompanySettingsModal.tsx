@@ -17,6 +17,8 @@ import { WeeklyEmailSettingsModal } from './ledger/WeeklyEmailSettingsModal';
 import { ManageLedgerPasscodeModal } from './ledger/ManageLedgerPasscodeModal';
 import { BackupManagementModal } from './BackupManagementModal';
 import { ChangePasswordModal } from './ChangePasswordModal';
+import { CloudFailoverModal } from './common/CloudFailoverModal';
+import { failoverManager } from '../services/failoverManager';
 import { useLockBodyScroll } from '../hooks/useLockBodyScroll';
 
 interface Props {
@@ -68,6 +70,7 @@ export const CompanySettingsModal: React.FC<Props> = ({
   const [testingConn, setTestingConn] = useState(false);
   const [syncingCloud, setSyncingCloud] = useState(false);
   const [isChangePasswordOpen, setIsChangePasswordOpen] = useState(false);
+  const [isCloudFailoverModalOpen, setIsCloudFailoverModalOpen] = useState(false);
   const [testResult, setTestResult] = useState<{ success: boolean; message: string; tableReady?: boolean } | null>(null);
   const [autoLedgerSync, setAutoLedgerSync] = useState<boolean>(() => storage.isAutoLedgerSyncEnabled());
 
@@ -808,6 +811,38 @@ export const CompanySettingsModal: React.FC<Props> = ({
               </div>
             </div>
 
+            {/* Dual-Cloud Failover & Primary Engine Selection Card */}
+            <div className="bg-slate-50 border border-slate-200/90 rounded-xl p-3.5 mb-1 flex items-center justify-between gap-3">
+              <div className="flex items-center gap-2.5">
+                <div className="w-8 h-8 rounded-lg bg-blue-100 text-blue-700 flex items-center justify-center shrink-0">
+                  <Cloud size={16} />
+                </div>
+                <div>
+                  <div className="text-xs font-bold text-slate-800 flex items-center gap-1.5 flex-wrap">
+                    <span>Primary Database:</span>
+                    <span className="uppercase text-blue-700 bg-blue-100/80 px-2 py-0.5 rounded border border-blue-200 text-[10px] font-black">
+                      {failoverManager.getPrimaryEngine()}
+                    </span>
+                    <span className="text-slate-400 font-normal">➔ Auto-Mirror:</span>
+                    <span className="uppercase text-slate-600 bg-slate-200/70 px-1.5 py-0.5 rounded text-[10px] font-bold">
+                      {failoverManager.getSecondaryEngine()}
+                    </span>
+                  </div>
+                  <div className="text-[11px] text-slate-500 mt-0.5">
+                    Zero-downtime dual-cloud failover &amp; automatic background mirroring
+                  </div>
+                </div>
+              </div>
+
+              <button
+                type="button"
+                onClick={() => setIsCloudFailoverModalOpen(true)}
+                className="px-3 py-1.5 bg-blue-600 hover:bg-blue-500 text-white rounded-lg text-xs font-bold transition-all shadow-xs shrink-0 cursor-pointer"
+              >
+                Configure Failover
+              </button>
+            </div>
+
             <div className="flex flex-wrap gap-2 pt-1">
               {isSupabaseConfigured() && (
                 <>
@@ -1011,6 +1046,14 @@ export const CompanySettingsModal: React.FC<Props> = ({
         <ChangePasswordModal
           isOpen={isChangePasswordOpen}
           onClose={() => setIsChangePasswordOpen(false)}
+        />
+      )}
+
+      {/* Cloud Failover & Primary Database Modal */}
+      {isCloudFailoverModalOpen && (
+        <CloudFailoverModal
+          isOpen={isCloudFailoverModalOpen}
+          onClose={() => setIsCloudFailoverModalOpen(false)}
         />
       )}
     </div>

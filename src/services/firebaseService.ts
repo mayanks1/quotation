@@ -13,8 +13,9 @@ export interface FirebaseConfig {
 
 // Get config from Vite environment variables or localStorage override
 export function getFirebaseConfig(): FirebaseConfig | null {
-  const apiKey = (import.meta.env.VITE_FIREBASE_API_KEY as string) || (typeof window !== 'undefined' ? localStorage.getItem('tisha_firebase_api_key') : null);
-  const projectId = (import.meta.env.VITE_FIREBASE_PROJECT_ID as string) || (typeof window !== 'undefined' ? localStorage.getItem('tisha_firebase_project_id') : null);
+  const env = typeof import.meta !== 'undefined' && import.meta.env ? import.meta.env : (typeof process !== 'undefined' ? process.env : {}) as any;
+  const apiKey = (env.VITE_FIREBASE_API_KEY as string) || (typeof window !== 'undefined' ? localStorage.getItem('tisha_firebase_api_key') : null) || (typeof globalThis !== 'undefined' && (globalThis as any).localStorage?.getItem('tisha_firebase_api_key'));
+  const projectId = (env.VITE_FIREBASE_PROJECT_ID as string) || (typeof window !== 'undefined' ? localStorage.getItem('tisha_firebase_project_id') : null) || (typeof globalThis !== 'undefined' && (globalThis as any).localStorage?.getItem('tisha_firebase_project_id'));
 
   if (apiKey && projectId) {
     return { apiKey: apiKey.trim(), projectId: projectId.trim() };

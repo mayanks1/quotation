@@ -1,76 +1,147 @@
 /**
  * Dual-Cloud Failover & Synchronization Manager
  * 
- * Coordinates high-availability dual-write between Supabase (Primary) and Firebase (Secondary).
- * Guarantees zero downtime: automatically switches providers when Supabase is paused or unreachable.
+ * Coordinates high-availability dual-write between Supabase and Firebase.
+ * Provides configurable Primary Database selection with automatic Secondary background mirroring.
+ * Includes automatic circuit breaker for zero downtime during cloud outages or pauses.
  */
 
+import { supabase, isSupabaseConfigured } from './supabaseClient';
 import { firestoreUpsert, firestoreGetAll, firestoreDelete, isFirebaseConfigured, testFirestoreConnection } from './firebaseService';
 import type { Quotation, ClientProfile } from '../types';
 import type { LedgerRecord } from './ledgerService';
+import { toDbRow, fromDbRow } from './ledgerService';
+
+export type DatabaseEngine = 'supabase' | 'firebase';
 
 export interface CloudStatus {
-  activeProvider: 'supabase' | 'firebase';
+  primaryEngine: DatabaseEngine;
+  secondaryEngine: DatabaseEngine;
+  activeProvider: DatabaseEngine;
   isSupabaseHealthy: boolean;
   isFirebaseHealthy: boolean;
+  isSupabaseConfigured: boolean;
   isFirebaseConfigured: boolean;
-  mirroredQuotesCount: number;
-  mirroredLedgerCount: number;
   lastMirroredAt: string | null;
 }
 
+const PRIMARY_ENGINE_KEY = 'tisha_primary_database_engine';
 const FAILOVER_STATE_KEY = 'tisha_cloud_active_provider';
 const LAST_MIRROR_KEY = 'tisha_last_cloud_mirror_time';
 
 class FailoverManager {
-  private activeProvider: 'supabase' | 'firebase' = 'supabase';
-  private consecutiveSupabaseFailures = 0;
+  private primaryEngine: DatabaseEngine = 'supabase';
+  private activeProvider: DatabaseEngine = 'supabase';
+  private consecutivePrimaryFailures = 0;
   private isSupabaseHealthy = true;
   private isFirebaseHealthy = false;
   private listeners: Array<(status: CloudStatus) => void> = [];
 
   constructor() {
     if (typeof window !== 'undefined') {
-      const saved = localStorage.getItem(FAILOVER_STATE_KEY);
-      if (saved === 'firebase') {
-        this.activeProvider = 'firebase';
+      const savedPrimary = localStorage.getItem(PRIMARY_ENGINE_KEY) as DatabaseEngine;
+      if (savedPrimary === 'firebase' || savedPrimary === 'supabase') {
+        this.primaryEngine = savedPrimary;
+      }
+      const savedActive = localStorage.getItem(FAILOVER_STATE_KEY) as DatabaseEngine;
+      if (savedActive === 'firebase' || savedActive === 'supabase') {
+        this.activeProvider = savedActive;
+      } else {
+        this.activeProvider = this.primaryEngine;
       }
     }
   }
 
-  public getActiveProvider(): 'supabase' | 'firebase' {
+  // --- Engine Preferences ---
+
+  public getPrimaryEngine(): DatabaseEngine {
+    return this.primaryEngine;
+  }
+
+  public getSecondaryEngine(): DatabaseEngine {
+    return this.primaryEngine === 'supabase' ? 'firebase' : 'supabase';
+  }
+
+  public getActiveProvider(): DatabaseEngine {
     return this.activeProvider;
   }
 
-  public setProvider(provider: 'supabase' | 'firebase') {
-    this.activeProvider = provider;
+  /**
+   * Set user's chosen Primary Database engine.
+   * Enforces that Firebase credentials must exist before switching Firebase to Primary.
+   */
+  public setPrimaryEngine(engine: DatabaseEngine): { success: boolean; error?: string } {
+    if (engine === 'firebase' && !isFirebaseConfigured()) {
+      return {
+        success: false,
+        error: 'Cannot set Firebase as Primary: Please configure your Firebase Project ID and Web API Key first.'
+      };
+    }
+
+    if (engine === 'supabase' && !isSupabaseConfigured()) {
+      return {
+        success: false,
+        error: 'Cannot set Supabase as Primary: Supabase environment credentials are not detected.'
+      };
+    }
+
+    this.primaryEngine = engine;
+    this.activeProvider = engine;
+    this.consecutivePrimaryFailures = 0;
+
     if (typeof window !== 'undefined') {
-      localStorage.setItem(FAILOVER_STATE_KEY, provider);
+      localStorage.setItem(PRIMARY_ENGINE_KEY, engine);
+      localStorage.setItem(FAILOVER_STATE_KEY, engine);
     }
+
     this.notifyListeners();
+    console.log(`🔄 [FailoverManager] Primary Database set to "${engine.toUpperCase()}". Secondary Mirror is "${this.getSecondaryEngine().toUpperCase()}".`);
+    return { success: true };
   }
 
-  public reportSupabaseSuccess() {
-    this.consecutiveSupabaseFailures = 0;
-    this.isSupabaseHealthy = true;
-    if (this.activeProvider === 'firebase') {
-      console.log('✅ [Failover] Supabase recovered and healthy.');
+  public reportPrimarySuccess() {
+    this.consecutivePrimaryFailures = 0;
+    if (this.primaryEngine === 'supabase') {
+      this.isSupabaseHealthy = true;
+    } else {
+      this.isFirebaseHealthy = true;
     }
   }
 
-  public reportSupabaseFailure(error: any) {
-    this.consecutiveSupabaseFailures++;
-    console.warn(`⚠️ [Failover] Supabase failure #${this.consecutiveSupabaseFailures}:`, error);
+  public reportPrimaryFailure(error: any) {
+    this.consecutivePrimaryFailures++;
+    console.warn(`⚠️ [Failover] Primary (${this.primaryEngine}) failure #${this.consecutivePrimaryFailures}:`, error);
 
-    // After 2 consecutive failures, if Firebase is configured, flip provider automatically
-    if (this.consecutiveSupabaseFailures >= 2 && isFirebaseConfigured() && this.activeProvider !== 'firebase') {
-      console.warn('🚨 [Failover] Switching active provider to Firebase Firestore for 0% downtime!');
-      this.activeProvider = 'firebase';
-      this.isSupabaseHealthy = false;
+    const secondary = this.getSecondaryEngine();
+    const isSecondaryReady = secondary === 'firebase' ? isFirebaseConfigured() : isSupabaseConfigured();
+
+    // After 2 consecutive failures on primary, flip active provider to secondary
+    if (this.consecutivePrimaryFailures >= 2 && isSecondaryReady && this.activeProvider !== secondary) {
+      console.warn(`🚨 [Failover] Auto-switching active provider to ${secondary.toUpperCase()} for 0% downtime!`);
+      this.activeProvider = secondary;
+      if (this.primaryEngine === 'supabase') {
+        this.isSupabaseHealthy = false;
+      } else {
+        this.isFirebaseHealthy = false;
+      }
       if (typeof window !== 'undefined') {
-        localStorage.setItem(FAILOVER_STATE_KEY, 'firebase');
+        localStorage.setItem(FAILOVER_STATE_KEY, secondary);
       }
       this.notifyListeners();
+    }
+  }
+
+  // Backward compatible aliases
+  public reportSupabaseSuccess() {
+    this.isSupabaseHealthy = true;
+    if (this.primaryEngine === 'supabase') this.reportPrimarySuccess();
+  }
+
+  public reportSupabaseFailure(err: any) {
+    if (this.primaryEngine === 'supabase') {
+      this.reportPrimaryFailure(err);
+    } else {
+      this.isSupabaseHealthy = false;
     }
   }
 
@@ -88,129 +159,283 @@ class FailoverManager {
 
   public getStatus(): CloudStatus {
     return {
+      primaryEngine: this.primaryEngine,
+      secondaryEngine: this.getSecondaryEngine(),
       activeProvider: this.activeProvider,
       isSupabaseHealthy: this.isSupabaseHealthy,
       isFirebaseHealthy: this.isFirebaseHealthy,
+      isSupabaseConfigured: isSupabaseConfigured(),
       isFirebaseConfigured: isFirebaseConfigured(),
-      mirroredQuotesCount: 0,
-      mirroredLedgerCount: 0,
       lastMirroredAt: typeof window !== 'undefined' ? localStorage.getItem(LAST_MIRROR_KEY) : null
     };
   }
 
-  // --- Background Mirror Methods (Runs asynchronously without blocking UI) ---
+  // --- Dynamic Dual-Write & Mirroring ---
 
+  /**
+   * Mirror a quotation into whichever engine is currently designated as Secondary.
+   */
   public async mirrorQuotation(quotation: Quotation): Promise<void> {
-    if (!isFirebaseConfigured() || !quotation?.id) return;
-    try {
-      await firestoreUpsert('quotations', quotation.id, quotation);
-    } catch (err) {
-      console.warn('[Failover] Mirror quotation failed:', err);
+    if (!quotation?.id) return;
+    const secondary = this.getSecondaryEngine();
+
+    if (secondary === 'firebase') {
+      if (isFirebaseConfigured()) {
+        try {
+          await firestoreUpsert('quotations', quotation.id, quotation);
+        } catch (err) {
+          console.warn('[Failover] Firebase mirror quotation failed:', err);
+        }
+      }
+    } else {
+      // Secondary is Supabase
+      if (isSupabaseConfigured() && supabase) {
+        try {
+          const activeOrgId = quotation.organizationId || (typeof window !== 'undefined' ? localStorage.getItem('tisha_active_org_id') || 'org_tisha_main' : 'org_tisha_main');
+          const companyPayload = quotation.company && quotation.company.name ? quotation.company : { name: 'Tisha LED Walls' };
+          const row = {
+            id: quotation.id,
+            quotation_number: quotation.quotationNumber,
+            quotation_date: quotation.quotationDate,
+            valid_until: quotation.validUntil,
+            event_date: quotation.eventDate || null,
+            venue: quotation.venue || null,
+            status: quotation.status,
+            document_type: quotation.documentType || 'quotation',
+            invoice_number: quotation.invoiceNumber || null,
+            invoice_date: quotation.invoiceDate || null,
+            company: companyPayload,
+            client: quotation.client,
+            line_items: quotation.lineItems || [],
+            discount_amount: quotation.discountAmount || 0,
+            tax_scheme: quotation.taxScheme || 'cgst_sgst',
+            tax_rate: quotation.taxRate || 18,
+            shipping_charges: quotation.shippingCharges || 0,
+            notes: quotation.notes || null,
+            payment_terms: quotation.paymentTerms || null,
+            organization_id: activeOrgId,
+            updated_at: quotation.updatedAt || new Date().toISOString()
+          };
+          await supabase.from('quotations').upsert(row);
+        } catch (err) {
+          console.warn('[Failover] Supabase mirror quotation failed:', err);
+        }
+      }
     }
   }
 
+  /**
+   * Mirror a payment ledger record into whichever engine is currently designated as Secondary.
+   */
   public async mirrorLedgerRecord(record: LedgerRecord): Promise<void> {
-    if (!isFirebaseConfigured() || !record?.id) return;
-    try {
-      await firestoreUpsert('payment_ledger', record.id, record);
-    } catch (err) {
-      console.warn('[Failover] Mirror ledger record failed:', err);
+    if (!record?.id) return;
+    const secondary = this.getSecondaryEngine();
+
+    if (secondary === 'firebase') {
+      if (isFirebaseConfigured()) {
+        try {
+          await firestoreUpsert('payment_ledger', record.id, record);
+        } catch (err) {
+          console.warn('[Failover] Firebase mirror ledger failed:', err);
+        }
+      }
+    } else {
+      // Secondary is Supabase
+      if (isSupabaseConfigured() && supabase) {
+        try {
+          const row = toDbRow(record as any);
+          await supabase.from('payment_ledger').upsert(row);
+        } catch (err) {
+          console.warn('[Failover] Supabase mirror ledger failed:', err);
+        }
+      }
     }
   }
 
+  /**
+   * Mirror a client into whichever engine is currently designated as Secondary.
+   */
   public async mirrorClient(client: ClientProfile): Promise<void> {
-    if (!isFirebaseConfigured() || !client?.id) return;
-    try {
-      await firestoreUpsert('clients', client.id, client);
-    } catch (err) {
-      console.warn('[Failover] Mirror client failed:', err);
+    if (!client?.id && !client?.name) return;
+    const secondary = this.getSecondaryEngine();
+
+    if (secondary === 'firebase') {
+      if (isFirebaseConfigured()) {
+        const id = client.id || `client-${Date.now()}`;
+        try {
+          await firestoreUpsert('clients', id, { ...client, id });
+        } catch (err) {
+          console.warn('[Failover] Firebase mirror client failed:', err);
+        }
+      }
+    } else {
+      // Secondary is Supabase
+      if (isSupabaseConfigured() && supabase) {
+        try {
+          const row = {
+            id: client.id || `client-${Date.now()}`,
+            name: client.name,
+            company: client.company || null,
+            address: client.address || null,
+            phone: client.phone || null,
+            email: client.email || null,
+            gstin: client.gstin || null,
+            updated_at: new Date().toISOString()
+          };
+          await supabase.from('clients').upsert(row);
+        } catch (err) {
+          console.warn('[Failover] Supabase mirror client failed:', err);
+        }
+      }
     }
   }
 
   public async deleteMirroredQuotation(id: string): Promise<void> {
-    if (!isFirebaseConfigured() || !id) return;
-    try {
-      await firestoreDelete('quotations', id);
-    } catch (err) {}
+    if (!id) return;
+    const secondary = this.getSecondaryEngine();
+    if (secondary === 'firebase') {
+      if (isFirebaseConfigured()) firestoreDelete('quotations', id).catch(() => {});
+    } else {
+      if (isSupabaseConfigured() && supabase) supabase.from('quotations').delete().eq('id', id).then();
+    }
   }
 
   public async deleteMirroredLedgerRecord(id: string): Promise<void> {
-    if (!isFirebaseConfigured() || !id) return;
-    try {
-      await firestoreDelete('payment_ledger', id);
-    } catch (err) {}
+    if (!id) return;
+    const secondary = this.getSecondaryEngine();
+    if (secondary === 'firebase') {
+      if (isFirebaseConfigured()) firestoreDelete('payment_ledger', id).catch(() => {});
+    } else {
+      if (isSupabaseConfigured() && supabase) supabase.from('payment_ledger').delete().eq('id', id).then();
+    }
   }
 
   // --- Secondary Fallback Retrieval ---
 
   public async getFallbackQuotations(): Promise<Quotation[]> {
-    if (!isFirebaseConfigured()) return [];
-    try {
-      const records = await firestoreGetAll('quotations');
-      return records as Quotation[];
-    } catch (err) {
-      console.warn('[Failover] Error fetching fallback quotations:', err);
-      return [];
+    const secondary = this.getSecondaryEngine();
+    if (secondary === 'firebase') {
+      if (!isFirebaseConfigured()) return [];
+      try {
+        const records = await firestoreGetAll('quotations');
+        return records as Quotation[];
+      } catch (err) {
+        console.warn('[Failover] Error fetching fallback quotations from Firebase:', err);
+        return [];
+      }
+    } else {
+      // Secondary is Supabase
+      if (!isSupabaseConfigured() || !supabase) return [];
+      try {
+        const { data, error } = await supabase.from('quotations').select('*').order('updated_at', { ascending: false });
+        if (error || !data) return [];
+        return data.map((row: any) => ({
+          id: row.id,
+          organizationId: row.organization_id || 'org_tisha_main',
+          quotationNumber: row.quotation_number,
+          quotationDate: row.quotation_date,
+          validUntil: row.valid_until,
+          eventDate: row.event_date || undefined,
+          venue: row.venue || undefined,
+          status: row.status,
+          documentType: row.document_type || 'quotation',
+          invoiceNumber: row.invoice_number || undefined,
+          invoiceDate: row.invoice_date || undefined,
+          company: row.company,
+          client: row.client,
+          lineItems: row.line_items || [],
+          discountAmount: Number(row.discount_amount || 0),
+          taxScheme: row.tax_scheme,
+          taxRate: Number(row.tax_rate || 18),
+          shippingCharges: Number(row.shipping_charges || 0),
+          notes: row.notes || '',
+          paymentTerms: row.payment_terms || '',
+          createdAt: row.created_at,
+          updatedAt: row.updated_at
+        })) as Quotation[];
+      } catch (err) {
+        console.warn('[Failover] Error fetching fallback quotations from Supabase:', err);
+        return [];
+      }
     }
   }
 
   public async getFallbackLedger(): Promise<LedgerRecord[]> {
-    if (!isFirebaseConfigured()) return [];
-    try {
-      const records = await firestoreGetAll('payment_ledger');
-      return records as LedgerRecord[];
-    } catch (err) {
-      console.warn('[Failover] Error fetching fallback ledger:', err);
-      return [];
+    const secondary = this.getSecondaryEngine();
+    if (secondary === 'firebase') {
+      if (!isFirebaseConfigured()) return [];
+      try {
+        const records = await firestoreGetAll('payment_ledger');
+        return records as LedgerRecord[];
+      } catch (err) {
+        console.warn('[Failover] Error fetching fallback ledger from Firebase:', err);
+        return [];
+      }
+    } else {
+      // Secondary is Supabase
+      if (!isSupabaseConfigured() || !supabase) return [];
+      try {
+        const { data, error } = await supabase.from('payment_ledger').select('*').order('date', { ascending: false });
+        if (error || !data) return [];
+        return data.map((r, i) => fromDbRow(r, i));
+      } catch (err) {
+        console.warn('[Failover] Error fetching fallback ledger from Supabase:', err);
+        return [];
+      }
     }
   }
 
   /**
-   * Complete Snapshot Mirror:
-   * Copies 100% of current active data (Quotations + Ledger + Clients) to Firebase
+   * Complete Bi-Directional Snapshot Reconcile:
+   * Mirrors 100% of current active data (Quotations + Ledger + Clients) from Primary ➔ Secondary
    */
-  public async mirrorAllData(
+  public async reconcileDatabases(
     quotations: Quotation[],
     ledger: LedgerRecord[],
     clients: ClientProfile[],
     onProgress?: (msg: string) => void
   ): Promise<{ success: boolean; count: number; error?: string }> {
-    if (!isFirebaseConfigured()) {
-      return { success: false, count: 0, error: 'Firebase is not configured yet. Please add credentials.' };
+    const targetSecondary = this.getSecondaryEngine();
+
+    if (targetSecondary === 'firebase' && !isFirebaseConfigured()) {
+      return { success: false, count: 0, error: 'Firebase is not configured yet. Please enter your Firebase credentials.' };
+    }
+    if (targetSecondary === 'supabase' && (!isSupabaseConfigured() || !supabase)) {
+      return { success: false, count: 0, error: 'Supabase is not configured yet.' };
     }
 
     try {
-      onProgress?.('Testing Firebase connection...');
-      const ping = await testFirestoreConnection();
-      if (!ping.success) {
-        return { success: false, count: 0, error: ping.message };
+      onProgress?.(`Verifying connection to secondary cloud (${targetSecondary.toUpperCase()})...`);
+      if (targetSecondary === 'firebase') {
+        const ping = await testFirestoreConnection();
+        if (!ping.success) return { success: false, count: 0, error: ping.message };
       }
 
       let totalSynced = 0;
 
       // 1. Mirror Quotations
-      onProgress?.(`Mirroring ${quotations.length} quotations to Firebase...`);
+      onProgress?.(`Replicating ${quotations.length} quotations to ${targetSecondary.toUpperCase()}...`);
       for (const q of quotations) {
         if (q.id) {
-          await firestoreUpsert('quotations', q.id, q);
+          await this.mirrorQuotation(q);
           totalSynced++;
         }
       }
 
       // 2. Mirror Ledger
-      onProgress?.(`Mirroring ${ledger.length} ledger records to Firebase...`);
+      onProgress?.(`Replicating ${ledger.length} ledger records to ${targetSecondary.toUpperCase()}...`);
       for (const r of ledger) {
         if (r.id) {
-          await firestoreUpsert('payment_ledger', r.id, r);
+          await this.mirrorLedgerRecord(r);
           totalSynced++;
         }
       }
 
       // 3. Mirror Clients
-      onProgress?.(`Mirroring ${clients.length} clients to Firebase...`);
+      onProgress?.(`Replicating ${clients.length} clients to ${targetSecondary.toUpperCase()}...`);
       for (const c of clients) {
         if (c.id) {
-          await firestoreUpsert('clients', c.id, c);
+          await this.mirrorClient(c);
           totalSynced++;
         }
       }
@@ -219,13 +444,25 @@ class FailoverManager {
       if (typeof window !== 'undefined') {
         localStorage.setItem(LAST_MIRROR_KEY, now);
       }
-      this.isFirebaseHealthy = true;
+
+      if (targetSecondary === 'firebase') this.isFirebaseHealthy = true;
+      if (targetSecondary === 'supabase') this.isSupabaseHealthy = true;
       this.notifyListeners();
 
       return { success: true, count: totalSynced };
     } catch (err: any) {
       return { success: false, count: 0, error: err?.message || 'Sync failed.' };
     }
+  }
+
+  // Alias for backward compatibility
+  public async mirrorAllData(
+    quotations: Quotation[],
+    ledger: LedgerRecord[],
+    clients: ClientProfile[],
+    onProgress?: (msg: string) => void
+  ) {
+    return this.reconcileDatabases(quotations, ledger, clients, onProgress);
   }
 }
 
