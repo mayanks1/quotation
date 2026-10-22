@@ -10,6 +10,7 @@ const STORAGE_KEYS = {
   LEGACY_QUOTATIONS: 'tisha_quotations_v2',
   LEGACY_COMPANY: 'tisha_company_profile_v2',
   LEGACY_CLIENTS: 'tisha_clients_v2',
+  AUTO_LEDGER_SYNC: 'tisha_auto_ledger_sync_v1',
 };
 
 export const normalizeCompany = (raw: any): CompanyProfile => {
@@ -325,8 +326,8 @@ export const storage = {
     // Background cloud sync
     cloudSync.syncQuotation(updated).catch(console.error);
 
-    // Auto-create / update entry in Payment Ledger ONLY if quotation is Invoiced
-    if (updated.status === 'invoiced' || updated.documentType === 'invoice' || Boolean(updated.invoiceNumber)) {
+    // Auto-create / update entry in Payment Ledger ONLY if quotation is Invoiced AND auto-sync is enabled
+    if (storage.isAutoLedgerSyncEnabled() && (updated.status === 'invoiced' || updated.documentType === 'invoice' || Boolean(updated.invoiceNumber))) {
       syncInvoicedQuotation(updated).catch(console.error);
     }
 
@@ -387,7 +388,7 @@ export const storage = {
     memoryQuotations = memoryQuotations.map((q) => (q.id === id ? restored : q));
     idb.saveQuotation(restored).catch(console.error);
     cloudSync.syncQuotation(restored).catch(console.error);
-    if (restored.status === 'invoiced' || restored.documentType === 'invoice' || Boolean(restored.invoiceNumber)) {
+    if (storage.isAutoLedgerSyncEnabled() && (restored.status === 'invoiced' || restored.documentType === 'invoice' || Boolean(restored.invoiceNumber))) {
       syncInvoicedQuotation(restored).catch(console.error);
     }
     return restored;
@@ -667,5 +668,34 @@ export const storage = {
       pushedCount: pushed, 
       message: `Successfully synchronized ${pushed} quotations and ${allClients.length} clients with cloud database.` 
     };
+  },
+
+  // Auto-Ledger Sync Toggle
+  isAutoLedgerSyncEnabled(): boolean {
+    try {
+      const stored = localStorage.getItem(STORAGE_KEYS.AUTO_LEDGER_SYNC);
+      // Default is ON (true) if not explicitly set to 'false'
+      return stored !== 'false';
+    } catch {
+      return true;
+    }
+  },
+
+  setAutoLedgerSync(enabled: boolean): void {
+    try {
+      localStorage.setItem(STORAGE_KEYS.AUTO_LEDGER_SYNC, String(enabled));
+    } catch (e) {
+      console.error('Failed to save auto-ledger-sync setting:', e);
+    }
+  },
+
+  // Manual sync a quotation to the ledger (regardless of auto-sync setting)
+  async manualSyncToLedger(quotation: Quotation): Promise<{ success: boolean; message: string }> {
+    try {
+      await syncInvoicedQuotation(quotation, true);
+      return { success: true, message: `Quotation ${quotation.quotationNumber} synced to Payment Ledger successfully.` };
+    } catch (err: any) {
+      return { success: false, message: `Failed to sync: ${err?.message || String(err)}` };
+    }
   },
 };

@@ -749,6 +749,29 @@ export const QuotationEditor: React.FC<Props> = ({
                     <ExternalLink size={14} className="text-purple-400 shrink-0" />
                     <span className="truncate">Copy Public Review Link</span>
                   </button>
+
+                  <div className="h-px bg-white/10 my-1" />
+
+                  <button
+                    type="button"
+                    onClick={async () => {
+                      setIsActionsMenuOpen(false);
+                      try {
+                        const res = await storage.manualSyncToLedger(quotation);
+                        if (res.success) {
+                          toast.success(res.message);
+                        } else {
+                          toast.error(res.message);
+                        }
+                      } catch (err: any) {
+                        toast.error('Sync failed: ' + (err?.message || String(err)));
+                      }
+                    }}
+                    className="w-full px-3.5 py-2.5 text-left text-xs font-semibold text-slate-300 hover:bg-white/10 hover:text-white flex items-center gap-2.5 transition-colors cursor-pointer"
+                  >
+                    <BookOpen size={14} className="text-emerald-400 shrink-0" />
+                    <span className="truncate">Copy to Payment Ledger</span>
+                  </button>
                 </div>
               )}
             </div>

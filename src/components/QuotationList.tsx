@@ -6,7 +6,7 @@ import {
   Calendar, Filter, X, ChevronLeft, ChevronRight, ChevronDown,
   ChevronsLeft, ChevronsRight, ArrowUpDown, SlidersHorizontal,
   RotateCcw, Sparkles, FileSpreadsheet, Upload, Database, Layers, Bell,
-  TrendingUp, MapPin, Building2, Send, FileEdit
+  TrendingUp, MapPin, Building2, Send, FileEdit, BookOpen
 } from 'lucide-react';
 import { Quotation, QuotationStatus, getItemAmount } from '../types/quotation';
 import { generateWhatsAppShareUrl } from '../services/whatsapp';
@@ -122,6 +122,7 @@ export const QuotationList: React.FC<Props> = ({
   const [search, setSearch] = useState('');
   const [statusFilter, setStatusFilter] = useState<string>('all');
   const [exportingId, setExportingId] = useState<string | null>(null);
+  const [syncingLedgerId, setSyncingLedgerId] = useState<string | null>(null);
   const [shareModalQuote, setShareModalQuote] = useState<Quotation | null>(null);
   const [isGstExportOpen, setIsGstExportOpen] = useState(false);
   const [receiptModalQuote, setReceiptModalQuote] = useState<Quotation | null>(null);
@@ -452,6 +453,23 @@ export const QuotationList: React.FC<Props> = ({
     e.stopPropagation();
     onDuplicate(quote);
     toast.success(`Quotation ${quote.quotationNumber} duplicated as new draft`);
+  };
+
+  const handleSyncToLedger = async (e: React.MouseEvent, quote: Quotation) => {
+    e.stopPropagation();
+    setSyncingLedgerId(quote.id);
+    try {
+      const res = await storage.manualSyncToLedger(quote);
+      if (res.success) {
+        toast.success(res.message);
+      } else {
+        toast.error(res.message);
+      }
+    } catch (err: any) {
+      toast.error('Sync failed: ' + (err?.message || String(err)));
+    } finally {
+      setSyncingLedgerId(null);
+    }
   };
 
   const handleDeleteQuote = async (e: React.MouseEvent, quote: Quotation) => {
@@ -1534,6 +1552,16 @@ export const QuotationList: React.FC<Props> = ({
                           <Receipt size={15} />
                         </button>
                       )}
+
+                      {/* Manual Move/Copy to Payment Ledger Button */}
+                      <button
+                        title="Copy / Sync Quotation to Payment Ledger"
+                        disabled={syncingLedgerId === quote.id}
+                        onClick={(e) => handleSyncToLedger(e, quote)}
+                        className="p-1.5 sm:p-2 text-cyan-400 hover:bg-cyan-500/20 hover:text-cyan-300 rounded-lg transition-colors disabled:opacity-50 cursor-pointer"
+                      >
+                        <BookOpen size={15} className={syncingLedgerId === quote.id ? 'animate-spin' : ''} />
+                      </button>
 
                       <button
                         title="Share Quotation (PDF or WhatsApp Text)"

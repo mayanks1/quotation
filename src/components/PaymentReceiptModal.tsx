@@ -643,8 +643,8 @@ export const PaymentReceiptModal: React.FC<Props> = ({
                   <div className="text-[9px] font-bold text-slate-400 uppercase tracking-wider">
                     Authorized Signatory
                   </div>
-                  <div className="mt-1">
-                    <span className="inline-block bg-emerald-50 text-emerald-800 border border-emerald-300 text-[8px] font-bold px-2 py-0.5 rounded-full uppercase tracking-wider">
+                  <div className="mt-1 flex items-center justify-center">
+                    <span className="inline-flex items-center justify-center bg-emerald-50 text-emerald-800 border border-emerald-300 text-[8px] font-bold px-2.5 py-0.5 rounded-full uppercase tracking-wider leading-none">
                       &#10003; Digitally Endorsed
                     </span>
                   </div>

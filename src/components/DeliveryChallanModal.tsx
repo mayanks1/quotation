@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
-import { 
-  X, Truck, Printer, Copy, Check, MessageCircle, 
+import {
+  X, Truck, Printer, Copy, Check, MessageCircle,
   Calendar, MapPin, User, Phone, Plus, Trash2, ShieldCheck, FileText
 } from 'lucide-react';
 import { Quotation } from '../types/quotation';
@@ -235,10 +235,13 @@ export const DeliveryChallanModal: React.FC<Props> = ({ isOpen, onClose, quotati
             ${quotation.company.signature ? `<img src="${quotation.company.signature}" style="height:28px;max-width:90px;object-fit:contain;margin:0 auto 2px;display:block;" />` : ''}
             Prepared By
             <div class="sig-role">Warehouse Storekeeper</div>
-            <div style="margin-top:3px;">
-              <span style="display:inline-block;background:#ecfdf5;color:#047857;border:1px solid #a7f3d0;font-size:7.5px;font-weight:800;padding:1px 5px;border-radius:9999px;text-transform:uppercase;">
-                &#10003; Digitally Endorsed
-              </span>
+            <div style="margin-top:3px;text-align:center;">
+              <svg width="130" height="16" viewBox="0 0 130 16" style="display:inline-block;vertical-align:middle;">
+                <rect width="130" height="16" rx="8" fill="#ecfdf5" stroke="#a7f3d0" stroke-width="1"/>
+                <text x="65" y="8" text-anchor="middle" dominant-baseline="central" fill="#047857" font-family="-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Helvetica,Arial,sans-serif" font-size="7.5" font-weight="800" letter-spacing="0.5">
+                  &#10003; DIGITALLY ENDORSED
+                </text>
+              </svg>
             </div>
           </div>
           <div class="sig-box">
@@ -359,7 +362,7 @@ export const DeliveryChallanModal: React.FC<Props> = ({ isOpen, onClose, quotati
               <Truck size={14} className="text-blue-600" />
               Transport &amp; Personnel Logistics
             </h4>
-            
+
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
               <div>
                 <label className="block text-[11px] font-semibold text-slate-600 mb-1">Vehicle Registration #</label>

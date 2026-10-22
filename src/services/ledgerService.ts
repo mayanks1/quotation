@@ -58,6 +58,30 @@ export function parseDate(dateStr?: string | null): Date {
     }
   }
 
+  // Handle dot-separated dates: "DD.MM.YYYY"
+  if (cleaned.includes(".") && !cleaned.includes("/") && !cleaned.includes("-")) {
+    const parts = cleaned.split(".");
+    if (parts.length >= 3) {
+      const d = parseInt(parts[0], 10);
+      const m = parseInt(parts[1], 10);
+      const y = parseInt(parts[2], 10);
+      if (!isNaN(y) && !isNaN(m) && !isNaN(d)) {
+        return new Date(y < 100 ? 2000 + y : y, m - 1, d);
+      }
+    }
+  }
+
+  // Handle dash range format: e.g. "17-19-10-2026"
+  if (cleaned.includes("-") && cleaned.split("-").length === 4) {
+    const parts = cleaned.split("-");
+    const d = parseInt(parts[0], 10);
+    const m = parseInt(parts[2], 10);
+    const y = parseInt(parts[3], 10);
+    if (!isNaN(y) && !isNaN(m) && !isNaN(d)) {
+      return new Date(y < 100 ? 2000 + y : y, m - 1, d);
+    }
+  }
+
   // Handle standard "DD/MM/YYYY" or "D/M/YYYY"
   if (cleaned.includes("/")) {
     const parts = cleaned.split("/");
@@ -66,20 +90,35 @@ export function parseDate(dateStr?: string | null): Date {
       const m = parseInt(parts[1], 10);
       const y = parseInt(parts[2], 10);
       if (!isNaN(y) && !isNaN(m) && !isNaN(d)) {
-        return new Date(y, m - 1, d);
+        return new Date(y < 100 ? 2000 + y : y, m - 1, d);
       }
     }
   }
 
-  // Handle standard ISO "YYYY-MM-DD"
-  if (cleaned.includes("-") && cleaned.length >= 10 && !cleaned.includes("/")) {
-    const parts = cleaned.split("-");
+  // Handle dash-separated dates: "YYYY-MM-DD" (ISO) or "DD-MM-YYYY" (Indian)
+  if (cleaned.includes("-") && !cleaned.includes("/")) {
+    // If it has ISO time component (e.g. 2026-10-18T...), take date part
+    const datePart = cleaned.split("T")[0];
+    const parts = datePart.split("-");
     if (parts.length >= 3) {
-      const y = parseInt(parts[0], 10);
-      const m = parseInt(parts[1], 10);
-      const d = parseInt(parts[2], 10);
-      if (!isNaN(y) && !isNaN(m) && !isNaN(d)) {
-        return new Date(y, m - 1, d);
+      const p0 = parseInt(parts[0], 10);
+      const p1 = parseInt(parts[1], 10);
+      const p2 = parseInt(parts[2], 10);
+      if (!isNaN(p0) && !isNaN(p1) && !isNaN(p2)) {
+        // Distinguish DD-MM-YYYY from YYYY-MM-DD:
+        // If first segment is ≤31 and last segment is ≥100 (or ≥1900) → DD-MM-YYYY
+        // If first segment is ≥100 (or ≥1900) → YYYY-MM-DD
+        if (p0 <= 31 && p2 >= 100) {
+          // DD-MM-YYYY format (Indian standard)
+          return new Date(p2, p1 - 1, p0);
+        } else if (p0 >= 100) {
+          // YYYY-MM-DD format (ISO standard)
+          return new Date(p0, p1 - 1, p2);
+        } else {
+          // Ambiguous short year – treat as DD-MM-YY
+          const fullYear = p2 < 100 ? (p2 < 50 ? 2000 + p2 : 1900 + p2) : p2;
+          return new Date(fullYear, p1 - 1, p0);
+        }
       }
     }
   }
@@ -90,7 +129,11 @@ export function parseDate(dateStr?: string | null): Date {
 
 export function getYear(d?: string | null): number | null {
   const dt = parseDate(d);
-  return isNaN(dt.getTime()) ? null : dt.getFullYear();
+  if (isNaN(dt.getTime())) return null;
+  const y = dt.getFullYear();
+  // Filter out invalid/corrupted pre-2000 dates from yearly analytics
+  if (y < 2000 || y > 2100) return null;
+  return y;
 }
 
 export function formatDate(d?: string | null): string {
@@ -109,6 +152,9 @@ export function parseDateToISO(dateStr?: string | null): string {
     return new Date().toISOString().split('T')[0];
   }
   const year = dt.getFullYear();
+  if (year < 2000 || year > 2100) {
+    return new Date().toISOString().split('T')[0];
+  }
   const month = String(dt.getMonth() + 1).padStart(2, '0');
   const day = String(dt.getDate()).padStart(2, '0');
   return `${year}-${month}-${day}`;
@@ -122,10 +168,21 @@ export function fromDbRow(row: any, index: number = 0): LedgerRecord {
     ? Number(row.pending_amount)
     : Math.max(0, total - paid);
 
+  // Auto-heal dates that have invalid historical years (< 2000)
+  let rawDate = row.date;
+  const parsedDt = parseDate(rawDate);
+  if (!isNaN(parsedDt.getTime()) && parsedDt.getFullYear() < 2000 && parsedDt.getFullYear() > 1900) {
+    const recoveryYear = row.created_at ? new Date(row.created_at).getFullYear() : 2026;
+    const safeYear = recoveryYear >= 2000 && recoveryYear <= 2100 ? recoveryYear : 2026;
+    const m = String(parsedDt.getMonth() + 1).padStart(2, '0');
+    const d = String(parsedDt.getDate()).padStart(2, '0');
+    rawDate = `${safeYear}-${m}-${d}`;
+  }
+
   return {
     id: row.id,
-    date: formatDate(row.date),
-    isoDate: row.date,
+    date: formatDate(rawDate),
+    isoDate: rawDate,
     client: normalizeClient(row.client_name || 'Direct Client'),
     size: row.screen_size || '',
     amount: total,
@@ -204,7 +261,18 @@ export async function fetchLedgerRecords(): Promise<LedgerRecord[]> {
       if (cached) {
         const parsed = JSON.parse(cached);
         if (Array.isArray(parsed) && parsed.length > 0) {
-          memoryLedgerRecords = parsed.filter((r: LedgerRecord) => !r.isDeleted && !trashedIds.has(r.id));
+          memoryLedgerRecords = parsed
+            .map((r: LedgerRecord) => {
+              const dt = parseDate(r.date);
+              if (!isNaN(dt.getTime()) && dt.getFullYear() < 2000 && dt.getFullYear() > 1900) {
+                const safeYear = 2026;
+                const m = String(dt.getMonth() + 1).padStart(2, '0');
+                const d = String(dt.getDate()).padStart(2, '0');
+                return { ...r, date: `${d}/${m}/${safeYear}`, isoDate: `${safeYear}-${m}-${d}` };
+              }
+              return r;
+            })
+            .filter((r: LedgerRecord) => !r.isDeleted && !trashedIds.has(r.id));
         }
       }
     } catch (e) {
@@ -592,12 +660,12 @@ export async function saveQuickNote(record: LedgerRecord, note: string): Promise
   }
 }
 
-// 6. Quotation-to-Ledger Bridge: Sync Invoiced Quotation Automatically
-export async function syncInvoicedQuotation(quotation: Quotation): Promise<void> {
-  // Guard clause: Only create/update ledger entry if quotation is formally invoiced
+// 6. Quotation-to-Ledger Bridge: Sync Invoiced Quotation Automatically or Manually
+export async function syncInvoicedQuotation(quotation: Quotation, force: boolean = false): Promise<void> {
+  // Guard clause: Only create/update ledger entry if quotation is formally invoiced or forced
   const isInvoiced = quotation.status === 'invoiced' || Boolean(quotation.invoiceNumber) || quotation.documentType === 'invoice';
 
-  if (!isInvoiced) {
+  if (!isInvoiced && !force) {
     return;
   }
 
@@ -627,7 +695,7 @@ export async function syncInvoicedQuotation(quotation: Quotation): Promise<void>
     .join(' | ');
 
   const invoiceNum = quotation.invoiceNumber || quotation.quotationNumber;
-  const invoiceDateStr = quotation.invoiceDate || quotation.eventDate || quotation.quotationDate;
+  const invoiceDateStr = quotation.invoiceDate || quotation.quotationDate || quotation.eventDate;
 
   const ledgerPayload = {
     id: `led_inv_${quotation.id}`,

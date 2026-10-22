@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { X, Building2, Save, Image as ImageIcon, CreditCard, Download, Upload, Cloud, HardDrive, CheckCircle2, RefreshCw, AlertCircle, Trash2, PenTool, Package, Lock, MessageSquare, Sliders, Mail, KeyRound, Shield, Clock, Archive } from 'lucide-react';
+import { X, Building2, Save, Image as ImageIcon, CreditCard, Download, Upload, Cloud, HardDrive, CheckCircle2, RefreshCw, AlertCircle, Trash2, PenTool, Package, Lock, MessageSquare, Sliders, Mail, KeyRound, Shield, Clock, Archive, BookOpen } from 'lucide-react';
 import { CompanyProfile } from '../types/quotation';
 import { storage } from '../services/storage';
 import { DEFAULT_COMPANY } from '../config/defaults';
@@ -69,6 +69,7 @@ export const CompanySettingsModal: React.FC<Props> = ({
   const [syncingCloud, setSyncingCloud] = useState(false);
   const [isChangePasswordOpen, setIsChangePasswordOpen] = useState(false);
   const [testResult, setTestResult] = useState<{ success: boolean; message: string; tableReady?: boolean } | null>(null);
+  const [autoLedgerSync, setAutoLedgerSync] = useState<boolean>(() => storage.isAutoLedgerSyncEnabled());
 
   const formRef = useRef<HTMLDivElement>(null);
   const [activeTabId, setActiveTabId] = useState<string>('section-company');
@@ -97,6 +98,7 @@ export const CompanySettingsModal: React.FC<Props> = ({
       setProfile(ensureCompanyProfile(company));
       setTestResult(null);
       setBackupConfig(backupService.getConfig());
+      setAutoLedgerSync(storage.isAutoLedgerSyncEnabled());
       securityService.loadFromCloud().then(setSecuritySettings);
       backupService.loadFromCloud().then(() => setBackupConfig(backupService.getConfig()));
     }
@@ -169,6 +171,7 @@ export const CompanySettingsModal: React.FC<Props> = ({
     e.preventDefault();
     setIsSaving(true);
     try {
+      storage.setAutoLedgerSync(autoLedgerSync);
       await onSave(profile);
       toast.success('Company profile & bank settings saved successfully');
       onClose();
@@ -757,6 +760,50 @@ export const CompanySettingsModal: React.FC<Props> = ({
                   >
                     <span>Manage Backups &amp; Drive</span>
                   </button>
+                </div>
+              </div>
+            </div>
+
+            {/* Auto-Copy Invoiced Quotations to Payment Ledger Card */}
+            <div className="bg-gradient-to-r from-emerald-50/70 via-teal-50/40 to-slate-50 border border-emerald-200/80 rounded-xl p-3.5 space-y-3">
+              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+                <div className="flex items-start sm:items-center gap-3">
+                  <div className="w-9 h-9 rounded-lg bg-emerald-600 text-white flex items-center justify-center shrink-0 shadow-xs">
+                    <BookOpen size={17} />
+                  </div>
+                  <div>
+                    <div className="flex flex-wrap items-center gap-2">
+                      <span className="text-xs font-bold text-slate-800">Auto-Copy Invoiced Quotations to Ledger</span>
+                      <span className={`inline-flex items-center gap-1 text-[10px] font-bold px-2 py-0.5 rounded-full border whitespace-nowrap shrink-0 ${
+                        autoLedgerSync
+                          ? 'bg-emerald-50 text-emerald-700 border-emerald-200'
+                          : 'bg-slate-100 text-slate-600 border-slate-200'
+                      }`}>
+                        <span className={`w-1.5 h-1.5 rounded-full ${autoLedgerSync ? 'bg-emerald-500' : 'bg-slate-400'}`}></span>
+                        <span>{autoLedgerSync ? 'Active / On' : 'Disabled / Off'}</span>
+                      </span>
+                    </div>
+                    <p className="text-[11px] text-slate-500 mt-0.5 leading-snug">
+                      When enabled, any quotation marked as <strong>Invoiced</strong> automatically synchronizes into the Payment Ledger with sanitized dates, client names, and invoice totals.
+                    </p>
+                  </div>
+                </div>
+
+                <div className="flex items-center gap-2 shrink-0 sm:self-center">
+                  <label className="relative inline-flex items-center cursor-pointer">
+                    <input
+                      type="checkbox"
+                      checked={autoLedgerSync}
+                      onChange={(e) => {
+                        const checked = e.target.checked;
+                        setAutoLedgerSync(checked);
+                        storage.setAutoLedgerSync(checked);
+                        toast.success(`Auto-copy to Payment Ledger ${checked ? 'enabled' : 'disabled'}`);
+                      }}
+                      className="sr-only peer"
+                    />
+                    <div className="w-11 h-6 bg-slate-300 peer-focus:outline-hidden rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-slate-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-emerald-600"></div>
+                  </label>
                 </div>
               </div>
             </div>

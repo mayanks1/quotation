@@ -29,7 +29,7 @@ export function buildQuotationHTML(quotation: Quotation, upiQrDataUrl?: string):
 
   const subtotal = lineItems.reduce((acc, item) => acc + getItemAmount(item), 0);
   const discountedSubtotal = Math.max(0, subtotal - discountAmount);
-  
+
   const isZeroTax = taxScheme === 'none';
   const effectiveTaxRate = isZeroTax ? 0 : (taxRate || 0);
   let taxAmount = 0;
@@ -294,9 +294,9 @@ export function buildQuotationHTML(quotation: Quotation, upiQrDataUrl?: string):
 
       <!-- B2B GST Breakout Table (Only when GST is active) -->
       ${(() => {
-        const gstBreakdown = computeGstTaxBreakdown(quotation);
-        if (!gstBreakdown.hasTax) return '';
-        return `
+      const gstBreakdown = computeGstTaxBreakdown(quotation);
+      if (!gstBreakdown.hasTax) return '';
+      return `
         <div data-pdf-block="gst-breakdown" style="margin-bottom:14px;border:1px solid #cbd5e1;border-radius:6px;overflow:hidden;font-size:9.5px;">
           <div style="background:#f1f5f9;padding:4px 8px;font-weight:700;color:#1e3a8a;font-size:9px;text-transform:uppercase;letter-spacing:0.5px;border-bottom:1px solid #cbd5e1;">
             TAX INVOICE GST BREAKDOWN (HSN / SAC SUMMARY)
@@ -353,7 +353,7 @@ export function buildQuotationHTML(quotation: Quotation, upiQrDataUrl?: string):
           </table>
         </div>
         `;
-      })()}
+    })()}
 
       <!-- Terms & Signature Row -->
       <div data-pdf-block="terms-sig" style="display:flex;gap:14px;align-items:flex-start;border-top:1px solid #cbd5e1;padding-top:12px;margin-bottom:28px;">
@@ -367,23 +367,28 @@ export function buildQuotationHTML(quotation: Quotation, upiQrDataUrl?: string):
         </div>
 
         <!-- Signatures Column -->
-        <div style="width:230px;display:flex;flex-direction:column;gap:14px;">
+        <div style="width:230px;display:flex;flex-direction:column;gap:12px;">
           <!-- Company Signatory -->
-          <div style="text-align:center;padding-top:4px;">
-            <div style="font-size:10.5px;font-weight:700;color:#1e3a8a;margin-bottom:3px;">${esc(company.name)}</div>
+          <div style="text-align:center;padding-top:2px;">
+            <div style="font-size:10.5px;font-weight:700;color:#1e3a8a;margin-bottom:2px;">${esc(company.name)}</div>
             ${company.signature ? `
-            <img src="${company.signature}" style="height:42px;max-width:140px;object-fit:contain;margin:2px auto 4px;display:block;" />
+            <img src="${company.signature}" style="height:42px;max-width:140px;object-fit:contain;margin:2px auto;display:block;" />
             ` : `
             <div style="height:36px;"></div>
             `}
-            <div style="border-top:1px solid #94a3b8;width:88%;margin:0 auto;padding-top:4px;display:flex;align-items:center;justify-content:center;gap:6px;">
+            <div style="border-top:1px solid #94a3b8;width:85%;margin:2px auto 0;padding-top:3px;">
               <span style="font-size:9px;color:#64748b;font-weight:600;">Authorized Signatory</span>
-              ${company.signature ? `
-              <span style="display:inline-block;background:#ecfdf5;color:#047857;border:1px solid #a7f3d0;font-size:7px;font-weight:800;padding:1px 5px;border-radius:9999px;text-transform:uppercase;letter-spacing:0.4px;white-space:nowrap;">
-                &#10003; Digitally Endorsed
-              </span>
-              ` : ''}
             </div>
+            ${company.signature ? `
+            <div style="margin-top:3px;text-align:center;">
+              <svg width="125" height="15" viewBox="0 0 125 15" style="display:inline-block;vertical-align:middle;">
+                <rect width="125" height="15" rx="7.5" fill="#ecfdf5" stroke="#a7f3d0" stroke-width="1"/>
+                <text x="62.5" y="7.5" text-anchor="middle" dominant-baseline="central" fill="#047857" font-family="-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Helvetica,Arial,sans-serif" font-size="7" font-weight="800" letter-spacing="0.4">
+                  &#10003; DIGITALLY ENDORSED
+                </text>
+              </svg>
+            </div>
+            ` : ''}
           </div>
 
           <!-- Client Signature & Acceptance -->
@@ -447,17 +452,17 @@ export async function generateQuotationPDFDoc(quotation: Quotation): Promise<{ p
     const discountedSubtotal = Math.max(0, subtotal - (quotation.discountAmount || 0));
     const taxAmount = isZeroTax ? 0 : (discountedSubtotal * effectiveTaxRate) / 100;
     const grandTotal = Math.max(0, discountedSubtotal + taxAmount + (quotation.shippingCharges || 0) + (quotation.adjustmentAmount || 0));
-    
+
     const advancePercentage = quotation.advancePercentage ?? (quotation.advanceAmount && grandTotal > 0 ? Math.round((quotation.advanceAmount / grandTotal) * 100) : 70);
     const effectiveAdvanceAmt = Math.round(grandTotal * (advancePercentage / 100));
 
     const qrTargetAmount = quotation.allowCustomerEditQrAmount
       ? undefined
       : (quotation.customQrAmount !== undefined && quotation.customQrAmount > 0 && quotation.qrAmountType === 'custom'
-          ? Math.min(quotation.customQrAmount, grandTotal)
-          : (quotation.qrAmountType === 'advance' && quotation.enablePaymentLedger
-              ? effectiveAdvanceAmt
-              : grandTotal));
+        ? Math.min(quotation.customQrAmount, grandTotal)
+        : (quotation.qrAmountType === 'advance' && quotation.enablePaymentLedger
+          ? effectiveAdvanceAmt
+          : grandTotal));
 
     upiQrDataUrl = await generateUpiQrDataUrl({
       upiId: quotation.company.bankDetails.upiId,

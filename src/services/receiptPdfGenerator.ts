@@ -307,10 +307,13 @@ export function buildReceiptHTML(receipt: PaymentReceipt, security?: ReceiptSecu
           <div style="border-top: 1px solid #0f172a; padding-top: 4px;">
             <div style="font-size: 11px; font-weight: 800; color: #0f172a;">${esc(company.name || 'TISHA LED WALLS')}</div>
             <div style="font-size: 9px; font-weight: 700; color: #64748b; text-transform: uppercase; letter-spacing: 0.5px;">Authorized Signatory</div>
-            <div style="margin-top: 3px;">
-              <span style="display: inline-block; background: #ecfdf5; color: #047857; border: 1px solid #a7f3d0; font-size: 8px; font-weight: 800; padding: 1.5px 7px; border-radius: 9999px; text-transform: uppercase; letter-spacing: 0.5px;">
-                &#10003; Digitally Endorsed
-              </span>
+            <div style="margin-top: 3px; text-align: center;">
+              <svg width="130" height="16" viewBox="0 0 130 16" style="display:inline-block;vertical-align:middle;">
+                <rect width="130" height="16" rx="8" fill="#ecfdf5" stroke="#a7f3d0" stroke-width="1"/>
+                <text x="65" y="8" text-anchor="middle" dominant-baseline="central" fill="#047857" font-family="-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Helvetica,Arial,sans-serif" font-size="7.5" font-weight="800" letter-spacing="0.5" text-transform="uppercase">
+                  &#10003; DIGITALLY ENDORSED
+                </text>
+              </svg>
             </div>
           </div>
         </div>
