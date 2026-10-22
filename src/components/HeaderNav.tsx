@@ -43,6 +43,7 @@ export const HeaderNav: React.FC<Props> = ({
   const canManageUsers = isSuperAdmin || hasPermission('canManageUsers');
   const canEditBank = isSuperAdmin || hasPermission('canEditBankDetails');
   const canViewPaymentLedger = isPaymentLedgerEnabled && (isSuperAdmin || hasPermission('canViewPaymentLedger'));
+  const canManageDowntimeSync = isSuperAdmin || hasPermission('canManageDowntimeSync');
 
   const handleLedgerClick = (e: React.MouseEvent) => {
     e.preventDefault();
@@ -164,16 +165,18 @@ export const HeaderNav: React.FC<Props> = ({
 
           {/* Right side CTAs */}
           <div className="flex items-center gap-2 flex-shrink-0">
-            <button
-              type="button"
-              onClick={() => setIsCloudModalOpen(true)}
-              title="Click to view 0% Downtime Cloud Failover & Backup Status"
-              className="flex items-center gap-1 sm:gap-1.5 text-[11px] font-medium text-cyan-400 hover:text-cyan-300 bg-cyan-950/40 hover:bg-cyan-950/60 border border-cyan-800/50 px-2 sm:px-2.5 py-1 rounded-full whitespace-nowrap shadow-inner transition-colors cursor-pointer"
-            >
-              <Cloud size={13} className="text-cyan-400 shrink-0" />
-              <span className="hidden sm:inline">0% Downtime Sync</span>
-              <span className="sm:hidden text-[10px] font-bold">Cloud</span>
-            </button>
+            {canManageDowntimeSync && (
+              <button
+                type="button"
+                onClick={() => setIsCloudModalOpen(true)}
+                title="Click to view 0% Downtime Cloud Failover & Backup Status"
+                className="flex items-center gap-1 sm:gap-1.5 text-[11px] font-medium text-cyan-400 hover:text-cyan-300 bg-cyan-950/40 hover:bg-cyan-950/60 border border-cyan-800/50 px-2 sm:px-2.5 py-1 rounded-full whitespace-nowrap shadow-inner transition-colors cursor-pointer"
+              >
+                <Cloud size={13} className="text-cyan-400 shrink-0" />
+                <span className="hidden sm:inline">0% Downtime Sync</span>
+                <span className="sm:hidden text-[10px] font-bold">Cloud</span>
+              </button>
+            )}
 
             {canCreate && (
               <button
@@ -305,17 +308,19 @@ export const HeaderNav: React.FC<Props> = ({
                         <span>Change Password</span>
                       </button>
 
-                      <button
-                        type="button"
-                        onClick={() => {
-                          setIsUserMenuOpen(false);
-                          setIsCloudModalOpen(true);
-                        }}
-                        className="w-full flex items-center gap-2.5 px-3.5 py-2 text-xs hover:bg-neutral-800/80 transition-colors text-left text-cyan-300 font-semibold cursor-pointer"
-                      >
-                        <Cloud size={14} className="text-cyan-400" />
-                        <span>Cloud Failover &amp; Backup</span>
-                      </button>
+                      {canManageDowntimeSync && (
+                        <button
+                          type="button"
+                          onClick={() => {
+                            setIsUserMenuOpen(false);
+                            setIsCloudModalOpen(true);
+                          }}
+                          className="w-full flex items-center gap-2.5 px-3.5 py-2 text-xs hover:bg-neutral-800/80 transition-colors text-left text-cyan-300 font-semibold cursor-pointer"
+                        >
+                          <Cloud size={14} className="text-cyan-400" />
+                          <span>0% Downtime Sync &amp; Failover</span>
+                        </button>
+                      )}
                     </div>
 
                     {/* Multi-Workspace Switcher: Only Super Admin can view & switch all workspaces */}
@@ -401,7 +406,7 @@ export const HeaderNav: React.FC<Props> = ({
         </div>
 
         {/* Mobile Navigation Tabs (Segmented Control Bar) */}
-        <div className="md:hidden pb-2.5 pt-0.5">
+        <div className="md:hidden pb-1.5 pt-0.5">
           <nav className="flex items-center gap-1 bg-neutral-900/90 p-1 rounded-xl border border-neutral-800 overflow-x-auto">
             <NavLink
               to="/quotes"

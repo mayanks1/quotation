@@ -12,6 +12,7 @@ export interface UserPermissions {
   canExportData: boolean;      // Download CSV & bulk audit logs
   canViewPaymentLedger?: boolean; // Access & view Payment Ledger dashboard
   canManageEmailDigest?: boolean; // Configure & trigger weekly email digest and templates
+  canManageDowntimeSync?: boolean; // Access & manage 0% Downtime Sync & Failover engine
 }
 
 export interface SaaSUser {
@@ -103,6 +104,7 @@ export const DEFAULT_PERMISSIONS_BY_ROLE: Record<UserRole, UserPermissions> = {
     canExportData: true,
     canViewPaymentLedger: true,
     canManageEmailDigest: true,
+    canManageDowntimeSync: true,
   },
   admin: {
     canEditBankDetails: false,
@@ -114,6 +116,7 @@ export const DEFAULT_PERMISSIONS_BY_ROLE: Record<UserRole, UserPermissions> = {
     canExportData: true,
     canViewPaymentLedger: true,
     canManageEmailDigest: true,
+    canManageDowntimeSync: false,
   },
   manager: {
     canEditBankDetails: false,
@@ -125,6 +128,7 @@ export const DEFAULT_PERMISSIONS_BY_ROLE: Record<UserRole, UserPermissions> = {
     canExportData: true,
     canViewPaymentLedger: true,
     canManageEmailDigest: false,
+    canManageDowntimeSync: false,
   },
   member: {
     canEditBankDetails: false,
@@ -136,5 +140,6 @@ export const DEFAULT_PERMISSIONS_BY_ROLE: Record<UserRole, UserPermissions> = {
     canExportData: false,
     canViewPaymentLedger: false,
     canManageEmailDigest: false,
+    canManageDowntimeSync: false,
   },
 };

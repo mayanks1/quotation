@@ -1,10 +1,11 @@
 import React, { useState, useEffect } from 'react';
-import { X, Cloud, ShieldCheck, RefreshCw, CheckCircle2, AlertTriangle, ArrowRight, Database, Server, Zap, Check } from 'lucide-react';
+import { X, Cloud, ShieldCheck, RefreshCw, CheckCircle2, AlertTriangle, ArrowRight, Database, Server, Zap, Check, Lock } from 'lucide-react';
 import { getFirebaseConfig, testFirestoreConnection } from '../../services/firebaseService';
 import { failoverManager, DatabaseEngine } from '../../services/failoverManager';
 import { storage } from '../../services/storage';
 import { fetchLedgerRecords } from '../../services/ledgerService';
 import { useToast } from '../../context/ToastContext';
+import { useAuth } from '../../context/AuthContext';
 
 interface Props {
   isOpen: boolean;
@@ -13,6 +14,9 @@ interface Props {
 
 export const CloudFailoverModal: React.FC<Props> = ({ isOpen, onClose }) => {
   const toast = useToast();
+  const { isSuperAdmin, hasPermission } = useAuth();
+  const canManageDowntimeSync = isSuperAdmin || hasPermission('canManageDowntimeSync');
+
   const [projectId, setProjectId] = useState('');
   const [apiKey, setApiKey] = useState('');
   const [isTesting, setIsTesting] = useState(false);
@@ -40,6 +44,10 @@ export const CloudFailoverModal: React.FC<Props> = ({ isOpen, onClose }) => {
   if (!isOpen) return null;
 
   const handleSetPrimary = (engine: DatabaseEngine) => {
+    if (!canManageDowntimeSync) {
+      toast.error('Restricted: Changing primary database requires Super Admin authorization in Permissions Matrix.');
+      return;
+    }
     if (engine === status.primaryEngine) return;
     const res = failoverManager.setPrimaryEngine(engine);
     if (!res.success) {
@@ -52,6 +60,10 @@ export const CloudFailoverModal: React.FC<Props> = ({ isOpen, onClose }) => {
 
   const handleSaveConfig = (e: React.FormEvent) => {
     e.preventDefault();
+    if (!canManageDowntimeSync) {
+      toast.error('Restricted: Saving Firebase credentials requires Super Admin authorization in Permissions Matrix.');
+      return;
+    }
     if (!projectId.trim() || !apiKey.trim()) {
       toast.warning('Please provide both Firebase Project ID and Web API Key.');
       return;
@@ -65,6 +77,10 @@ export const CloudFailoverModal: React.FC<Props> = ({ isOpen, onClose }) => {
   };
 
   const handleTest = async () => {
+    if (!canManageDowntimeSync) {
+      toast.error('Restricted: Testing connections requires Super Admin authorization in Permissions Matrix.');
+      return;
+    }
     if (!projectId.trim() || !apiKey.trim()) {
       toast.warning('Please enter credentials first.');
       return;
@@ -88,6 +104,10 @@ export const CloudFailoverModal: React.FC<Props> = ({ isOpen, onClose }) => {
   };
 
   const handleReconcileAll = async () => {
+    if (!canManageDowntimeSync) {
+      toast.error('Restricted: Database mirroring requires Super Admin authorization in Permissions Matrix.');
+      return;
+    }
     setIsSyncing(true);
     setSyncProgress(`Preparing data from ${status.primaryEngine.toUpperCase()} (Primary)...`);
     try {
@@ -147,6 +167,16 @@ export const CloudFailoverModal: React.FC<Props> = ({ isOpen, onClose }) => {
 
         {/* Body */}
         <div className="p-4 sm:p-6 overflow-y-auto space-y-4 sm:space-y-5">
+          {!canManageDowntimeSync && (
+            <div className="p-3.5 bg-amber-500/10 border border-amber-500/30 rounded-xl flex items-center gap-2.5 text-xs text-amber-200">
+              <Lock size={16} className="text-amber-400 shrink-0" />
+              <div className="leading-relaxed">
+                <span className="font-bold text-amber-300">Read-Only Oversight: </span>
+                <span>Modifying primary database engines, credentials, or triggering replication requires Super Admin authorization via the Permissions Matrix.</span>
+              </div>
+            </div>
+          )}
+
           {/* Primary Database Selector */}
           <div className="bg-neutral-950/80 border border-neutral-800/90 rounded-xl p-3.5 sm:p-4 space-y-3">
             <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-1">

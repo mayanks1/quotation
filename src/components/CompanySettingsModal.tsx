@@ -55,6 +55,7 @@ export const CompanySettingsModal: React.FC<Props> = ({
   const { isSuperAdmin, hasPermission, user } = useAuth();
   const isMasterSuperAdmin = (user?.email || '').toLowerCase().trim() === MASTER_SUPER_ADMIN_EMAIL.toLowerCase().trim();
   const canManageEmailDigest = isSuperAdmin || hasPermission('canManageEmailDigest') || user?.role === 'owner' || user?.role === 'admin' || isMasterSuperAdmin;
+  const canManageDowntimeSync = isSuperAdmin || hasPermission('canManageDowntimeSync') || user?.role === 'owner' || isMasterSuperAdmin;
   const canEditBank = isSuperAdmin || hasPermission('canEditBankDetails');
   const canRestore = isSuperAdmin || hasPermission('canRestoreBackups');
 
@@ -834,13 +835,19 @@ export const CompanySettingsModal: React.FC<Props> = ({
                 </div>
               </div>
 
-              <button
-                type="button"
-                onClick={() => setIsCloudFailoverModalOpen(true)}
-                className="px-3 py-1.5 bg-blue-600 hover:bg-blue-500 text-white rounded-lg text-xs font-bold transition-all shadow-xs shrink-0 cursor-pointer"
-              >
-                Configure Failover
-              </button>
+              {canManageDowntimeSync ? (
+                <button
+                  type="button"
+                  onClick={() => setIsCloudFailoverModalOpen(true)}
+                  className="px-3 py-1.5 bg-blue-600 hover:bg-blue-500 text-white rounded-lg text-xs font-bold transition-all shadow-xs shrink-0 cursor-pointer"
+                >
+                  Configure Failover
+                </button>
+              ) : (
+                <span className="text-[10px] font-semibold text-slate-400 bg-slate-100 px-2.5 py-1 rounded-md border border-slate-200">
+                  Super Admin / Authorized Only
+                </span>
+              )}
             </div>
 
             <div className="flex flex-wrap gap-2 pt-1">

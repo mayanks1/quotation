@@ -12,6 +12,7 @@ import {
   SaaSUser, UserRole, UserStatus, UserPermissions,
   DEFAULT_PERMISSIONS_BY_ROLE, SaaSOrganization, SaaSPlan, MASTER_SUPER_ADMIN_EMAIL
 } from '../types/auth';
+import { LedgerPasscodeModal } from '../components/ledger/LedgerPasscodeModal';
 
 export const UsersPage: React.FC = () => {
   const {
@@ -89,6 +90,34 @@ export const UsersPage: React.FC = () => {
   });
 
   const canManage = isSuperAdmin || hasPermission('canManageUsers');
+  const canAccessLedgerModule = isSuperAdmin || hasPermission('canViewPaymentLedger');
+
+  // Ledger Module Toggle State & Passcode Protection
+  const [isLedgerPasscodeModalOpen, setIsLedgerPasscodeModalOpen] = useState(false);
+  const [pendingLedgerEnabled, setPendingLedgerEnabled] = useState<boolean | null>(null);
+
+  const handleToggleLedgerModule = () => {
+    if (!canAccessLedgerModule) {
+      toast.error('Restricted: You do not have permission in the Permissions Matrix to manage the Payment Ledger module.');
+      return;
+    }
+    const nextState = !isPaymentLedgerEnabled;
+    setPendingLedgerEnabled(nextState);
+    setIsLedgerPasscodeModalOpen(true);
+  };
+
+  const handleLedgerPasscodeSuccess = async () => {
+    setIsLedgerPasscodeModalOpen(false);
+    if (pendingLedgerEnabled !== null) {
+      await setPaymentLedgerEnabled(pendingLedgerEnabled);
+      if (pendingLedgerEnabled) {
+        toast.success('Payment Ledger module enabled! User visibility is now regulated by the Permissions Matrix.');
+      } else {
+        toast.info('Payment Ledger module disabled and hidden system-wide.');
+      }
+      setPendingLedgerEnabled(null);
+    }
+  };
 
   // Open Create Member Modal
   const handleOpenCreate = () => {
@@ -130,6 +159,9 @@ export const UsersPage: React.FC = () => {
         canManageEmailDigest: target.permissions?.canManageEmailDigest !== undefined
           ? Boolean(target.permissions.canManageEmailDigest)
           : Boolean(DEFAULT_PERMISSIONS_BY_ROLE[target.role]?.canManageEmailDigest),
+        canManageDowntimeSync: target.permissions?.canManageDowntimeSync !== undefined
+          ? Boolean(target.permissions.canManageDowntimeSync)
+          : Boolean(DEFAULT_PERMISSIONS_BY_ROLE[target.role]?.canManageDowntimeSync),
       },
     });
     setIsCreateModalOpen(true);
@@ -389,7 +421,7 @@ export const UsersPage: React.FC = () => {
   });
 
   return (
-    <div className="relative max-w-7xl mx-auto space-y-6 pb-12">
+    <div className="relative max-w-7xl mx-auto pb-12">
       {/* Ambient background glow effects */}
       <div className="pointer-events-none fixed inset-0 z-0 overflow-hidden opacity-40">
         <div className="absolute -top-32 left-1/4 w-96 h-96 bg-purple-600/20 rounded-full blur-3xl pointer-events-none animate-pulse" />
@@ -397,25 +429,26 @@ export const UsersPage: React.FC = () => {
         <div className="absolute -bottom-20 left-10 w-96 h-96 bg-blue-600/15 rounded-full blur-3xl pointer-events-none" />
       </div>
 
-      {/* Top Header Card */}
-      <div className="relative z-10 flex flex-col sm:flex-row sm:items-center justify-between gap-4 bg-slate-900/65 backdrop-blur-xl p-5 sm:p-6 rounded-2xl border border-white/10 shadow-xl">
-        <div className="flex items-center gap-3.5">
-          <div className="w-12 h-12 bg-gradient-to-tr from-purple-600 via-indigo-600 to-blue-600 text-white rounded-2xl flex items-center justify-center shadow-[0_0_25px_rgba(168,85,247,0.45)] ring-1 ring-white/20 shrink-0">
+      <div className="space-y-4 sm:space-y-6">
+        {/* Top Header Card */}
+        <div className="relative z-10 flex flex-col sm:flex-row sm:items-center justify-between gap-4 bg-slate-900/65 backdrop-blur-xl p-4 sm:p-6 rounded-2xl border border-white/10 shadow-xl">
+        <div className="flex items-start sm:items-center gap-3 sm:gap-3.5 min-w-0 flex-1">
+          <div className="w-11 h-11 sm:w-12 sm:h-12 bg-gradient-to-tr from-purple-600 via-indigo-600 to-blue-600 text-white rounded-2xl flex items-center justify-center shadow-[0_0_25px_rgba(168,85,247,0.45)] ring-1 ring-white/20 shrink-0 mt-0.5 sm:mt-0">
             {activeTab === 'members' ? <Users size={22} /> : <Building2 size={22} />}
           </div>
-          <div>
-            <div className="flex items-center gap-2.5">
-              <h1 className="text-xl sm:text-2xl font-black text-white tracking-tight">
+          <div className="min-w-0 flex-1">
+            <div className="flex flex-wrap items-center gap-x-2.5 gap-y-1">
+              <h1 className="text-lg sm:text-2xl font-black text-white tracking-tight leading-snug">
                 {activeTab === 'members' ? 'Team & Role Management' : 'Organization Workspaces'}
               </h1>
-              <span className="text-xs font-bold px-2.5 py-0.5 rounded-full bg-purple-950/80 text-purple-300 border border-purple-500/40 shadow-xs">
+              <span className="text-xs font-bold px-2.5 py-0.5 rounded-full bg-purple-950/80 text-purple-300 border border-purple-500/40 shadow-xs whitespace-nowrap shrink-0 inline-flex items-center">
                 {activeTab === 'members'
                   ? `${users.length} Member${users.length !== 1 ? 's' : ''}`
                   : `${organizations.length} Workspace${organizations.length !== 1 ? 's' : ''}`
                 }
               </span>
             </div>
-            <p className="text-xs text-slate-400 mt-0.5">
+            <p className="text-xs text-slate-400 mt-0.5 leading-relaxed">
               {activeTab === 'members'
                 ? 'Role-Based Access Control (RBAC). Only Super Admin can provision accounts and configure financial access.'
                 : 'Multi-Tenant SaaS Engine. Master Super Admin oversight to provision and manage distinct client workspaces.'}
@@ -454,64 +487,57 @@ export const UsersPage: React.FC = () => {
         </div>
       </div>
 
-      {/* System Modules & Suite Features Switch */}
-      <div className="relative z-10 bg-slate-900/60 backdrop-blur-xl text-white p-4 sm:p-5 rounded-2xl border border-white/10 shadow-lg flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-        <div className="flex items-center gap-3.5">
-          <div className={`w-11 h-11 rounded-2xl flex items-center justify-center shrink-0 border transition-all ${
-            isPaymentLedgerEnabled
-              ? 'bg-emerald-500/15 text-emerald-400 border-emerald-500/30 shadow-[0_0_20px_rgba(16,185,129,0.3)]'
-              : 'bg-slate-800/80 text-slate-500 border-white/5'
-          }`}>
-            <CreditCard size={22} />
-          </div>
-          <div>
-            <div className="flex items-center gap-2">
-              <span className="font-bold text-sm text-white">Payment Ledger Module</span>
-              <span className={`text-[10px] font-extrabold uppercase px-2 py-0.5 rounded-full border ${
-                isPaymentLedgerEnabled
-                  ? 'bg-emerald-950/80 text-emerald-300 border-emerald-500/40 shadow-xs'
-                  : 'bg-rose-950/80 text-rose-300 border-rose-500/40'
-              }`}>
-                {isPaymentLedgerEnabled ? 'Module Active' : 'Module Hidden'}
-              </span>
+      {/* System Modules & Suite Features Switch: Controlled by Super Admin & Permissions Matrix */}
+      {canAccessLedgerModule && (
+        <div className="relative z-10 bg-slate-900/60 backdrop-blur-xl text-white p-4 sm:p-5 rounded-2xl border border-white/10 shadow-lg flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+          <div className="flex items-center gap-3.5">
+            <div className={`w-11 h-11 rounded-2xl flex items-center justify-center shrink-0 border transition-all ${
+              isPaymentLedgerEnabled
+                ? 'bg-emerald-500/15 text-emerald-400 border-emerald-500/30 shadow-[0_0_20px_rgba(16,185,129,0.3)]'
+                : 'bg-slate-800/80 text-slate-500 border-white/5'
+            }`}>
+              <CreditCard size={22} />
             </div>
-            <p className="text-xs text-slate-400 mt-0.5">
-              {isPaymentLedgerEnabled
-                ? 'Payment Ledger is enabled in the suite navigation. Access for individual members is regulated below via the Permissions Matrix.'
-                : 'Payment Ledger is turned off and hidden system-wide from the navigation for all users.'}
-            </p>
+            <div>
+              <div className="flex items-center gap-2">
+                <span className="font-bold text-sm text-white">Payment Ledger Module</span>
+                <span className={`text-[10px] font-extrabold uppercase px-2 py-0.5 rounded-full border ${
+                  isPaymentLedgerEnabled
+                    ? 'bg-emerald-950/80 text-emerald-300 border-emerald-500/40 shadow-xs'
+                    : 'bg-rose-950/80 text-rose-300 border-rose-500/40'
+                }`}>
+                  {isPaymentLedgerEnabled ? 'Module Active' : 'Module Hidden'}
+                </span>
+              </div>
+              <p className="text-xs text-slate-400 mt-0.5">
+                {isPaymentLedgerEnabled
+                  ? 'Payment Ledger is enabled in the suite navigation. Access for individual members is regulated below via the Permissions Matrix.'
+                  : 'Payment Ledger is turned off and hidden system-wide from the navigation for all users.'}
+              </p>
+            </div>
           </div>
-        </div>
 
-        <div className="flex items-center gap-3 shrink-0 self-end sm:self-center">
-          {isSuperAdmin ? (
-            <label className="relative inline-flex items-center cursor-pointer select-none">
-              <input
-                type="checkbox"
-                checked={isPaymentLedgerEnabled}
-                onChange={async (e) => {
-                  const val = e.target.checked;
-                  await setPaymentLedgerEnabled(val);
-                  if (val) {
-                    toast.success('Payment Ledger module enabled! User visibility is now regulated by the Permissions Matrix.');
-                  } else {
-                    toast.info('Payment Ledger module disabled and hidden system-wide.');
-                  }
-                }}
-                className="sr-only peer"
-              />
-              <div className="w-11 h-6 bg-slate-800 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-slate-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-emerald-500 border border-white/10"></div>
-              <span className="ml-2.5 text-xs font-bold text-slate-300">
+          <div className="flex items-center gap-3 shrink-0 self-end sm:self-center">
+            <button
+              type="button"
+              onClick={handleToggleLedgerModule}
+              className="relative inline-flex items-center cursor-pointer select-none group focus:outline-hidden"
+              title="Click to toggle Payment Ledger Module (Passcode Required)"
+            >
+              <div className={`w-11 h-6 rounded-full transition-colors relative p-0.5 border border-white/10 ${
+                isPaymentLedgerEnabled ? 'bg-emerald-500' : 'bg-slate-800'
+              }`}>
+                <div className={`w-5 h-5 bg-white rounded-full shadow-md transition-transform duration-200 ease-in-out transform ${
+                  isPaymentLedgerEnabled ? 'translate-x-5' : 'translate-x-0'
+                }`} />
+              </div>
+              <span className="ml-2.5 text-xs font-bold text-slate-300 group-hover:text-white transition-colors">
                 {isPaymentLedgerEnabled ? 'Show Ledger' : 'Hide Ledger'}
               </span>
-            </label>
-          ) : (
-            <span className="text-[11px] text-slate-400 flex items-center gap-1 bg-slate-800/80 px-2.5 py-1 rounded-lg border border-white/10">
-              <Lock size={12} /> Super Admin Only
-            </span>
-          )}
+            </button>
+          </div>
         </div>
-      </div>
+      )}
 
       {/* Navigation Tabs (Luxury Glass Dock) */}
       <div className="relative z-10 bg-slate-900/60 backdrop-blur-xl rounded-2xl border border-white/10 p-1.5 flex items-center justify-between shadow-lg overflow-x-auto no-scrollbar">
@@ -788,7 +814,8 @@ export const UsersPage: React.FC = () => {
                             u.permissions.canRestoreBackups,
                             isPaymentLedgerEnabled && (isUserOwner || u.permissions.canViewPaymentLedger),
                             isUserOwner || u.permissions.canManageEmailDigest,
-                          ].filter(Boolean).length} / 6 active
+                            isUserOwner || u.permissions.canManageDowntimeSync,
+                          ].filter(Boolean).length} / 7 active
                         </span>
                       </div>
 
@@ -839,6 +866,14 @@ export const UsersPage: React.FC = () => {
                             : 'bg-slate-900/60 text-slate-600 border border-white/5 line-through opacity-60'
                         }`}>
                           Email Digest
+                        </span>
+
+                        <span className={`px-2 py-0.5 rounded-md text-[10px] font-semibold flex items-center gap-1 ${
+                          isUserOwner || u.permissions.canManageDowntimeSync
+                            ? 'bg-cyan-950/80 text-cyan-300 border border-cyan-500/30'
+                            : 'bg-slate-900/60 text-slate-600 border border-white/5 line-through opacity-60'
+                        }`}>
+                          0% Sync
                         </span>
                       </div>
                     </div>
@@ -1004,6 +1039,14 @@ export const UsersPage: React.FC = () => {
                                   : 'bg-slate-950/60 text-slate-600 border border-white/5 line-through'
                               }`}>
                                 Email Digest
+                              </span>
+
+                              <span className={`px-2 py-0.5 rounded-md text-[10px] font-semibold flex items-center gap-1 ${
+                                isUserOwner || u.permissions.canManageDowntimeSync
+                                  ? 'bg-cyan-950/80 text-cyan-300 border border-cyan-500/30'
+                                  : 'bg-slate-950/60 text-slate-600 border border-white/5 line-through'
+                              }`}>
+                                0% Sync
                               </span>
                             </div>
                           </td>
@@ -1396,6 +1439,7 @@ export const UsersPage: React.FC = () => {
                     {[
                       { key: 'canViewPaymentLedger', label: 'Can Access Payment Ledger', desc: 'Allows viewing payments, financial transactions & client ledger' },
                       { key: 'canManageEmailDigest', label: 'Can Manage Email Digest & Reports', desc: 'Allows configuring weekly schedules, recipient lists, email templates & instant test dispatches' },
+                      { key: 'canManageDowntimeSync', label: 'Can Manage 0% Downtime Sync & Failover', desc: 'Allows viewing & configuring 0% Downtime Dual-Cloud database failover, primary switch & manual sync' },
                       { key: 'canEditBankDetails', label: 'Can Edit Bank Details & UPI IDs', desc: 'Allows altering UPI ID & bank account on quotations (High Risk)', danger: true },
                       { key: 'canDeleteQuotes', label: 'Can Permanently Delete Quotations', desc: 'Allows deleting proposals from database' },
                       { key: 'canManageUsers', label: 'Can Manage Team Users', desc: 'Allows creating and editing team accounts' },
@@ -1634,6 +1678,20 @@ export const UsersPage: React.FC = () => {
         </div>
       )}
 
+      {/* Ledger Passcode Verification Modal */}
+      {isLedgerPasscodeModalOpen && (
+        <LedgerPasscodeModal
+          isOpen={isLedgerPasscodeModalOpen}
+          onClose={() => {
+            setIsLedgerPasscodeModalOpen(false);
+            setPendingLedgerEnabled(null);
+          }}
+          onSuccess={handleLedgerPasscodeSuccess}
+          title={pendingLedgerEnabled ? "Enter Security Passcode to Enable Ledger" : "Enter Security Passcode to Hide Ledger"}
+        />
+      )}
+
+      </div>
     </div>
   );
 };

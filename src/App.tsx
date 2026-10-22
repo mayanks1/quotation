@@ -284,7 +284,7 @@ export function App() {
                 hasActiveQuote={!!activeQuoteId}
                 activeQuoteId={activeQuoteId}
               />
-              <main className={`flex-1 ${location.pathname.startsWith('/ledger') ? 'p-0' : 'p-3 sm:p-6 md:p-8'}`}>
+              <main className={`flex-1 ${location.pathname.startsWith('/ledger') ? 'p-0' : 'px-3 sm:px-6 md:px-8 pt-1.5 sm:pt-4 md:pt-6 pb-6 sm:pb-8'}`}>
                 <Outlet />
               </main>
               <CompanySettingsModal

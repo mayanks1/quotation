@@ -514,21 +514,21 @@ SELECT cron.schedule(
       <div className="bg-slate-900 text-white rounded-2xl shadow-2xl max-w-3xl w-full max-h-[94vh] flex flex-col overflow-hidden border border-slate-800">
 
         {/* Header */}
-        <div className="flex items-center justify-between px-6 py-4 bg-gradient-to-r from-slate-900 via-indigo-950 to-slate-900 border-b border-indigo-500/20 shrink-0">
-          <div className="flex items-center gap-3">
-            <div className="w-10 h-10 rounded-xl bg-indigo-500/10 border border-indigo-500/30 flex items-center justify-center text-indigo-400 shrink-0 shadow-xs">
-              <Mail size={20} />
+        <div className="flex items-start sm:items-center justify-between px-4 sm:px-6 py-3.5 sm:py-4 bg-gradient-to-r from-slate-900 via-indigo-950 to-slate-900 border-b border-indigo-500/20 shrink-0 gap-3">
+          <div className="flex items-start sm:items-center gap-3 min-w-0 flex-1">
+            <div className="w-9 h-9 sm:w-10 sm:h-10 rounded-xl bg-indigo-500/10 border border-indigo-500/30 flex items-center justify-center text-indigo-400 shrink-0 shadow-xs mt-0.5 sm:mt-0">
+              <Mail size={18} className="sm:w-5 sm:h-5" />
             </div>
-            <div>
-              <div className="flex items-center gap-2">
-                <h3 className="text-base font-bold text-white tracking-tight">
+            <div className="min-w-0 flex-1">
+              <div className="flex flex-wrap items-center gap-x-2 gap-y-1">
+                <h3 className="text-sm sm:text-base font-bold text-white tracking-tight leading-snug">
                   Financial Email Automation &amp; Templates
                 </h3>
-                <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-indigo-500/20 text-indigo-300 border border-indigo-500/30 flex items-center gap-1">
-                  <ShieldCheck size={11} /> Super Admin &amp; Admin
+                <span className="text-[10px] font-semibold px-2 py-0.5 rounded-full bg-indigo-500/20 text-indigo-300 border border-indigo-500/30 inline-flex items-center gap-1 whitespace-nowrap shrink-0 shadow-xs">
+                  <ShieldCheck size={11} className="shrink-0" /> Super Admin &amp; Admin
                 </span>
               </div>
-              <p className="text-xs text-slate-400 mt-0.5">
+              <p className="text-[11px] sm:text-xs text-slate-400 mt-0.5 leading-tight sm:leading-normal">
                 24-hr schedule, template customization &amp; send via own Google ID
               </p>
             </div>
@@ -536,47 +536,48 @@ SELECT cron.schedule(
           <button
             type="button"
             onClick={onClose}
-            className="text-slate-400 hover:text-white p-1.5 rounded-lg hover:bg-slate-800 transition-colors"
+            aria-label="Close dialog"
+            className="text-slate-400 hover:text-white p-1.5 sm:p-2 rounded-lg hover:bg-slate-800 transition-colors shrink-0 -mr-1 cursor-pointer"
           >
             <X size={18} />
           </button>
         </div>
 
         {/* Tab Navigation */}
-        <div className="flex items-center gap-1 px-6 pt-3 pb-2 bg-slate-950/60 border-b border-slate-800 shrink-0 overflow-x-auto">
+        <div className="flex items-center gap-1.5 px-3 sm:px-6 pt-2.5 sm:pt-3 pb-2 bg-slate-950/60 border-b border-slate-800 shrink-0 overflow-x-auto no-scrollbar scroll-smooth">
           <button
             type="button"
             onClick={() => setActiveTab('schedule')}
-            className={`flex items-center gap-2 px-3.5 py-1.5 rounded-lg text-xs font-bold transition-all whitespace-nowrap ${activeTab === 'schedule'
+            className={`flex items-center gap-1.5 px-3.5 py-1.5 rounded-lg text-xs font-semibold sm:font-bold transition-all whitespace-nowrap shrink-0 cursor-pointer ${activeTab === 'schedule'
                 ? 'bg-indigo-600 text-white shadow-xs'
                 : 'text-slate-400 hover:text-white hover:bg-slate-800/60'
               }`}
           >
-            <Calendar size={14} />
+            <Calendar size={13} className="shrink-0" />
             <span>Schedule &amp; Recipients</span>
           </button>
 
           <button
             type="button"
             onClick={() => setActiveTab('template')}
-            className={`flex items-center gap-2 px-3.5 py-1.5 rounded-lg text-xs font-bold transition-all whitespace-nowrap ${activeTab === 'template'
+            className={`flex items-center gap-1.5 px-3.5 py-1.5 rounded-lg text-xs font-semibold sm:font-bold transition-all whitespace-nowrap shrink-0 cursor-pointer ${activeTab === 'template'
                 ? 'bg-indigo-600 text-white shadow-xs'
                 : 'text-slate-400 hover:text-white hover:bg-slate-800/60'
               }`}
           >
-            <Sliders size={14} />
+            <Sliders size={13} className="shrink-0" />
             <span>Email Template</span>
           </button>
 
           <button
             type="button"
             onClick={() => setActiveTab('sender')}
-            className={`flex items-center gap-2 px-3.5 py-1.5 rounded-lg text-xs font-bold transition-all whitespace-nowrap ${activeTab === 'sender'
+            className={`flex items-center gap-1.5 px-3.5 py-1.5 rounded-lg text-xs font-semibold sm:font-bold transition-all whitespace-nowrap shrink-0 cursor-pointer ${activeTab === 'sender'
                 ? 'bg-indigo-600 text-white shadow-xs'
                 : 'text-slate-400 hover:text-white hover:bg-slate-800/60'
               }`}
           >
-            <Code size={14} />
+            <Code size={13} className="shrink-0" />
             <span>Send From Own ID (No 3rd Party)</span>
           </button>
 
@@ -586,18 +587,18 @@ SELECT cron.schedule(
               setActiveTab('preview');
               loadLivePreview();
             }}
-            className={`flex items-center gap-2 px-3.5 py-1.5 rounded-lg text-xs font-bold transition-all whitespace-nowrap ${activeTab === 'preview'
+            className={`flex items-center gap-1.5 px-3.5 py-1.5 rounded-lg text-xs font-semibold sm:font-bold transition-all whitespace-nowrap shrink-0 cursor-pointer ${activeTab === 'preview'
                 ? 'bg-indigo-600 text-white shadow-xs'
                 : 'text-slate-400 hover:text-white hover:bg-slate-800/60'
               }`}
           >
-            <Eye size={14} />
+            <Eye size={13} className="shrink-0" />
             <span>Live Preview</span>
           </button>
         </div>
 
         {/* Modal Scrollable Body */}
-        <div className="overflow-y-auto flex-1 p-6 space-y-5">
+        <div className="overflow-y-auto flex-1 p-4 sm:p-6 space-y-4 sm:space-y-5">
 
           {/* Security Guard */}
           {!isSuperAdminUser && (
@@ -727,24 +728,22 @@ SELECT cron.schedule(
               </div>
 
               {/* PostgreSQL pg_cron Info Box */}
-              <div className="p-3.5 rounded-xl bg-slate-800/40 border border-slate-700/60 flex items-center justify-between gap-3">
-                <div className="text-xs">
-                  <div className="text-slate-300 font-semibold flex items-center gap-1.5">
-                    <span>Cron Expression:</span>
-                    <code className="text-amber-300 bg-slate-900 px-2 py-0.5 rounded-md font-mono text-xs">
-                      {cronExpression}
-                    </code>
-                    <span className="text-[11px] text-slate-400 font-normal">
-                      ({config.frequency === 'daily' ? 'Daily' : `Every ${config.dayOfWeek}`} at {config.timeStr} IST)
-                    </span>
-                  </div>
+              <div className="p-3.5 rounded-xl bg-slate-800/40 border border-slate-700/60 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+                <div className="text-xs flex flex-wrap items-center gap-2">
+                  <span className="text-slate-300 font-semibold whitespace-nowrap">Cron Expression:</span>
+                  <code className="text-amber-300 bg-slate-950 border border-slate-800 px-2.5 py-1 rounded-md font-mono text-xs font-bold whitespace-nowrap tracking-wider shadow-inner">
+                    {cronExpression}
+                  </code>
+                  <span className="text-[11px] text-slate-400 font-normal">
+                    ({config.frequency === 'daily' ? 'Daily' : `Every ${config.dayOfWeek}`} at {config.timeStr} IST)
+                  </span>
                 </div>
                 <button
                   type="button"
                   onClick={copyCronSql}
-                  className="flex items-center gap-1 text-[11px] font-bold text-indigo-400 hover:text-indigo-300 px-2.5 py-1 rounded-lg bg-indigo-500/10 border border-indigo-500/20 transition-all shrink-0 cursor-pointer"
+                  className="flex items-center justify-center gap-1.5 text-[11px] font-bold text-indigo-300 hover:text-white px-3 py-1.5 rounded-lg bg-indigo-500/10 hover:bg-indigo-500/20 border border-indigo-500/30 transition-all shrink-0 cursor-pointer w-full sm:w-auto"
                 >
-                  {copiedCron ? <Check size={12} className="text-emerald-400" /> : <Copy size={12} />}
+                  {copiedCron ? <Check size={13} className="text-emerald-400" /> : <Copy size={13} />}
                   <span>{copiedCron ? 'Copied SQL' : 'Copy pg_cron SQL'}</span>
                 </button>
               </div>
@@ -1175,27 +1174,27 @@ SELECT cron.schedule(
 
           {/* Instant Test Section (Visible on all tabs) */}
           <div className="p-4 rounded-xl bg-gradient-to-r from-indigo-950/40 via-purple-950/30 to-indigo-950/40 border border-indigo-500/30 space-y-3">
-            <div className="flex items-center justify-between">
+            <div className="flex flex-wrap items-center justify-between gap-2">
               <div className="flex items-center gap-2">
-                <Sparkles size={16} className="text-amber-400" />
+                <Sparkles size={16} className="text-amber-400 shrink-0" />
                 <span className="text-xs font-bold text-white uppercase tracking-wider">
                   Instant Test Dispatch
                 </span>
               </div>
-              <span className="text-[10px] text-indigo-300 font-semibold bg-indigo-500/20 px-2 py-0.5 rounded-full border border-indigo-500/30">
+              <span className="text-[10px] text-indigo-300 font-semibold bg-indigo-500/20 px-2.5 py-0.5 rounded-full border border-indigo-500/30 whitespace-nowrap shrink-0 shadow-xs">
                 Method: {config.dispatchMethod === 'apps_script' ? 'Own Google ID' : 'Cloud Resend'}
               </span>
             </div>
 
             <p className="text-[11.5px] text-slate-300 leading-relaxed">
-              Dispatch a test report right now to <strong>{recipientsInput || 'no recipients'}</strong> to verify subject, template styling, and inbox delivery.
+              Dispatch a test report right now to <strong className="text-white font-semibold break-all">{recipientsInput || 'no recipients'}</strong> to verify subject, template styling, and inbox delivery.
             </p>
 
             <button
               type="button"
               disabled={!isSuperAdminUser || isSendingTest}
               onClick={handleInstantTest}
-              className="inline-flex items-center justify-center gap-2 px-4 py-2 bg-gradient-to-r from-indigo-600 to-purple-600 hover:from-indigo-500 hover:to-purple-500 disabled:opacity-50 text-white rounded-xl text-xs font-bold transition-all shadow-md shadow-indigo-600/30 cursor-pointer disabled:cursor-not-allowed"
+              className="w-full sm:w-auto inline-flex items-center justify-center gap-2 px-4 py-2.5 sm:py-2 bg-gradient-to-r from-indigo-600 to-purple-600 hover:from-indigo-500 hover:to-purple-500 disabled:opacity-50 text-white rounded-xl text-xs font-bold transition-all shadow-md shadow-indigo-600/30 cursor-pointer disabled:cursor-not-allowed"
             >
               {isSendingTest ? (
                 <>
@@ -1234,8 +1233,8 @@ SELECT cron.schedule(
         </div>
 
         {/* Modal Footer */}
-        <div className="px-6 py-3.5 bg-slate-950 border-t border-slate-800 flex items-center justify-between gap-3 shrink-0">
-          <div className="text-[11px] text-slate-400">
+        <div className="px-4 sm:px-6 py-3 sm:py-3.5 bg-slate-950 border-t border-slate-800 flex items-center justify-between gap-2.5 shrink-0">
+          <div className="text-[10.5px] sm:text-xs text-slate-400 whitespace-nowrap">
             {config.updatedAt && (
               <span>Last saved: {new Date(config.updatedAt).toLocaleDateString('en-IN', { day: '2-digit', month: 'short', year: 'numeric' })}</span>
             )}
@@ -1245,7 +1244,7 @@ SELECT cron.schedule(
             <button
               type="button"
               onClick={onClose}
-              className="px-4 py-2 rounded-xl border border-slate-700 hover:bg-slate-800 text-slate-300 text-xs font-semibold transition-colors"
+              className="px-3.5 sm:px-4 py-2 rounded-xl border border-slate-700 hover:bg-slate-800 text-slate-300 text-xs font-semibold transition-colors cursor-pointer"
             >
               Close
             </button>
@@ -1254,7 +1253,7 @@ SELECT cron.schedule(
                 type="button"
                 disabled={isSaving}
                 onClick={handleSave}
-                className="inline-flex items-center gap-1.5 px-4 py-2 bg-indigo-600 hover:bg-indigo-500 disabled:opacity-50 text-white rounded-xl text-xs font-bold transition-all shadow-md shadow-indigo-600/30 cursor-pointer"
+                className="inline-flex items-center gap-1.5 px-3.5 sm:px-4 py-2 bg-indigo-600 hover:bg-indigo-500 disabled:opacity-50 text-white rounded-xl text-xs font-bold transition-all shadow-md shadow-indigo-600/30 cursor-pointer whitespace-nowrap"
               >
                 {isSaving ? (
                   <>

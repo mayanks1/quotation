@@ -1,7 +1,7 @@
 import React, { useState, useMemo, useEffect, useRef } from 'react';
-import { 
-  FileText, Plus, Search, Copy, Download, Trash2, 
-  Share2, CheckCircle2, Clock, CheckCheck, 
+import {
+  FileText, Plus, Search, Copy, Download, Trash2,
+  Share2, CheckCircle2, Clock, CheckCheck,
   XCircle, Receipt, ArrowRight, ArrowLeft, IndianRupee,
   Calendar, Filter, X, ChevronLeft, ChevronRight, ChevronDown,
   ChevronsLeft, ChevronsRight, ArrowUpDown, SlidersHorizontal,
@@ -35,13 +35,13 @@ interface Props {
 }
 
 type DatePreset = 'all' | 'today' | 'this_week' | 'this_month' | 'last_30_days' | 'this_year' | 'custom';
-type SortOption = 
-  | 'date_desc' 
-  | 'date_asc' 
-  | 'amount_desc' 
-  | 'amount_asc' 
-  | 'number_asc' 
-  | 'client_asc' 
+type SortOption =
+  | 'date_desc'
+  | 'date_asc'
+  | 'amount_desc'
+  | 'amount_asc'
+  | 'number_asc'
+  | 'client_asc'
   | 'event_asc';
 type AmountFilter = 'all' | 'under_25k' | '25k_to_100k' | 'above_100k';
 
@@ -370,7 +370,7 @@ export const QuotationList: React.FC<Props> = ({
         return 0;
       });
   }, [
-    quotations, trashedList, search, statusFilter, dateFieldTarget, 
+    quotations, trashedList, search, statusFilter, dateFieldTarget,
     customStartDate, customEndDate, clientFilter, amountFilter, sortOption
   ]);
 
@@ -611,7 +611,7 @@ export const QuotationList: React.FC<Props> = ({
   };
 
   return (
-    <div className="relative max-w-7xl mx-auto space-y-6 pb-12">
+    <div className="relative max-w-7xl mx-auto pb-12">
       {/* Ambient background glow effects */}
       <div className="pointer-events-none fixed inset-0 z-0 overflow-hidden opacity-40">
         <div className="absolute -top-32 left-1/4 w-96 h-96 bg-indigo-600/20 rounded-full blur-3xl pointer-events-none animate-pulse" />
@@ -619,28 +619,27 @@ export const QuotationList: React.FC<Props> = ({
         <div className="absolute -bottom-20 left-10 w-96 h-96 bg-purple-600/15 rounded-full blur-3xl pointer-events-none" />
       </div>
 
-      {/* Hero Executive Hub Header */}
-      <div className="relative z-10 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 pt-1 pb-2">
-        <div>
-          <div className="flex items-center gap-2.5">
-            <div className="w-10 h-10 rounded-2xl bg-gradient-to-tr from-blue-600 via-indigo-600 to-violet-600 flex items-center justify-center text-white shadow-[0_0_25px_rgba(99,102,241,0.45)] ring-1 ring-white/20">
+      <div className="space-y-4 sm:space-y-6">
+        {/* Hero Executive Hub Header */}
+        <div className="relative z-10 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 sm:gap-4 pt-0 pb-1">
+          <div className="flex items-start sm:items-center gap-3 min-w-0">
+            <div className="w-10 h-10 rounded-2xl bg-gradient-to-tr from-blue-600 via-indigo-600 to-violet-600 flex items-center justify-center text-white shadow-[0_0_25px_rgba(99,102,241,0.45)] ring-1 ring-white/20 shrink-0 mt-0.5 sm:mt-0">
               <FileText size={20} />
             </div>
-            <div>
-              <h1 className="text-xl sm:text-2xl font-black text-white tracking-tight flex items-center gap-2">
+            <div className="min-w-0">
+              <h1 className="text-lg sm:text-2xl font-black text-white tracking-tight leading-tight">
                 Quotations &amp; Deals Hub
               </h1>
-              <div className="flex items-center gap-2 text-xs text-slate-400 mt-0.5">
-                <span className="inline-flex items-center gap-1.5 text-emerald-400 font-bold">
+              <div className="flex flex-wrap items-center gap-x-2 gap-y-0.5 text-[11px] sm:text-xs text-slate-400 mt-1 leading-snug">
+                <span className="inline-flex items-center gap-1.5 text-emerald-400 font-bold whitespace-nowrap shrink-0">
                   <span className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse shadow-[0_0_8px_rgba(52,211,153,0.8)]" />
                   Commercial Engine Live
                 </span>
-                <span className="text-slate-600">•</span>
-                <span>Track proposals, close deals &amp; generate receipts</span>
+                <span className="text-slate-600 hidden sm:inline">•</span>
+                <span className="text-slate-400">Track proposals, close deals &amp; generate receipts</span>
               </div>
             </div>
           </div>
-        </div>
 
         {canCreate && (
           <div className="flex items-center gap-2.5 w-full sm:w-auto">
@@ -731,10 +730,10 @@ export const QuotationList: React.FC<Props> = ({
       </div>
 
       {/* Main Interactive Controls Surface */}
-      <div className="relative z-10 bg-slate-900/65 backdrop-blur-xl rounded-2xl border border-white/10 shadow-xl overflow-hidden">
-        
+      <div className="relative z-20 bg-slate-900/65 backdrop-blur-xl rounded-2xl border border-white/10 shadow-xl">
+
         {/* Status Pipeline Segmented Pills Bar */}
-        <div className="px-3 sm:px-6 py-2.5 flex items-center gap-1.5 sm:gap-2 overflow-x-auto overflow-y-hidden no-scrollbar border-b border-white/10 bg-slate-950/40">
+        <div className="px-3 sm:px-6 py-2.5 flex items-center gap-1.5 sm:gap-2 overflow-x-auto overflow-y-hidden no-scrollbar border-b border-white/10 bg-slate-950/40 rounded-t-2xl">
           {[
             { id: 'all', label: 'All Quotes', count: totalCount, icon: Layers },
             { id: 'sent', label: 'Sent', count: sentCount, icon: Send },
@@ -754,17 +753,15 @@ export const QuotationList: React.FC<Props> = ({
                   setStatusFilter(tab.id);
                   setCurrentPage(1);
                 }}
-                className={`flex items-center gap-1.5 sm:gap-2 px-3 py-1.5 rounded-xl text-xs font-semibold transition-all whitespace-nowrap cursor-pointer shrink-0 ${
-                  isActive
-                    ? 'bg-gradient-to-r from-blue-600 via-indigo-600 to-blue-500 text-white font-black shadow-[0_0_20px_rgba(99,102,241,0.4)] scale-[1.02]'
-                    : 'text-slate-400 hover:text-white hover:bg-white/5 border border-transparent'
-                }`}
+                className={`flex items-center gap-1.5 sm:gap-2 px-3 py-1.5 rounded-xl text-xs font-semibold transition-all whitespace-nowrap cursor-pointer shrink-0 ${isActive
+                  ? 'bg-gradient-to-r from-blue-600 via-indigo-600 to-blue-500 text-white font-black shadow-[0_0_20px_rgba(99,102,241,0.4)] scale-[1.02]'
+                  : 'text-slate-400 hover:text-white hover:bg-white/5 border border-transparent'
+                  }`}
               >
                 <Icon size={13} className={isActive ? 'text-white' : 'text-slate-500'} />
                 <span>{tab.label}</span>
-                <span className={`text-[10px] font-bold px-1.5 py-0.5 rounded-full transition-colors ${
-                  isActive ? 'bg-white/20 text-white font-black' : 'bg-slate-800/80 text-slate-400 border border-white/5'
-                }`}>
+                <span className={`text-[10px] font-bold px-1.5 py-0.5 rounded-full transition-colors ${isActive ? 'bg-white/20 text-white font-black' : 'bg-slate-800/80 text-slate-400 border border-white/5'
+                  }`}>
                   {tab.count}
                 </span>
               </button>
@@ -773,10 +770,10 @@ export const QuotationList: React.FC<Props> = ({
         </div>
 
         {/* Primary Controls Bar */}
-        <div className="p-3.5 sm:p-5 border-b border-white/10 space-y-3">
+        <div className={`p-3.5 sm:p-5 space-y-3 ${isFilterOpen ? 'border-b border-white/10' : 'rounded-b-2xl'}`}>
           {/* Desktop & Tablet Layout: Search on left, Full actions on right */}
           <div className="flex flex-col sm:flex-row gap-3 items-stretch sm:items-center justify-between">
-            
+
             {/* Search Input */}
             <div className="relative flex-1 max-w-md">
               <Search className="absolute left-3.5 top-2.5 text-slate-400" size={17} />
@@ -800,16 +797,15 @@ export const QuotationList: React.FC<Props> = ({
 
             {/* Desktop Actions Row (Visible sm and up) */}
             <div className="hidden sm:flex items-center gap-2 justify-end">
-              
+
               {/* Filter & Sort Drawer Toggle */}
               <button
                 type="button"
                 onClick={() => setIsFilterOpen(!isFilterOpen)}
-                className={`flex items-center gap-1.5 px-3 py-2.5 rounded-xl text-xs font-bold transition-all border cursor-pointer ${
-                  isFilterOpen || activeFiltersCount > 0
-                    ? 'bg-indigo-950/80 border-indigo-500/50 text-indigo-300 shadow-[0_0_15px_rgba(99,102,241,0.25)]'
-                    : 'bg-slate-800/80 hover:bg-slate-800 border-white/10 text-slate-200 hover:text-white'
-                }`}
+                className={`flex items-center gap-1.5 px-3 py-2.5 rounded-xl text-xs font-bold transition-all border cursor-pointer ${isFilterOpen || activeFiltersCount > 0
+                  ? 'bg-indigo-950/80 border-indigo-500/50 text-indigo-300 shadow-[0_0_15px_rgba(99,102,241,0.25)]'
+                  : 'bg-slate-800/80 hover:bg-slate-800 border-white/10 text-slate-200 hover:text-white'
+                  }`}
                 title="Toggle detailed filters & sorting"
               >
                 <SlidersHorizontal size={14} />
@@ -858,7 +854,7 @@ export const QuotationList: React.FC<Props> = ({
                     <Database size={14} className="text-blue-400" />
                     <span>Backup</span>
                   </button>
-                  <div className="hidden group-hover:block absolute right-0 top-full mt-1.5 w-56 bg-slate-900/95 border border-slate-700/80 rounded-2xl shadow-2xl backdrop-blur-2xl p-1.5 z-30 space-y-1 animate-in fade-in duration-150">
+                  <div className="hidden group-hover:block absolute right-0 top-full mt-2 w-56 bg-slate-900 border border-slate-700/90 rounded-2xl shadow-2xl backdrop-blur-2xl p-2 z-50 space-y-1 ring-1 ring-white/10 animate-in fade-in zoom-in-95 duration-150">
                     {canExport && (
                       <button
                         type="button"
@@ -899,16 +895,15 @@ export const QuotationList: React.FC<Props> = ({
 
             {/* Mobile Actions Row: Balanced 3-column non-wrapping toolbar */}
             <div className="flex sm:hidden items-center gap-2 pt-0.5">
-              
+
               {/* Filter & Sort Toggle */}
               <button
                 type="button"
                 onClick={() => setIsFilterOpen(!isFilterOpen)}
-                className={`flex-1 flex items-center justify-center gap-1.5 px-3 py-2.5 rounded-xl text-xs font-bold transition-all border cursor-pointer ${
-                  isFilterOpen || activeFiltersCount > 0
-                    ? 'bg-indigo-950/80 border-indigo-500/50 text-indigo-300 shadow-[0_0_15px_rgba(99,102,241,0.25)]'
-                    : 'bg-slate-800/80 hover:bg-slate-800 border-white/10 text-slate-200 hover:text-white'
-                }`}
+                className={`flex-1 flex items-center justify-center gap-1.5 px-3 py-2.5 rounded-xl text-xs font-bold transition-all border cursor-pointer ${isFilterOpen || activeFiltersCount > 0
+                  ? 'bg-indigo-950/80 border-indigo-500/50 text-indigo-300 shadow-[0_0_15px_rgba(99,102,241,0.25)]'
+                  : 'bg-slate-800/80 hover:bg-slate-800 border-white/10 text-slate-200 hover:text-white'
+                  }`}
               >
                 <SlidersHorizontal size={14} />
                 <span>Filters</span>
@@ -934,7 +929,7 @@ export const QuotationList: React.FC<Props> = ({
                   </button>
 
                   {isMobileToolsOpen && (
-                    <div className="absolute right-0 top-full mt-1.5 w-56 bg-slate-900/95 border border-slate-700/80 rounded-2xl shadow-2xl backdrop-blur-2xl p-1.5 z-40 space-y-1 animate-in fade-in duration-150">
+                    <div className="absolute left-1/2 -translate-x-1/2 top-full mt-2 w-56 bg-slate-900 border border-slate-700/90 rounded-2xl shadow-2xl backdrop-blur-2xl p-2 z-50 space-y-1 ring-1 ring-white/10 animate-in fade-in zoom-in-95 duration-150">
                       {canExport && (
                         <button
                           type="button"
@@ -1013,7 +1008,7 @@ export const QuotationList: React.FC<Props> = ({
           {/* Expandable Filter & Sort Panel */}
           {isFilterOpen && (
             <div className="pt-3 pb-2 border-t border-white/10 space-y-3.5 bg-slate-950/60 -mx-3.5 sm:-mx-5 px-3.5 sm:px-5 rounded-b-xl animate-in fade-in duration-200">
-              
+
               {/* Row 1: Date Range Presets & Target */}
               <div className="space-y-1.5">
                 <div className="flex items-center justify-between flex-wrap gap-2">
@@ -1026,22 +1021,20 @@ export const QuotationList: React.FC<Props> = ({
                     <button
                       type="button"
                       onClick={() => setDateFieldTarget('quotation')}
-                      className={`px-2 py-0.5 rounded-md font-semibold transition-colors ${
-                        dateFieldTarget === 'quotation'
-                          ? 'bg-blue-600 text-white font-bold'
-                          : 'bg-slate-800 text-slate-400 hover:bg-slate-700'
-                      }`}
+                      className={`px-2 py-0.5 rounded-md font-semibold transition-colors ${dateFieldTarget === 'quotation'
+                        ? 'bg-blue-600 text-white font-bold'
+                        : 'bg-slate-800 text-slate-400 hover:bg-slate-700'
+                        }`}
                     >
                       Quotation Date
                     </button>
                     <button
                       type="button"
                       onClick={() => setDateFieldTarget('event')}
-                      className={`px-2 py-0.5 rounded-md font-semibold transition-colors ${
-                        dateFieldTarget === 'event'
-                          ? 'bg-blue-600 text-white font-bold'
-                          : 'bg-slate-800 text-slate-400 hover:bg-slate-700'
-                      }`}
+                      className={`px-2 py-0.5 rounded-md font-semibold transition-colors ${dateFieldTarget === 'event'
+                        ? 'bg-blue-600 text-white font-bold'
+                        : 'bg-slate-800 text-slate-400 hover:bg-slate-700'
+                        }`}
                     >
                       Event Date
                     </button>
@@ -1065,11 +1058,10 @@ export const QuotationList: React.FC<Props> = ({
                         key={p.id}
                         type="button"
                         onClick={() => handleSelectPreset(p.id as DatePreset)}
-                        className={`text-[11px] font-semibold px-2.5 py-1 rounded-lg transition-all ${
-                          isSelected
-                            ? 'bg-blue-600 text-white font-bold shadow-md shadow-blue-500/25'
-                            : 'bg-slate-850 border border-white/10 text-slate-400 hover:bg-slate-800 hover:text-white'
-                        }`}
+                        className={`text-[11px] font-semibold px-2.5 py-1 rounded-lg transition-all ${isSelected
+                          ? 'bg-blue-600 text-white font-bold shadow-md shadow-blue-500/25'
+                          : 'bg-slate-850 border border-white/10 text-slate-400 hover:bg-slate-800 hover:text-white'
+                          }`}
                       >
                         {p.label}
                       </button>
@@ -1110,7 +1102,7 @@ export const QuotationList: React.FC<Props> = ({
 
               {/* Row 2: Client, Amount, and Sorting Dropdowns */}
               <div className="grid grid-cols-1 sm:grid-cols-3 gap-2.5 pt-1">
-                
+
                 {/* Client Filter */}
                 <div>
                   <label className="block text-[11px] font-bold text-slate-400 mb-1">
@@ -1355,37 +1347,35 @@ export const QuotationList: React.FC<Props> = ({
                 key={quote.id}
                 onClick={() => {
                   if (isTrash) {
-                    handleRestoreQuote({ stopPropagation: () => {} } as any, quote);
+                    handleRestoreQuote({ stopPropagation: () => { } } as any, quote);
                   } else {
                     onSelectQuotation(quote.id);
                   }
                 }}
-                className={`bg-slate-900/60 backdrop-blur-xl border transition-all duration-300 p-4 sm:p-5 rounded-2xl shadow-lg hover:shadow-[0_15px_35px_-10px_rgba(0,0,0,0.7),0_0_25px_-5px_rgba(99,102,241,0.2)] hover:-translate-y-1 cursor-pointer relative overflow-hidden group flex flex-col md:flex-row items-stretch md:items-center justify-between gap-4 ${
-                  isTrash
-                    ? 'border-rose-500/30 bg-rose-950/15 hover:border-rose-500/60'
-                    : quote.status === 'invoiced'
+                className={`bg-slate-900/60 backdrop-blur-xl border transition-all duration-300 p-4 sm:p-5 rounded-2xl shadow-lg hover:shadow-[0_15px_35px_-10px_rgba(0,0,0,0.7),0_0_25px_-5px_rgba(99,102,241,0.2)] hover:-translate-y-1 cursor-pointer relative overflow-hidden group flex flex-col md:flex-row items-stretch md:items-center justify-between gap-4 ${isTrash
+                  ? 'border-rose-500/30 bg-rose-950/15 hover:border-rose-500/60'
+                  : quote.status === 'invoiced'
                     ? 'border-purple-500/30 hover:border-purple-500/70 hover:shadow-[0_0_25px_rgba(168,85,247,0.25)]'
                     : quote.status === 'approved'
-                    ? 'border-emerald-500/30 hover:border-emerald-500/70 hover:shadow-[0_0_25px_rgba(16,185,129,0.25)]'
-                    : quote.status === 'sent'
-                    ? 'border-blue-500/30 hover:border-blue-500/70 hover:shadow-[0_0_25px_rgba(59,130,246,0.25)]'
-                    : 'border-white/10 hover:border-indigo-500/60'
-                }`}
+                      ? 'border-emerald-500/30 hover:border-emerald-500/70 hover:shadow-[0_0_25px_rgba(16,185,129,0.25)]'
+                      : quote.status === 'sent'
+                        ? 'border-blue-500/30 hover:border-blue-500/70 hover:shadow-[0_0_25px_rgba(59,130,246,0.25)]'
+                        : 'border-white/10 hover:border-indigo-500/60'
+                  }`}
               >
                 {/* Left Glowing Status Accent Laser Bar */}
-                <div className={`absolute left-0 top-0 bottom-0 w-1.5 transition-colors ${
-                  isTrash
-                    ? 'bg-gradient-to-b from-rose-400 to-rose-600 shadow-[0_0_12px_rgba(244,63,94,0.9)]'
-                    : quote.status === 'invoiced'
+                <div className={`absolute left-0 top-0 bottom-0 w-1.5 transition-colors ${isTrash
+                  ? 'bg-gradient-to-b from-rose-400 to-rose-600 shadow-[0_0_12px_rgba(244,63,94,0.9)]'
+                  : quote.status === 'invoiced'
                     ? 'bg-gradient-to-b from-purple-400 to-purple-600 shadow-[0_0_12px_rgba(168,85,247,0.9)]'
                     : quote.status === 'approved'
-                    ? 'bg-gradient-to-b from-emerald-400 to-emerald-600 shadow-[0_0_12px_rgba(16,185,129,0.9)]'
-                    : quote.status === 'sent'
-                    ? 'bg-gradient-to-b from-blue-400 to-blue-600 shadow-[0_0_12px_rgba(59,130,246,0.9)]'
-                    : quote.status === 'rejected'
-                    ? 'bg-gradient-to-b from-rose-400 to-rose-600 shadow-[0_0_12px_rgba(244,63,94,0.9)]'
-                    : 'bg-gradient-to-b from-amber-400 to-amber-600 shadow-[0_0_12px_rgba(251,191,36,0.8)]'
-                }`} />
+                      ? 'bg-gradient-to-b from-emerald-400 to-emerald-600 shadow-[0_0_12px_rgba(16,185,129,0.9)]'
+                      : quote.status === 'sent'
+                        ? 'bg-gradient-to-b from-blue-400 to-blue-600 shadow-[0_0_12px_rgba(59,130,246,0.9)]'
+                        : quote.status === 'rejected'
+                          ? 'bg-gradient-to-b from-rose-400 to-rose-600 shadow-[0_0_12px_rgba(244,63,94,0.9)]'
+                          : 'bg-gradient-to-b from-amber-400 to-amber-600 shadow-[0_0_12px_rgba(251,191,36,0.8)]'
+                  }`} />
 
                 <div className="flex items-start gap-3.5 sm:gap-4 flex-1 min-w-0 pl-1">
                   {/* Dynamic Monogram Avatar with luxury ring */}
@@ -1393,25 +1383,23 @@ export const QuotationList: React.FC<Props> = ({
                     <div className={`w-12 h-12 rounded-2xl bg-gradient-to-br ${getAvatarGradient(quote.client?.name || quote.quotationNumber)} flex items-center justify-center font-black text-sm shadow-md ring-2 ring-white/10 group-hover:scale-105 group-hover:ring-indigo-500/40 transition-all`}>
                       {getClientInitials(quote.client?.name)}
                     </div>
-                    <span className={`absolute -bottom-0.5 -right-0.5 w-3.5 h-3.5 rounded-full border-2 border-slate-900 shadow-xs ${
-                      isTrash
-                        ? 'bg-rose-500 shadow-[0_0_8px_rgba(244,63,94,0.8)]'
-                        : isDealWon
+                    <span className={`absolute -bottom-0.5 -right-0.5 w-3.5 h-3.5 rounded-full border-2 border-slate-900 shadow-xs ${isTrash
+                      ? 'bg-rose-500 shadow-[0_0_8px_rgba(244,63,94,0.8)]'
+                      : isDealWon
                         ? 'bg-emerald-400 shadow-[0_0_8px_rgba(52,211,153,0.8)]'
                         : quote.status === 'sent'
-                        ? 'bg-blue-400 shadow-[0_0_8px_rgba(96,165,250,0.8)]'
-                        : quote.status === 'rejected'
-                        ? 'bg-rose-500 shadow-[0_0_8px_rgba(244,63,94,0.8)]'
-                        : 'bg-amber-400 shadow-[0_0_8px_rgba(251,191,36,0.8)]'
-                    }`} />
+                          ? 'bg-blue-400 shadow-[0_0_8px_rgba(96,165,250,0.8)]'
+                          : quote.status === 'rejected'
+                            ? 'bg-rose-500 shadow-[0_0_8px_rgba(244,63,94,0.8)]'
+                            : 'bg-amber-400 shadow-[0_0_8px_rgba(251,191,36,0.8)]'
+                      }`} />
                   </div>
 
                   <div className="space-y-1.5 min-w-0 flex-1">
                     {/* Row 1: Quote #, Badges & Expiry */}
                     <div className="flex items-center gap-2 flex-wrap">
-                      <span className={`font-black text-white text-sm sm:text-base font-mono tracking-tight group-hover:text-indigo-400 transition-colors ${
-                        isTrash ? 'line-through text-slate-500' : ''
-                      }`}>
+                      <span className={`font-black text-white text-sm sm:text-base font-mono tracking-tight group-hover:text-indigo-400 transition-colors ${isTrash ? 'line-through text-slate-500' : ''
+                        }`}>
                         {quote.quotationNumber}
                       </span>
 
@@ -1448,11 +1436,11 @@ export const QuotationList: React.FC<Props> = ({
                           {/* Quotation validity countdown - ONLY for pending proposals (Draft / Sent), NEVER for Invoiced or Approved */}
                           {!isDealWon && quote.status !== 'rejected' && (() => {
                             const exp = getQuotationExpiryStatus(quote.validUntil);
-                            const badgeColor = exp.isExpired 
+                            const badgeColor = exp.isExpired
                               ? 'bg-rose-950/80 text-rose-300 border-rose-500/40 shadow-[0_0_10px_rgba(244,63,94,0.2)]'
                               : exp.isExpiringSoon
-                              ? 'bg-amber-950/80 text-amber-300 border-amber-500/40 shadow-[0_0_10px_rgba(251,191,36,0.2)]'
-                              : 'bg-slate-800/80 text-slate-300 border-white/10';
+                                ? 'bg-amber-950/80 text-amber-300 border-amber-500/40 shadow-[0_0_10px_rgba(251,191,36,0.2)]'
+                                : 'bg-slate-800/80 text-slate-300 border-white/10';
                             return (
                               <span className={`inline-flex items-center gap-1 text-[10px] font-bold px-2 py-0.5 rounded-full border ${badgeColor}`}>
                                 <Clock size={10} />
@@ -1632,7 +1620,7 @@ export const QuotationList: React.FC<Props> = ({
       {/* Responsive Pagination Footer Card */}
       {totalItems > 0 && (
         <div className="relative z-10 bg-slate-900/60 backdrop-blur-xl rounded-2xl border border-white/10 shadow-lg p-3.5 sm:p-4 flex flex-col sm:flex-row items-center justify-between gap-3 text-slate-300">
-          
+
           {/* Page Size Selector */}
           <div className="flex items-center gap-2 text-xs text-slate-400 w-full sm:w-auto justify-between sm:justify-start">
             <span>Show</span>
@@ -1651,7 +1639,7 @@ export const QuotationList: React.FC<Props> = ({
 
           {/* Pagination Controls */}
           <div className="flex items-center gap-1 w-full sm:w-auto justify-center sm:justify-end">
-            
+
             {/* First Page */}
             <button
               type="button"
@@ -1690,11 +1678,10 @@ export const QuotationList: React.FC<Props> = ({
                     key={`page-${num}`}
                     type="button"
                     onClick={() => setCurrentPage(Number(num))}
-                    className={`min-w-[32px] h-8 px-2 rounded-lg text-xs font-bold transition-all ${
-                      isCurrent
-                        ? 'bg-gradient-to-r from-blue-600 to-indigo-600 text-white font-black shadow-md shadow-indigo-500/30'
-                        : 'bg-slate-800/80 border border-white/10 text-slate-300 hover:bg-slate-700 hover:text-white'
-                    }`}
+                    className={`min-w-[32px] h-8 px-2 rounded-lg text-xs font-bold transition-all ${isCurrent
+                      ? 'bg-gradient-to-r from-blue-600 to-indigo-600 text-white font-black shadow-md shadow-indigo-500/30'
+                      : 'bg-slate-800/80 border border-white/10 text-slate-300 hover:bg-slate-700 hover:text-white'
+                      }`}
                   >
                     {num}
                   </button>
@@ -1734,7 +1721,7 @@ export const QuotationList: React.FC<Props> = ({
         </div>
       )}
 
-
+      </div>
 
       {/* Share Modal (PDF or WhatsApp Text Breakdown) */}
       <ShareQuotationModal

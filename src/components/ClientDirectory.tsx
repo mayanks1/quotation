@@ -127,7 +127,7 @@ export const ClientDirectory: React.FC<Props> = ({
   };
 
   return (
-    <div className="relative max-w-7xl mx-auto space-y-6 pb-12">
+    <div className="relative max-w-7xl mx-auto pb-12">
       {/* Ambient background glow effects */}
       <div className="pointer-events-none fixed inset-0 z-0 overflow-hidden opacity-40">
         <div className="absolute -top-32 left-1/4 w-96 h-96 bg-cyan-600/15 rounded-full blur-3xl pointer-events-none animate-pulse" />
@@ -135,47 +135,48 @@ export const ClientDirectory: React.FC<Props> = ({
         <div className="absolute -bottom-20 left-10 w-96 h-96 bg-purple-600/15 rounded-full blur-3xl pointer-events-none" />
       </div>
 
-      {/* Hero Executive Header Hub */}
-      <div className="relative z-10 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 pt-1 pb-2">
-        <div className="flex items-center gap-3">
-          <div className="w-10 h-10 rounded-2xl bg-gradient-to-tr from-cyan-500 via-blue-600 to-indigo-600 flex items-center justify-center text-white shadow-[0_0_25px_rgba(6,182,212,0.45)] ring-1 ring-white/20 shrink-0">
-            <Users size={20} />
-          </div>
-          <div>
-            <div className="flex items-center gap-2.5">
-              <h1 className="text-xl sm:text-2xl font-black text-white tracking-tight flex items-center gap-2">
-                Client Directory &amp; Contacts
-              </h1>
-              <span className="text-xs font-extrabold px-2.5 py-0.5 rounded-full bg-cyan-950/80 text-cyan-300 border border-cyan-500/40 shadow-xs">
-                {totalClients} Contact{totalClients !== 1 ? 's' : ''}
-              </span>
+      <div className="space-y-4 sm:space-y-6">
+        {/* Hero Executive Header Hub */}
+        <div className="relative z-10 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 sm:gap-4 pt-0 pb-1">
+          <div className="flex items-start sm:items-center gap-3 min-w-0">
+            <div className="w-10 h-10 rounded-2xl bg-gradient-to-tr from-cyan-500 via-blue-600 to-indigo-600 flex items-center justify-center text-white shadow-[0_0_25px_rgba(6,182,212,0.45)] ring-1 ring-white/20 shrink-0 mt-0.5 sm:mt-0">
+              <Users size={20} />
             </div>
-            <div className="flex items-center gap-2 text-xs text-slate-400 mt-0.5">
-              <span className="inline-flex items-center gap-1.5 text-cyan-400 font-bold">
-                <span className="w-2 h-2 rounded-full bg-cyan-400 animate-pulse shadow-[0_0_8px_rgba(34,211,238,0.8)]" />
-                CRM Active
-              </span>
-              <span className="text-slate-600">•</span>
-              <span>Saved clients auto-fill with 1-click into any quotation</span>
+            <div className="min-w-0">
+              <div className="flex items-center gap-2 flex-wrap">
+                <h1 className="text-lg sm:text-2xl font-black text-white tracking-tight leading-tight">
+                  Client Directory &amp; Contacts
+                </h1>
+                <span className="text-[10px] sm:text-xs font-extrabold px-2 sm:px-2.5 py-0.5 rounded-full bg-cyan-950/80 text-cyan-300 border border-cyan-500/40 shadow-xs whitespace-nowrap shrink-0 inline-flex items-center">
+                  {totalClients} Contact{totalClients !== 1 ? 's' : ''}
+                </span>
+              </div>
+              <div className="flex flex-wrap items-center gap-x-2 gap-y-0.5 text-[11px] sm:text-xs text-slate-400 mt-1 leading-snug">
+                <span className="inline-flex items-center gap-1.5 text-cyan-400 font-bold whitespace-nowrap shrink-0">
+                  <span className="w-2 h-2 rounded-full bg-cyan-400 animate-pulse shadow-[0_0_8px_rgba(34,211,238,0.8)]" />
+                  CRM Active
+                </span>
+                <span className="text-slate-600 hidden sm:inline">•</span>
+                <span className="text-slate-400">Saved clients auto-fill with 1-click into any quotation</span>
+              </div>
             </div>
           </div>
-        </div>
 
-        {canManageClients && (
-          <div className="flex items-center gap-2.5 w-full sm:w-auto">
-            <button
-              onClick={() => {
-                setIsAdding(!isAdding);
-                setEditingClient(null);
-              }}
-              className="flex-1 sm:flex-initial inline-flex items-center justify-center gap-2 px-5 py-2.5 rounded-xl font-extrabold text-xs text-white bg-gradient-to-r from-blue-600 via-indigo-600 to-cyan-600 hover:from-blue-500 hover:to-cyan-500 active:scale-95 shadow-[0_0_25px_rgba(99,102,241,0.35)] hover:shadow-[0_0_35px_rgba(6,182,212,0.55)] transition-all cursor-pointer group"
-            >
-              <Plus size={16} className={`transition-transform duration-300 ${isAdding ? 'rotate-45' : 'group-hover:rotate-90'}`} />
-              <span>{isAdding ? 'Close Form' : 'Add New Client'}</span>
-            </button>
-          </div>
-        )}
-      </div>
+          {canManageClients && (
+            <div className="flex items-center gap-2.5 w-full sm:w-auto pt-0.5 sm:pt-0">
+              <button
+                onClick={() => {
+                  setIsAdding(!isAdding);
+                  setEditingClient(null);
+                }}
+                className="w-full sm:w-auto inline-flex items-center justify-center gap-2 px-5 py-2.5 rounded-xl font-extrabold text-xs text-white bg-gradient-to-r from-blue-600 via-indigo-600 to-cyan-600 hover:from-blue-500 hover:to-cyan-500 active:scale-95 shadow-[0_0_25px_rgba(99,102,241,0.35)] hover:shadow-[0_0_35px_rgba(6,182,212,0.55)] transition-all cursor-pointer group"
+              >
+                <Plus size={16} className={`transition-transform duration-300 ${isAdding ? 'rotate-45' : 'group-hover:rotate-90'}`} />
+                <span>{isAdding ? 'Close Form' : 'Add New Client'}</span>
+              </button>
+            </div>
+          )}
+        </div>
 
       {/* KPI Metric Summary Cards */}
       <div className="relative z-10 grid grid-cols-3 gap-2 sm:gap-4">
@@ -631,6 +632,7 @@ export const ClientDirectory: React.FC<Props> = ({
         </div>
       )}
 
+      </div>
     </div>
   );
 };
