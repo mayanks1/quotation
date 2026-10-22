@@ -86,6 +86,7 @@ export interface AuthContextType {
   updateUserById: (id: string, updates: Partial<SaaSUser>) => Promise<{ success: boolean; error?: string }>;
   deleteUserById: (id: string) => Promise<{ success: boolean; error?: string }>;
   hasPermission: (perm: keyof UserPermissions) => boolean;
+  changePassword: (currentPassword: string, newPassword: string) => Promise<{ success: boolean; error?: string }>;
   // Module System Switches
   isPaymentLedgerEnabled: boolean;
   setPaymentLedgerEnabled: (enabled: boolean) => Promise<void>;

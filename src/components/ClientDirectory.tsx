@@ -178,52 +178,64 @@ export const ClientDirectory: React.FC<Props> = ({
       </div>
 
       {/* KPI Metric Summary Cards */}
-      <div className="relative z-10 grid grid-cols-1 sm:grid-cols-3 gap-3 sm:gap-4">
+      <div className="relative z-10 grid grid-cols-3 gap-2 sm:gap-4">
         {/* Metric 1: Total Contacts */}
-        <div className="bg-slate-900/60 backdrop-blur-xl p-4 sm:p-5 rounded-2xl border border-white/10 shadow-lg hover:border-cyan-500/50 hover:shadow-[0_0_30px_-5px_rgba(6,182,212,0.3)] hover:-translate-y-1 transition-all duration-300 relative overflow-hidden group">
+        <div className="bg-slate-900/60 backdrop-blur-xl p-2.5 sm:p-5 rounded-xl sm:rounded-2xl border border-white/10 shadow-lg hover:border-cyan-500/50 hover:shadow-[0_0_30px_-5px_rgba(6,182,212,0.3)] hover:-translate-y-0.5 sm:hover:-translate-y-1 transition-all duration-300 relative overflow-hidden group flex flex-col justify-between">
           <div className="absolute top-0 inset-x-0 h-1 bg-gradient-to-r from-cyan-500 to-blue-600 shadow-[0_0_10px_rgba(6,182,212,0.5)]" />
-          <div className="flex items-center justify-between">
-            <span className="text-[11px] sm:text-xs font-bold text-slate-400 uppercase tracking-wider">Total Contacts</span>
-            <div className="w-9 h-9 rounded-xl bg-cyan-500/15 border border-cyan-500/30 text-cyan-400 flex items-center justify-center group-hover:scale-110 transition-transform shadow-xs">
-              <Users size={16} />
+          <div className="flex items-start sm:items-center justify-between gap-1">
+            <span className="text-[10px] sm:text-xs font-bold text-slate-400 uppercase tracking-wider leading-tight">
+              <span className="hidden sm:inline">Total Contacts</span>
+              <span className="sm:hidden">Contacts</span>
+            </span>
+            <div className="w-6 h-6 sm:w-9 sm:h-9 rounded-lg sm:rounded-xl bg-cyan-500/15 border border-cyan-500/30 text-cyan-400 flex items-center justify-center shrink-0 group-hover:scale-110 transition-transform shadow-xs">
+              <Users size={13} className="sm:w-4 sm:h-4" />
             </div>
           </div>
-          <div className="text-2xl sm:text-3xl font-black text-white mt-2 font-mono tracking-tight">{totalClients}</div>
-          <div className="flex items-center gap-1.5 text-[11px] text-slate-400 mt-1 truncate">
+          <div className="text-xl sm:text-3xl font-black text-white mt-1 sm:mt-2 font-mono tracking-tight">{totalClients}</div>
+          <div className="flex items-center gap-1.5 text-[10px] sm:text-[11px] text-slate-400 mt-1 truncate">
             <span className="w-1.5 h-1.5 rounded-full bg-cyan-400 shrink-0 shadow-[0_0_6px_rgba(34,211,238,0.8)]" />
-            <span className="truncate">Saved clients in CRM directory</span>
+            <span className="hidden sm:inline truncate">Saved clients in CRM directory</span>
+            <span className="sm:hidden truncate">CRM saved</span>
           </div>
         </div>
 
         {/* Metric 2: Companies & Event Agencies */}
-        <div className="bg-slate-900/60 backdrop-blur-xl p-4 sm:p-5 rounded-2xl border border-white/10 shadow-lg hover:border-blue-500/50 hover:shadow-[0_0_30px_-5px_rgba(59,130,246,0.3)] hover:-translate-y-1 transition-all duration-300 relative overflow-hidden group">
+        <div className="bg-slate-900/60 backdrop-blur-xl p-2.5 sm:p-5 rounded-xl sm:rounded-2xl border border-white/10 shadow-lg hover:border-blue-500/50 hover:shadow-[0_0_30px_-5px_rgba(59,130,246,0.3)] hover:-translate-y-0.5 sm:hover:-translate-y-1 transition-all duration-300 relative overflow-hidden group flex flex-col justify-between">
           <div className="absolute top-0 inset-x-0 h-1 bg-gradient-to-r from-blue-500 to-indigo-600 shadow-[0_0_10px_rgba(59,130,246,0.5)]" />
-          <div className="flex items-center justify-between">
-            <span className="text-[11px] sm:text-xs font-bold text-slate-400 uppercase tracking-wider">Companies &amp; Agencies</span>
-            <div className="w-9 h-9 rounded-xl bg-blue-500/15 border border-blue-500/30 text-blue-400 flex items-center justify-center group-hover:scale-110 transition-transform shadow-xs">
-              <Building2 size={16} />
+          <div className="flex items-start sm:items-center justify-between gap-1">
+            <span className="text-[10px] sm:text-xs font-bold text-slate-400 uppercase tracking-wider leading-tight">
+              <span className="hidden sm:inline">Companies &amp; Agencies</span>
+              <span className="sm:hidden">Agencies</span>
+            </span>
+            <div className="w-6 h-6 sm:w-9 sm:h-9 rounded-lg sm:rounded-xl bg-blue-500/15 border border-blue-500/30 text-blue-400 flex items-center justify-center shrink-0 group-hover:scale-110 transition-transform shadow-xs">
+              <Building2 size={13} className="sm:w-4 sm:h-4" />
             </div>
           </div>
-          <div className="text-2xl sm:text-3xl font-black text-blue-400 mt-2 font-mono tracking-tight">{corporateClients}</div>
-          <div className="flex items-center gap-1.5 text-[11px] text-slate-400 mt-1 truncate">
+          <div className="text-xl sm:text-3xl font-black text-blue-400 mt-1 sm:mt-2 font-mono tracking-tight">{corporateClients}</div>
+          <div className="flex items-center gap-1.5 text-[10px] sm:text-[11px] text-slate-400 mt-1 truncate">
             <span className="w-1.5 h-1.5 rounded-full bg-blue-400 shrink-0 shadow-[0_0_6px_rgba(96,165,250,0.8)]" />
-            <span className="truncate">Corporate accounts &amp; venues</span>
+            <span className="hidden sm:inline truncate">Corporate accounts &amp; venues</span>
+            <span className="sm:hidden truncate">Corporate</span>
           </div>
         </div>
 
         {/* Metric 3: GST Registered */}
-        <div className="bg-slate-900/60 backdrop-blur-xl p-4 sm:p-5 rounded-2xl border border-white/10 shadow-lg hover:border-emerald-500/50 hover:shadow-[0_0_30px_-5px_rgba(16,185,129,0.3)] hover:-translate-y-1 transition-all duration-300 relative overflow-hidden group">
+        <div className="bg-slate-900/60 backdrop-blur-xl p-2.5 sm:p-5 rounded-xl sm:rounded-2xl border border-white/10 shadow-lg hover:border-emerald-500/50 hover:shadow-[0_0_30px_-5px_rgba(16,185,129,0.3)] hover:-translate-y-0.5 sm:hover:-translate-y-1 transition-all duration-300 relative overflow-hidden group flex flex-col justify-between">
           <div className="absolute top-0 inset-x-0 h-1 bg-gradient-to-r from-emerald-500 to-teal-600 shadow-[0_0_10px_rgba(16,185,129,0.5)]" />
-          <div className="flex items-center justify-between">
-            <span className="text-[11px] sm:text-xs font-bold text-slate-400 uppercase tracking-wider">GST Registered</span>
-            <div className="w-9 h-9 rounded-xl bg-emerald-500/15 border border-emerald-500/30 text-emerald-400 flex items-center justify-center group-hover:scale-110 transition-transform shadow-xs">
-              <ShieldCheck size={16} />
+          <div className="flex items-start sm:items-center justify-between gap-1">
+            <span className="text-[10px] sm:text-xs font-bold text-slate-400 uppercase tracking-wider leading-tight">
+              <span className="hidden sm:inline">GST Registered</span>
+              <span className="sm:hidden">GST Reg.</span>
+            </span>
+            <div className="w-6 h-6 sm:w-9 sm:h-9 rounded-lg sm:rounded-xl bg-emerald-500/15 border border-emerald-500/30 text-emerald-400 flex items-center justify-center shrink-0 group-hover:scale-110 transition-transform shadow-xs">
+              <ShieldCheck size={13} className="sm:w-4 sm:h-4" />
             </div>
           </div>
-          <div className="text-2xl sm:text-3xl font-black text-emerald-400 mt-2 font-mono tracking-tight">{gstRegistered}</div>
-          <div className="flex items-center gap-1.5 text-[11px] text-slate-400 mt-1 truncate">
+          <div className="text-xl sm:text-3xl font-black text-emerald-400 mt-1 sm:mt-2 font-mono tracking-tight">{gstRegistered}</div>
+          <div className="flex items-center gap-1.5 text-[10px] sm:text-[11px] text-slate-400 mt-1 truncate">
             <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 shrink-0 shadow-[0_0_6px_rgba(52,211,153,0.8)]" />
-            <span className="truncate">B2B invoice compliant clients</span>
+            <span className="hidden sm:inline truncate">B2B invoice compliant clients</span>
+            <span className="sm:hidden truncate">GST B2B</span>
           </div>
         </div>
       </div>

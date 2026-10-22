@@ -223,40 +223,40 @@ export function buildQuotationHTML(quotation: Quotation, upiQrDataUrl?: string):
         <div style="width:300px;">
           <table style="width:100%;font-size:11px;border-collapse:collapse;">
             <tr>
-              <td style="padding:3px 0;color:#64748b;border-bottom:1px solid #e2e8f0;">Subtotal:</td>
-              <td style="padding:3px 0;text-align:right;color:#0f172a;font-weight:600;border-bottom:1px solid #e2e8f0;">${fmt(subtotal)}</td>
+              <td style="padding:4px 0 7px 0;color:#64748b;border-bottom:1px solid #e2e8f0;">Subtotal:</td>
+              <td style="padding:4px 0 7px 0;text-align:right;color:#0f172a;font-weight:600;border-bottom:1px solid #e2e8f0;">${fmt(subtotal)}</td>
             </tr>
             ${discountAmount > 0 ? `
             <tr>
-              <td style="padding:3px 0;color:#16a34a;border-bottom:1px solid #e2e8f0;">Discount:</td>
-              <td style="padding:3px 0;text-align:right;color:#16a34a;font-weight:600;border-bottom:1px solid #e2e8f0;">-${fmt(discountAmount)}</td>
+              <td style="padding:4px 0 6px 0;color:#16a34a;border-bottom:1px solid #e2e8f0;">Discount:</td>
+              <td style="padding:4px 0 6px 0;text-align:right;color:#16a34a;font-weight:600;border-bottom:1px solid #e2e8f0;">-${fmt(discountAmount)}</td>
             </tr>` : ''}
             ${isSplitTax ? `
             <tr>
-              <td style="padding:3px 0;color:#64748b;border-bottom:1px solid #e2e8f0;">CGST (${halfTaxRate}%):</td>
-              <td style="padding:3px 0;text-align:right;color:#0f172a;border-bottom:1px solid #e2e8f0;">${fmt(halfTaxAmount)}</td>
+              <td style="padding:4px 0 6px 0;color:#64748b;border-bottom:1px solid #e2e8f0;">CGST (${halfTaxRate}%):</td>
+              <td style="padding:4px 0 6px 0;text-align:right;color:#0f172a;border-bottom:1px solid #e2e8f0;">${fmt(halfTaxAmount)}</td>
             </tr>
             <tr>
-              <td style="padding:3px 0;color:#64748b;border-bottom:1px solid #e2e8f0;">SGST (${halfTaxRate}%):</td>
-              <td style="padding:3px 0;text-align:right;color:#0f172a;border-bottom:1px solid #e2e8f0;">${fmt(halfTaxAmount)}</td>
+              <td style="padding:4px 0 6px 0;color:#64748b;border-bottom:1px solid #e2e8f0;">SGST (${halfTaxRate}%):</td>
+              <td style="padding:4px 0 6px 0;text-align:right;color:#0f172a;border-bottom:1px solid #e2e8f0;">${fmt(halfTaxAmount)}</td>
             </tr>` : (taxRate > 0 ? `
             <tr>
-              <td style="padding:3px 0;color:#64748b;border-bottom:1px solid #e2e8f0;">${taxLabel}:</td>
-              <td style="padding:3px 0;text-align:right;color:#0f172a;border-bottom:1px solid #e2e8f0;">${fmt(taxAmount)}</td>
+              <td style="padding:4px 0 6px 0;color:#64748b;border-bottom:1px solid #e2e8f0;">${taxLabel}:</td>
+              <td style="padding:4px 0 6px 0;text-align:right;color:#0f172a;border-bottom:1px solid #e2e8f0;">${fmt(taxAmount)}</td>
             </tr>` : '')}
             ${shippingCharges > 0 ? `
             <tr>
-              <td style="padding:3px 0;color:#64748b;border-bottom:1px solid #e2e8f0;">Logistics & Transportation:</td>
-              <td style="padding:3px 0;text-align:right;color:#0f172a;font-weight:600;border-bottom:1px solid #e2e8f0;">${fmt(shippingCharges)}</td>
+              <td style="padding:4px 0 6px 0;color:#64748b;border-bottom:1px solid #e2e8f0;">Logistics & Transportation:</td>
+              <td style="padding:4px 0 6px 0;text-align:right;color:#0f172a;font-weight:600;border-bottom:1px solid #e2e8f0;">${fmt(shippingCharges)}</td>
             </tr>` : ''}
             ${quotation.adjustmentAmount ? `
             <tr>
-              <td style="padding:3px 0;color:#64748b;border-bottom:1px solid #e2e8f0;">Adjustment / Round-off:</td>
-              <td style="padding:3px 0;text-align:right;color:#0f172a;font-weight:600;border-bottom:1px solid #e2e8f0;">${quotation.adjustmentAmount > 0 ? '+' : ''}${fmt(quotation.adjustmentAmount)}</td>
+              <td style="padding:4px 0 6px 0;color:#64748b;border-bottom:1px solid #e2e8f0;">Adjustment / Round-off:</td>
+              <td style="padding:4px 0 6px 0;text-align:right;color:#0f172a;font-weight:600;border-bottom:1px solid #e2e8f0;">${quotation.adjustmentAmount > 0 ? '+' : ''}${fmt(quotation.adjustmentAmount)}</td>
             </tr>` : ''}
           </table>
 
-          <div style="padding:8px 12px;background:#1e3a8a;color:#ffffff;border-radius:6px;margin-top:8px;">
+          <div style="padding:8px 12px;background:#1e3a8a;color:#ffffff;border-radius:6px;margin-top:10px;">
             <div style="display:flex;justify-content:space-between;align-items:center;">
               <span style="font-weight:700;font-size:11.5px;letter-spacing:0.5px;">TOTAL PAYABLE:</span>
               <span style="font-weight:800;font-size:15.5px;">${fmt(grandTotal)}</span>
@@ -367,22 +367,22 @@ export function buildQuotationHTML(quotation: Quotation, upiQrDataUrl?: string):
         </div>
 
         <!-- Signatures Column -->
-        <div style="width:230px;display:flex;flex-direction:column;gap:12px;">
+        <div style="width:230px;display:flex;flex-direction:column;gap:14px;">
           <!-- Company Signatory -->
           <div style="text-align:center;padding-top:4px;">
-            <div style="font-size:10.5px;font-weight:700;color:#1e3a8a;margin-bottom:2px;">${esc(company.name)}</div>
+            <div style="font-size:10.5px;font-weight:700;color:#1e3a8a;margin-bottom:3px;">${esc(company.name)}</div>
             ${company.signature ? `
-            <img src="${company.signature}" style="height:40px;max-width:140px;object-fit:contain;margin:2px auto;display:block;" />
+            <img src="${company.signature}" style="height:42px;max-width:140px;object-fit:contain;margin:2px auto 4px;display:block;" />
             ` : `
-            <div style="height:32px;"></div>
+            <div style="height:36px;"></div>
             `}
-            <div style="border-top:1px solid #94a3b8;width:85%;margin:2px auto 0;padding-top:3px;">
+            <div style="border-top:1px solid #94a3b8;width:88%;margin:0 auto;padding-top:4px;display:flex;align-items:center;justify-content:center;gap:6px;">
               <span style="font-size:9px;color:#64748b;font-weight:600;">Authorized Signatory</span>
-            </div>
-            <div style="margin-top:3px;">
-              <span style="display:inline-block;background:#ecfdf5;color:#047857;border:1px solid #a7f3d0;font-size:7.5px;font-weight:800;padding:1px 6px;border-radius:9999px;text-transform:uppercase;letter-spacing:0.5px;">
+              ${company.signature ? `
+              <span style="display:inline-block;background:#ecfdf5;color:#047857;border:1px solid #a7f3d0;font-size:7px;font-weight:800;padding:1px 5px;border-radius:9999px;text-transform:uppercase;letter-spacing:0.4px;white-space:nowrap;">
                 &#10003; Digitally Endorsed
               </span>
+              ` : ''}
             </div>
           </div>
 

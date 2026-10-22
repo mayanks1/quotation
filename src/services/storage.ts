@@ -628,6 +628,44 @@ export const storage = {
     memoryQuotations = quotes;
     memoryClients = clients;
     if (comp) memoryCompany = comp;
+    if (cloudSync.isEnabled()) {
+      cloudSync.pullAllFromCloud().catch(console.warn);
+    }
     return result;
+  },
+
+  // Force two-way push and reconciliation with cloud
+  async forceSyncAllToCloud(): Promise<{ success: boolean; pushedCount: number; message: string }> {
+    if (!cloudSync.isEnabled()) {
+      return { success: false, pushedCount: 0, message: 'Cloud database connection is not configured.' };
+    }
+    const allQuotes = await idb.getAllQuotations();
+    let pushed = 0;
+    for (const q of allQuotes) {
+      try {
+        await cloudSync.syncQuotation(q);
+        pushed++;
+      } catch (e) {
+        console.warn('Failed to push quote to cloud:', q.id, e);
+      }
+    }
+    const allClients = await idb.getAllClients();
+    for (const c of allClients) {
+      try {
+        await cloudSync.syncClient(c);
+      } catch (e) {}
+    }
+    const synced = await cloudSync.pullAllFromCloud();
+    if (synced?.quotations) {
+      memoryQuotations = synced.quotations;
+    }
+    if (synced?.clients) {
+      memoryClients = synced.clients;
+    }
+    return { 
+      success: true, 
+      pushedCount: pushed, 
+      message: `Successfully synchronized ${pushed} quotations and ${allClients.length} clients with cloud database.` 
+    };
   },
 };

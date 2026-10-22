@@ -632,6 +632,45 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     return { success: true };
   };
 
+  const changePassword = async (currentPassword: string, newPassword: string): Promise<{ success: boolean; error?: string }> => {
+    if (!user) {
+      return { success: false, error: 'You must be logged in to change your password.' };
+    }
+
+    if (!newPassword || newPassword.length < 4) {
+      return { success: false, error: 'New password must be at least 4 characters long.' };
+    }
+
+    // Verify and update via cloudSync if enabled
+    if (cloudSync.isEnabled()) {
+      const res = await cloudSync.changeUserPassword(user.id, currentPassword, newPassword);
+      if (!res.success) {
+        return res;
+      }
+    } else {
+      // Local check if offline
+      if (user.password && user.password !== currentPassword) {
+        return { success: false, error: 'Current password does not match.' };
+      }
+    }
+
+    // Update in-memory user and localStorage
+    const updatedUser = { ...user, password: newPassword };
+    setUser(updatedUser);
+    const nextUsers = users.map((u) => (u.id === user.id ? { ...u, password: newPassword } : u));
+    setUsers(nextUsers);
+    localStorage.setItem(USERS_CACHE_KEY, JSON.stringify(nextUsers));
+    try {
+      const session = localStorage.getItem(SESSION_KEY);
+      if (session) {
+        const parsed = JSON.parse(session);
+        localStorage.setItem(SESSION_KEY, JSON.stringify({ ...parsed, user: updatedUser }));
+      }
+    } catch (e) {}
+
+    return { success: true };
+  };
+
   return (
     <AuthContext.Provider
       value={{
@@ -656,6 +695,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         updateUserById,
         deleteUserById,
         hasPermission,
+        changePassword,
         isPaymentLedgerEnabled,
         setPaymentLedgerEnabled,
       }}
@@ -690,6 +730,7 @@ export const useAuth = () => {
       updateUserById: async () => ({ success: false, error: 'Auth provider not ready' }),
       deleteUserById: async () => ({ success: false, error: 'Auth provider not ready' }),
       hasPermission: () => false,
+      changePassword: async () => ({ success: false, error: 'Auth provider not ready' }),
       isPaymentLedgerEnabled: true,
       setPaymentLedgerEnabled: async () => { },
     };

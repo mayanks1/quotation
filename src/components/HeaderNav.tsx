@@ -9,6 +9,7 @@ import { useAuth } from '../context/AuthContext';
 import { useToast } from '../context/ToastContext';
 import { passcodeService } from '../services/passcodeService';
 import { LedgerPasscodeModal } from './ledger/LedgerPasscodeModal';
+import { ChangePasswordModal } from './ChangePasswordModal';
 
 interface Props {
   onOpenSettings: () => void;
@@ -32,6 +33,7 @@ export const HeaderNav: React.FC<Props> = ({
 
   const [isUserMenuOpen, setIsUserMenuOpen] = useState(false);
   const [isPasscodeModalOpen, setIsPasscodeModalOpen] = useState(false);
+  const [isChangePasswordOpen, setIsChangePasswordOpen] = useState(false);
   const menuRef = useRef<HTMLDivElement>(null);
 
   const canCreate = isSuperAdmin || hasPermission('canCreateQuotes');
@@ -280,6 +282,18 @@ export const HeaderNav: React.FC<Props> = ({
                         <Settings size={14} className="text-neutral-400" />
                         <span>Company &amp; System Settings</span>
                       </button>
+
+                      <button
+                        type="button"
+                        onClick={() => {
+                          setIsUserMenuOpen(false);
+                          setIsChangePasswordOpen(true);
+                        }}
+                        className="w-full flex items-center gap-2.5 px-3.5 py-2 text-xs hover:bg-neutral-800/80 transition-colors text-left text-amber-300 font-semibold cursor-pointer"
+                      >
+                        <KeyRound size={14} className="text-amber-400" />
+                        <span>Change Password</span>
+                      </button>
                     </div>
 
                     {/* Multi-Workspace Switcher: Only Super Admin can view & switch all workspaces */}
@@ -435,6 +449,14 @@ export const HeaderNav: React.FC<Props> = ({
               setIsPasscodeModalOpen(false);
               navigate('/ledger');
             }}
+          />
+        )}
+
+        {/* Change Account Password Modal */}
+        {isChangePasswordOpen && (
+          <ChangePasswordModal
+            isOpen={isChangePasswordOpen}
+            onClose={() => setIsChangePasswordOpen(false)}
           />
         )}
       </div>

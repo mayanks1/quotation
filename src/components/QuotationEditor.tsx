@@ -4,7 +4,8 @@ import {
   Trash2, Image as ImageIcon, Calculator, BookOpen, 
   Settings, UserCheck, UserPlus, Calendar, Zap, FileText, Receipt,
   QrCode, CreditCard, CheckCircle2, GitBranch, ChevronDown, ChevronUp,
-  Smartphone, PenLine, PenTool, Clock, Truck, MoreHorizontal, Check, ExternalLink, Building2, Sparkles
+  Smartphone, PenLine, PenTool, Clock, Truck, MoreHorizontal, Check, ExternalLink, Building2, Sparkles,
+  Phone, Mail
 } from 'lucide-react';
 import { 
   Quotation, LineItem, QuotationStatus, TaxScheme, ClientProfile, 
@@ -205,32 +206,32 @@ export const QuotationEditor: React.FC<Props> = ({
   const STATUS_CONFIG: Record<QuotationStatus, { label: string; dotColor: string; badgeCls: string; description: string }> = {
     draft: {
       label: 'Draft',
-      dotColor: 'bg-slate-400',
-      badgeCls: 'bg-slate-100 text-slate-700 border-slate-200 hover:bg-slate-200/80',
+      dotColor: 'bg-amber-400 shadow-[0_0_8px_rgba(251,191,36,0.9)]',
+      badgeCls: 'bg-amber-950/70 text-amber-300 border-amber-500/40 hover:bg-amber-900/60 shadow-xs',
       description: 'Draft quotation in progress',
     },
     sent: {
       label: 'Sent',
-      dotColor: 'bg-blue-500',
-      badgeCls: 'bg-blue-50 text-blue-700 border-blue-200 hover:bg-blue-100/80',
+      dotColor: 'bg-blue-400 shadow-[0_0_8px_rgba(96,165,250,0.9)]',
+      badgeCls: 'bg-blue-950/70 text-blue-300 border-blue-500/40 hover:bg-blue-900/60 shadow-xs',
       description: 'Shared with client for review',
     },
     approved: {
       label: 'Approved',
-      dotColor: 'bg-emerald-500',
-      badgeCls: 'bg-emerald-50 text-emerald-700 border-emerald-200 hover:bg-emerald-100/80',
+      dotColor: 'bg-emerald-400 shadow-[0_0_8px_rgba(52,211,153,0.9)]',
+      badgeCls: 'bg-emerald-950/70 text-emerald-300 border-emerald-500/40 hover:bg-emerald-900/60 shadow-xs',
       description: 'Client confirmed & booked',
     },
     invoiced: {
       label: 'Invoiced',
-      dotColor: 'bg-purple-500',
-      badgeCls: 'bg-purple-50 text-purple-700 border-purple-200 hover:bg-purple-100/80',
+      dotColor: 'bg-purple-400 shadow-[0_0_8px_rgba(192,132,252,0.9)]',
+      badgeCls: 'bg-purple-950/70 text-purple-300 border-purple-500/40 hover:bg-purple-900/60 shadow-xs',
       description: 'Formal Tax Invoice generated',
     },
     rejected: {
       label: 'Rejected',
-      dotColor: 'bg-rose-500',
-      badgeCls: 'bg-rose-50 text-rose-700 border-rose-200 hover:bg-rose-100/80',
+      dotColor: 'bg-rose-400 shadow-[0_0_8px_rgba(251,113,133,0.9)]',
+      badgeCls: 'bg-rose-950/70 text-rose-300 border-rose-500/40 hover:bg-rose-900/60 shadow-xs',
       description: 'Quotation cancelled or rejected',
     },
   };
@@ -537,15 +538,15 @@ export const QuotationEditor: React.FC<Props> = ({
   return (
     <div className="max-w-5xl mx-auto space-y-6 pb-16">
       
-      {/* Top Controller Bar - Ultra-Premium Executive SaaS Command Bar */}
-      <div className="no-print bg-white/95 backdrop-blur-md px-3 sm:px-4 py-2 rounded-2xl border border-slate-200/90 shadow-[0_4px_20px_-4px_rgba(15,23,42,0.06),0_1px_3px_rgba(15,23,42,0.03)] ring-1 ring-slate-900/[0.03] flex items-center justify-between gap-2 sm:gap-3 relative md:sticky md:top-3 z-40">
+      {/* Top Controller Bar - Ultra-Premium Executive SaaS Command Dock */}
+      <div className="no-print bg-slate-900/85 backdrop-blur-2xl p-2.5 sm:px-5 sm:py-2.5 rounded-2xl border border-white/10 shadow-[0_12px_40px_rgba(0,0,0,0.5)] ring-1 ring-white/10 flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-2.5 sm:gap-3 relative md:sticky md:top-3 z-40">
         
         {/* Left: Navigation, Document ID, Mode Switcher & Status */}
-        <div className="flex items-center gap-1.5 sm:gap-2.5 min-w-0">
+        <div className="flex items-center justify-between sm:justify-start gap-1.5 sm:gap-2.5 min-w-0 w-full sm:w-auto">
           {/* Back Button */}
           <button
             onClick={onBack}
-            className="group flex items-center gap-1.5 text-xs font-semibold text-slate-600 hover:text-slate-950 bg-slate-100 hover:bg-slate-200/70 px-2.5 py-1.5 rounded-xl transition-all active:scale-95 shrink-0"
+            className="group flex items-center gap-1.5 text-xs font-bold text-slate-300 hover:text-white bg-slate-800/90 hover:bg-slate-700/90 px-3 py-1.5 rounded-xl border border-white/10 transition-all active:scale-95 shrink-0 shadow-xs cursor-pointer"
             title="Return to Quotation List"
           >
             <ArrowLeft size={13} className="text-slate-400 group-hover:-translate-x-0.5 transition-transform" />
@@ -554,23 +555,23 @@ export const QuotationEditor: React.FC<Props> = ({
 
           {/* Breadcrumb slash & Quote Number */}
           <div className="hidden md:flex items-center gap-1.5 shrink-0">
-            <span className="text-slate-300 font-light text-xs">/</span>
+            <span className="text-slate-600 font-light text-xs">/</span>
             <div className="flex items-center gap-1">
-              <span className="font-mono text-xs font-bold text-slate-800 tracking-tight">
+              <span className="font-mono text-xs font-black text-cyan-400 tracking-tight">
                 {isInvoice ? (quotation.invoiceNumber || quotation.quotationNumber) : quotation.quotationNumber}
               </span>
               {quotation.revisionNumber && quotation.revisionNumber > 1 && (
-                <span className="text-[10px] font-mono font-bold px-1.5 py-0.2 bg-blue-50 text-blue-700 rounded-md border border-blue-200/70">
+                <span className="text-[10px] font-mono font-bold px-1.5 py-0.2 bg-blue-950/80 text-blue-300 rounded-md border border-blue-500/30">
                   R{quotation.revisionNumber}
                 </span>
               )}
             </div>
           </div>
 
-          <div className="h-4 w-px bg-slate-200 shrink-0" />
+          <div className="h-4 w-px bg-white/10 shrink-0 hidden sm:block" />
 
           {/* Mode Switcher: Quotation vs Tax Invoice (Apple Segmented Style) */}
-          <div className="inline-flex items-center bg-slate-100/90 p-1 rounded-xl border border-slate-200/70 shadow-inner shrink-0">
+          <div className="inline-flex items-center bg-slate-950/90 p-0.5 sm:p-1 rounded-xl border border-white/10 shadow-inner shrink-0">
             <button
               type="button"
               onClick={() => {
@@ -579,14 +580,14 @@ export const QuotationEditor: React.FC<Props> = ({
                   toast.info('Switched to Quotation mode');
                 }
               }}
-              className={`flex items-center gap-1.5 px-3 py-1 rounded-lg text-xs font-bold transition-all ${
+              className={`flex items-center gap-1 sm:gap-1.5 px-3 py-1 rounded-lg text-xs font-bold transition-all cursor-pointer ${
                 !isInvoice
-                  ? 'bg-white text-slate-900 shadow-xs'
-                  : 'text-slate-500 hover:text-slate-900'
+                  ? 'bg-gradient-to-r from-blue-600 to-indigo-600 text-white shadow-[0_0_15px_rgba(59,130,246,0.5)]'
+                  : 'text-slate-400 hover:text-white'
               }`}
             >
-              <FileText size={12} className={!isInvoice ? 'text-blue-600' : 'text-slate-400'} />
-              <span>Quotation</span>
+              <FileText size={12} className={!isInvoice ? 'text-white' : 'text-slate-400'} />
+              <span>Quote</span>
             </button>
 
             <button
@@ -602,18 +603,18 @@ export const QuotationEditor: React.FC<Props> = ({
                 });
                 toast.success(`Converted to Tax Invoice #${invoiceNum}`);
               }}
-              className={`flex items-center gap-1.5 px-3 py-1 rounded-lg text-xs font-bold transition-all ${
+              className={`flex items-center gap-1 sm:gap-1.5 px-3 py-1 rounded-lg text-xs font-bold transition-all cursor-pointer ${
                 isInvoice
-                  ? 'bg-blue-600 text-white shadow-xs'
-                  : 'text-slate-500 hover:text-slate-900'
+                  ? 'bg-gradient-to-r from-purple-600 to-indigo-600 text-white shadow-[0_0_15px_rgba(168,85,247,0.5)]'
+                  : 'text-slate-400 hover:text-white'
               }`}
             >
               <Receipt size={12} className={isInvoice ? 'text-white' : 'text-slate-400'} />
-              <span>Tax Invoice</span>
+              <span>Invoice</span>
             </button>
           </div>
 
-          <div className="h-4 w-px bg-slate-200 shrink-0 hidden sm:block" />
+          <div className="h-4 w-px bg-white/10 shrink-0 hidden sm:block" />
 
           {/* Interactive Custom Status Dropdown Badge */}
           <div className="relative shrink-0" ref={statusMenuRef}>
@@ -624,7 +625,7 @@ export const QuotationEditor: React.FC<Props> = ({
                   <button
                     type="button"
                     onClick={() => setIsStatusMenuOpen(!isStatusMenuOpen)}
-                    className={`flex items-center gap-1.5 text-xs font-bold px-2.5 py-1.5 rounded-xl border transition-all active:scale-95 shadow-2xs ${currentCfg.badgeCls}`}
+                    className={`flex items-center gap-1.5 text-xs font-bold px-3 py-1.5 rounded-xl border transition-all active:scale-95 cursor-pointer ${currentCfg.badgeCls}`}
                   >
                     <span className={`w-2 h-2 rounded-full ${currentCfg.dotColor} shrink-0`} />
                     <span>{currentCfg.label}</span>
@@ -632,7 +633,7 @@ export const QuotationEditor: React.FC<Props> = ({
                   </button>
 
                   {isStatusMenuOpen && (
-                    <div className="absolute left-0 top-full mt-1.5 w-48 bg-white rounded-xl shadow-xl border border-slate-200 py-1.5 z-50 animate-modal-in">
+                    <div className="absolute right-0 sm:left-0 top-full mt-2 w-52 bg-slate-900/95 backdrop-blur-2xl rounded-2xl shadow-2xl border border-white/15 py-1.5 z-50 animate-modal-in overflow-hidden">
                       {(['draft', 'sent', 'approved', 'invoiced', 'rejected'] as QuotationStatus[]).map((st) => {
                         const cfg = STATUS_CONFIG[st];
                         const isCurrent = quotation.status === st;
@@ -645,18 +646,18 @@ export const QuotationEditor: React.FC<Props> = ({
                               setIsStatusMenuOpen(false);
                               toast.success(`Status updated to ${cfg.label}`);
                             }}
-                            className={`w-full px-3 py-2 text-left flex items-center justify-between text-xs transition-colors ${
-                              isCurrent ? 'bg-slate-50 font-bold text-slate-900' : 'text-slate-600 hover:bg-slate-50 hover:text-slate-900'
+                            className={`w-full px-3.5 py-2.5 text-left flex items-center justify-between text-xs transition-colors cursor-pointer ${
+                              isCurrent ? 'bg-white/10 font-bold text-white' : 'text-slate-300 hover:bg-white/5 hover:text-white'
                             }`}
                           >
-                            <div className="flex items-center gap-2">
+                            <div className="flex items-center gap-2.5">
                               <span className={`w-2 h-2 rounded-full ${cfg.dotColor} shrink-0`} />
                               <div>
-                                <div>{cfg.label}</div>
+                                <div className="text-white font-bold">{cfg.label}</div>
                                 <div className="text-[10px] text-slate-400 font-normal leading-tight">{cfg.description}</div>
                               </div>
                             </div>
-                            {isCurrent && <Check size={13} className="text-blue-600 shrink-0 ml-2" />}
+                            {isCurrent && <Check size={13} className="text-cyan-400 shrink-0 ml-2" />}
                           </button>
                         );
                       })}
@@ -669,133 +670,135 @@ export const QuotationEditor: React.FC<Props> = ({
         </div>
 
         {/* Right: Tools & Actions */}
-        <div className="flex items-center gap-1.5 sm:gap-2 shrink-0">
-          {/* Gate Pass Button */}
-          <button
-            onClick={() => setIsGatePassOpen(true)}
-            title="Generate Returnable Gate Pass / Equipment Delivery Challan"
-            className="flex items-center gap-1.5 px-3 py-1.5 text-xs font-semibold text-slate-700 bg-white hover:bg-slate-50 hover:text-slate-950 border border-slate-200/90 hover:border-slate-300 rounded-xl transition-all active:scale-95 shadow-2xs hover:shadow-xs"
-          >
-            <Truck size={13} className="text-amber-500" />
-            <span className="hidden sm:inline">Gate Pass</span>
-          </button>
-
-          {/* Money Receipt Button */}
-          {paidAmount > 0 && (
+        <div className="flex items-center justify-between sm:justify-end gap-2 w-full sm:w-auto pt-2 sm:pt-0 border-t sm:border-t-0 border-white/10">
+          <div className="flex items-center gap-1.5">
+            {/* Gate Pass Button */}
             <button
-              type="button"
-              onClick={() => setIsReceiptModalOpen(true)}
-              title="Generate & View Official Payment Receipt"
-              className="flex items-center gap-1.5 px-3 py-1.5 text-xs font-semibold text-emerald-800 bg-emerald-50 hover:bg-emerald-100 hover:text-emerald-950 border border-emerald-300/80 rounded-xl transition-all active:scale-95 shadow-2xs hover:shadow-xs"
+              onClick={() => setIsGatePassOpen(true)}
+              title="Generate Returnable Gate Pass / Equipment Delivery Challan"
+              className="flex items-center gap-1.5 px-3 py-2 text-xs font-bold text-slate-200 hover:text-white bg-slate-800/90 hover:bg-slate-700/90 border border-white/10 hover:border-amber-500/40 rounded-xl transition-all active:scale-95 shadow-xs cursor-pointer"
             >
-              <Receipt size={13} className="text-emerald-600" />
-              <span className="hidden sm:inline">Receipt</span>
-            </button>
-          )}
-
-          {/* More Actions Dropdown (Duplicate, Revise, Print, Copy Link) */}
-          <div className="relative" ref={actionsMenuRef}>
-            <button
-              onClick={() => setIsActionsMenuOpen(!isActionsMenuOpen)}
-              title="More Actions"
-              className={`flex items-center justify-center w-8 h-8 rounded-xl border transition-all active:scale-95 shadow-2xs hover:shadow-xs ${
-                isActionsMenuOpen 
-                  ? 'bg-slate-100 text-slate-900 border-slate-300' 
-                  : 'bg-white hover:bg-slate-50 text-slate-700 border-slate-200/90 hover:border-slate-300'
-              }`}
-            >
-              <MoreHorizontal size={15} className="text-slate-600" />
+              <Truck size={13} className="text-amber-400" />
+              <span>Challan</span>
             </button>
 
-            {isActionsMenuOpen && (
-              <div className="absolute right-0 top-full mt-1.5 w-56 bg-white rounded-xl shadow-xl border border-slate-200 py-1.5 z-50 animate-modal-in">
-                <button
-                  type="button"
-                  onClick={() => {
-                    setIsActionsMenuOpen(false);
-                    onDuplicate(quotation);
-                    toast.success(`Quotation duplicated as new draft`);
-                  }}
-                  className="w-full px-3 py-2 text-left text-xs font-medium text-slate-700 hover:bg-slate-50 hover:text-slate-900 flex items-center gap-2.5 transition-colors"
-                >
-                  <Copy size={13} className="text-slate-500" />
-                  <span>Duplicate as New Quote</span>
-                </button>
-
-                <button
-                  type="button"
-                  onClick={() => {
-                    setIsActionsMenuOpen(false);
-                    handleCreateNewRevision();
-                  }}
-                  className="w-full px-3 py-2 text-left text-xs font-medium text-slate-700 hover:bg-slate-50 hover:text-slate-900 flex items-center gap-2.5 transition-colors"
-                >
-                  <GitBranch size={13} className="text-blue-600" />
-                  <span>Create Revision (R{(quotation.revisionNumber || 1) + 1})</span>
-                </button>
-
-                <button
-                  type="button"
-                  onClick={() => {
-                    setIsActionsMenuOpen(false);
-                    const link = `${window.location.origin}/quote/${quotation.id}/view`;
-                    navigator.clipboard.writeText(link);
-                    toast.success('Public review link copied to clipboard!');
-                  }}
-                  className="w-full px-3 py-2 text-left text-xs font-medium text-slate-700 hover:bg-slate-50 hover:text-slate-900 flex items-center gap-2.5 transition-colors"
-                >
-                  <ExternalLink size={13} className="text-indigo-500" />
-                  <span>Copy Public Review Link</span>
-                </button>
-              </div>
+            {/* Money Receipt Button */}
+            {paidAmount > 0 && (
+              <button
+                type="button"
+                onClick={() => setIsReceiptModalOpen(true)}
+                title="Generate & View Official Payment Receipt"
+                className="flex items-center gap-1.5 px-3 py-2 text-xs font-bold text-emerald-300 bg-emerald-950/80 hover:bg-emerald-900/80 border border-emerald-500/30 rounded-xl transition-all active:scale-95 shadow-xs cursor-pointer"
+              >
+                <Receipt size={13} className="text-emerald-400" />
+                <span>Receipt</span>
+              </button>
             )}
+
+            {/* More Actions Dropdown (Duplicate, Revise, Print, Copy Link) */}
+            <div className="relative" ref={actionsMenuRef}>
+              <button
+                onClick={() => setIsActionsMenuOpen(!isActionsMenuOpen)}
+                title="More Actions"
+                className={`flex items-center justify-center w-9 h-9 rounded-xl border transition-all active:scale-95 shadow-xs cursor-pointer ${
+                  isActionsMenuOpen 
+                    ? 'bg-slate-700 text-white border-white/30' 
+                    : 'bg-slate-800/90 hover:bg-slate-700/90 text-slate-300 hover:text-white border-white/10'
+                }`}
+              >
+                <MoreHorizontal size={15} className="text-slate-300" />
+              </button>
+
+              {isActionsMenuOpen && (
+                <div className="absolute left-0 sm:left-auto sm:right-0 top-full mt-2 w-56 max-w-[calc(100vw-32px)] bg-slate-900/95 backdrop-blur-2xl rounded-2xl shadow-2xl border border-white/15 py-1.5 z-50 animate-modal-in overflow-hidden">
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setIsActionsMenuOpen(false);
+                      onDuplicate(quotation);
+                      toast.success(`Quotation duplicated as new draft`);
+                    }}
+                    className="w-full px-3.5 py-2.5 text-left text-xs font-semibold text-slate-300 hover:bg-white/10 hover:text-white flex items-center gap-2.5 transition-colors cursor-pointer"
+                  >
+                    <Copy size={14} className="text-slate-400 shrink-0" />
+                    <span className="truncate">Duplicate as New Quote</span>
+                  </button>
+
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setIsActionsMenuOpen(false);
+                      handleCreateNewRevision();
+                    }}
+                    className="w-full px-3.5 py-2.5 text-left text-xs font-semibold text-slate-300 hover:bg-white/10 hover:text-white flex items-center gap-2.5 transition-colors cursor-pointer"
+                  >
+                    <GitBranch size={14} className="text-cyan-400 shrink-0" />
+                    <span className="truncate">Create Revision (R{(quotation.revisionNumber || 1) + 1})</span>
+                  </button>
+
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setIsActionsMenuOpen(false);
+                      const link = `${window.location.origin}/quote/${quotation.id}/view`;
+                      navigator.clipboard.writeText(link);
+                      toast.success('Public review link copied to clipboard!');
+                    }}
+                    className="w-full px-3.5 py-2.5 text-left text-xs font-semibold text-slate-300 hover:bg-white/10 hover:text-white flex items-center gap-2.5 transition-colors cursor-pointer"
+                  >
+                    <ExternalLink size={14} className="text-purple-400 shrink-0" />
+                    <span className="truncate">Copy Public Review Link</span>
+                  </button>
+                </div>
+              )}
+            </div>
           </div>
 
-          <div className="h-4 w-px bg-slate-200 hidden xs:block" />
+          <div className="flex items-center gap-2 flex-1 sm:flex-initial justify-end">
+            {/* Primary Action Buttons */}
+            <button
+              onClick={handleOpenShare}
+              title="Share quotation via WhatsApp or Client Portal link"
+              className="flex-1 sm:flex-initial flex items-center justify-center gap-1.5 px-4 py-2 text-xs font-extrabold text-white bg-gradient-to-r from-emerald-600 via-teal-600 to-emerald-500 hover:from-emerald-500 hover:to-teal-400 active:scale-95 rounded-xl transition-all shadow-[0_0_15px_rgba(16,185,129,0.3)] hover:shadow-[0_0_25px_rgba(16,185,129,0.5)] cursor-pointer"
+            >
+              <Share2 size={13} />
+              <span>Share</span>
+            </button>
 
-          {/* Primary Action Buttons */}
-          <button
-            onClick={handleOpenShare}
-            title="Share quotation via WhatsApp or Client Portal link"
-            className="flex items-center gap-1.5 px-3.5 py-1.5 text-xs font-bold text-white bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-500 hover:to-teal-500 active:scale-95 rounded-xl transition-all shadow-sm shadow-emerald-600/20 hover:shadow-emerald-600/30"
-          >
-            <Share2 size={13} />
-            <span>Share</span>
-          </button>
-
-          <button
-            onClick={handleExportPDF}
-            disabled={exporting}
-            className="flex items-center gap-1.5 bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-500 hover:to-indigo-500 active:scale-95 disabled:opacity-50 text-white px-3.5 sm:px-4 py-1.5 rounded-xl text-xs font-bold transition-all shadow-sm shadow-blue-500/25 hover:shadow-md hover:shadow-blue-500/35"
-          >
-            <Download size={13} />
-            <span className="truncate">{exporting ? 'Generating…' : 'PDF'}</span>
-          </button>
+            <button
+              onClick={handleExportPDF}
+              disabled={exporting}
+              className="flex-1 sm:flex-initial flex items-center justify-center gap-1.5 bg-gradient-to-r from-blue-600 via-indigo-600 to-cyan-500 hover:from-blue-500 hover:to-cyan-400 active:scale-95 disabled:opacity-50 text-white px-4 py-2 rounded-xl text-xs font-black transition-all shadow-[0_0_20px_rgba(59,130,246,0.35)] hover:shadow-[0_0_30px_rgba(6,182,212,0.55)] cursor-pointer"
+            >
+              <Download size={13} />
+              <span className="truncate">{exporting ? 'Generating…' : 'PDF'}</span>
+            </button>
+          </div>
         </div>
 
       </div>
 
       {/* Main Quotation Sheet */}
       <div className="bg-white rounded-2xl shadow-xl border border-slate-200/90 overflow-hidden">
-        <div className="p-6 md:p-12 space-y-8">
+        <div className="p-4 sm:p-6 md:p-12 space-y-6 sm:space-y-8">
           
           {/* Header Row */}
           <div className="flex flex-col md:flex-row justify-between items-start gap-6 pb-6 border-b-2 border-slate-200">
             
             {/* Company Info */}
             <div className="flex-1 space-y-2">
-              <div className="flex items-center gap-3 mb-2">
+              <div className="flex flex-wrap items-center gap-2 mb-2">
                 {quotation.company.logo ? (
                   <div className="flex items-center gap-2">
                     <div className="relative group inline-block">
                       <img
                         src={quotation.company.logo}
                         alt="Logo"
-                        className="h-14 md:h-16 w-auto object-contain rounded border border-slate-200/80 p-0.5 bg-white shadow-2xs"
+                        className="h-14 md:h-16 w-auto object-contain rounded-xl border border-slate-200/80 p-0.5 bg-white shadow-xs"
                       />
                       <label 
                         title="Click to replace logo"
-                        className="absolute inset-0 bg-black/60 opacity-0 group-hover:opacity-100 flex items-center justify-center cursor-pointer transition-opacity rounded"
+                        className="absolute inset-0 bg-black/60 opacity-0 group-hover:opacity-100 flex items-center justify-center cursor-pointer transition-opacity rounded-xl"
                       >
                         <ImageIcon size={18} className="text-white" />
                         <input type="file" accept="image/*" onChange={handleLogoUpload} className="hidden" />
@@ -809,7 +812,7 @@ export const QuotationEditor: React.FC<Props> = ({
                         toast.info('Logo removed from this quotation');
                       }}
                       title="Clear logo from quotation"
-                      className="inline-flex items-center gap-1 text-[11px] font-semibold text-rose-600 hover:text-rose-800 bg-rose-50 hover:bg-rose-100 px-2.5 py-1 rounded-md transition-colors cursor-pointer"
+                      className="inline-flex items-center gap-1 text-[11px] font-bold text-rose-600 hover:text-rose-700 bg-rose-50/90 hover:bg-rose-100 border border-rose-200/80 px-2.5 py-1 rounded-lg transition-all shadow-2xs cursor-pointer"
                     >
                       <Trash2 size={12} />
                       <span>Clear Logo</span>
@@ -826,7 +829,7 @@ export const QuotationEditor: React.FC<Props> = ({
                 <button
                   type="button"
                   onClick={onOpenSettings}
-                  className="inline-flex items-center gap-1 text-[11px] font-semibold text-blue-600 hover:text-blue-800 bg-blue-50 hover:bg-blue-100 px-2.5 py-1 rounded-md transition-colors"
+                  className="inline-flex items-center gap-1 text-[11px] font-bold text-blue-600 hover:text-blue-700 bg-blue-50/90 hover:bg-blue-100 border border-blue-200/80 px-2.5 py-1 rounded-lg transition-all shadow-2xs cursor-pointer"
                 >
                   <Settings size={13} />
                   <span>Edit Company / Bank Info</span>
@@ -838,7 +841,7 @@ export const QuotationEditor: React.FC<Props> = ({
                 onChange={(e) =>
                   onChange({ ...quotation, company: { ...quotation.company, name: e.target.value } })
                 }
-                className="text-2xl font-black text-slate-900 w-full border-0 border-b border-transparent hover:border-slate-300 focus:border-blue-500 focus:outline-none"
+                className="text-2xl sm:text-3xl font-black text-slate-900 w-full border-0 border-b border-transparent hover:border-slate-300 focus:border-blue-500 focus:outline-none tracking-tight"
               />
 
               <input
@@ -847,7 +850,7 @@ export const QuotationEditor: React.FC<Props> = ({
                 onChange={(e) =>
                   onChange({ ...quotation, company: { ...quotation.company, tagline: e.target.value } })
                 }
-                className="text-xs text-blue-600 font-bold uppercase tracking-wider w-full border-0 border-b border-transparent hover:border-slate-300 focus:border-blue-500 focus:outline-none"
+                className="text-xs text-blue-600 font-extrabold uppercase tracking-wider w-full border-0 border-b border-transparent hover:border-slate-300 focus:border-blue-500 focus:outline-none"
               />
 
               <textarea
@@ -859,21 +862,27 @@ export const QuotationEditor: React.FC<Props> = ({
                 className="text-xs text-slate-500 w-full resize-none border-0 border-b border-transparent hover:border-slate-300 focus:border-blue-500 focus:outline-none"
               />
 
-              <div className="flex flex-wrap gap-x-4 gap-y-1 text-xs text-slate-500">
-                <input
-                  value={quotation.company.phone}
-                  onChange={(e) =>
-                    onChange({ ...quotation, company: { ...quotation.company, phone: e.target.value } })
-                  }
-                  className="w-36 border-0 border-b border-transparent hover:border-slate-300 focus:border-blue-500 focus:outline-none"
-                />
-                <input
-                  value={quotation.company.email}
-                  onChange={(e) =>
-                    onChange({ ...quotation, company: { ...quotation.company, email: e.target.value } })
-                  }
-                  className="w-48 border-0 border-b border-transparent hover:border-slate-300 focus:border-blue-500 focus:outline-none"
-                />
+              <div className="flex flex-wrap items-center gap-x-4 gap-y-1.5 text-xs text-slate-600 pt-0.5">
+                <div className="flex items-center gap-1.5">
+                  <Phone size={12} className="text-slate-400 shrink-0" />
+                  <input
+                    value={quotation.company.phone}
+                    onChange={(e) =>
+                      onChange({ ...quotation, company: { ...quotation.company, phone: e.target.value } })
+                    }
+                    className="w-36 border-0 border-b border-transparent hover:border-slate-300 focus:border-blue-500 focus:outline-none font-medium text-slate-700"
+                  />
+                </div>
+                <div className="flex items-center gap-1.5">
+                  <Mail size={12} className="text-slate-400 shrink-0" />
+                  <input
+                    value={quotation.company.email}
+                    onChange={(e) =>
+                      onChange({ ...quotation, company: { ...quotation.company, email: e.target.value } })
+                    }
+                    className="w-48 border-0 border-b border-transparent hover:border-slate-300 focus:border-blue-500 focus:outline-none font-medium text-slate-700"
+                  />
+                </div>
               </div>
 
               {quotation.company.gstin && (
@@ -884,7 +893,7 @@ export const QuotationEditor: React.FC<Props> = ({
             </div>
 
             {/* Document Metadata Card */}
-            <div className="text-left md:text-right min-w-[280px] space-y-2">
+            <div className="text-left md:text-right w-full md:w-auto md:min-w-[280px] space-y-2">
               <div className="flex items-center justify-start md:justify-end gap-2 mb-2">
                 <h1 className="text-3xl md:text-4xl font-black tracking-tight text-slate-900">
                   {isInvoice ? 'TAX INVOICE' : 'QUOTATION'}
@@ -1157,7 +1166,7 @@ export const QuotationEditor: React.FC<Props> = ({
                           }
                         }}
                         defaultValue=""
-                        className="bg-transparent text-xs text-blue-600 font-semibold cursor-pointer focus:outline-none max-w-[170px] truncate"
+                        className="bg-transparent text-xs text-blue-600 font-semibold cursor-pointer focus:outline-none max-w-[140px] sm:max-w-[200px] truncate"
                       >
                         <option value="" disabled>Load Saved Client ({savedClients.length})...</option>
                         {savedClients.map((c) => (
@@ -1240,7 +1249,7 @@ export const QuotationEditor: React.FC<Props> = ({
 
               <input
                 value={quotation.client.gstin || ''}
-                placeholder="CLIENT GSTIN (OPTIONAL)"
+                placeholder="Client GSTIN (Optional)"
                 onChange={(e) =>
                   onChange({ ...quotation, client: { ...quotation.client, gstin: e.target.value } })
                 }
@@ -1595,93 +1604,132 @@ export const QuotationEditor: React.FC<Props> = ({
           </div>
 
           {/* Optional Modules Toolbar: UPI QR & Payment Ledger Switches */}
-          <div className="bg-slate-50 border border-slate-200/90 rounded-xl p-3 flex flex-wrap items-center justify-between gap-3">
-            <span className="text-xs font-bold uppercase tracking-wider text-slate-500">
-              Optional Add-on Features:
-            </span>
-            <div className="flex flex-wrap items-center gap-2 sm:gap-4">
+          <div className="bg-slate-50/70 border border-slate-200/90 rounded-2xl p-3.5 space-y-2.5">
+            <div className="flex items-center justify-between">
+              <span className="text-xs font-bold uppercase tracking-wider text-slate-600 flex items-center gap-1.5">
+                <Zap size={13} className="text-amber-500" />
+                Optional Add-on Features
+              </span>
+              <span className="text-[11px] text-slate-400 font-medium hidden sm:inline">
+                Toggle to customize payment &amp; ledger modules
+              </span>
+            </div>
+
+            <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-2.5">
               
-              {/* UPI QR Switch */}
-              <div className="flex items-center gap-2 bg-white px-3 py-1.5 rounded-lg border border-slate-200 shadow-xs">
-                <QrCode size={13} className={isQrEnabled ? 'text-blue-600' : 'text-slate-400'} />
-                <span className="text-xs font-semibold text-slate-700">UPI QR Code</span>
-                <button
-                  type="button"
-                  role="switch"
-                  aria-checked={isQrEnabled}
-                  onClick={() => {
-                    const next = !isQrEnabled;
-                    onChange({ ...quotation, enableUpiQr: next });
-                    toast.info(`UPI QR Code ${next ? 'enabled' : 'disabled'}`);
-                  }}
-                  className={`relative inline-flex h-5 w-9 shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors duration-200 ease-in-out focus:outline-none ${
+              {/* UPI QR Switch Card */}
+              <div 
+                onClick={() => {
+                  const next = !isQrEnabled;
+                  onChange({ ...quotation, enableUpiQr: next });
+                  toast.info(`UPI QR Code ${next ? 'enabled' : 'disabled'}`);
+                }}
+                className={`flex items-center justify-between p-2.5 rounded-xl border transition-all cursor-pointer select-none active:scale-[0.99] ${
+                  isQrEnabled 
+                    ? 'bg-blue-50/70 border-blue-200 ring-1 ring-blue-500/20 shadow-2xs' 
+                    : 'bg-white border-slate-200 hover:border-slate-300 shadow-2xs'
+                }`}
+              >
+                <div className="flex items-center gap-2.5 min-w-0">
+                  <div className={`p-1.5 rounded-lg shrink-0 ${isQrEnabled ? 'bg-blue-600 text-white' : 'bg-slate-100 text-slate-500'}`}>
+                    <QrCode size={15} />
+                  </div>
+                  <div className="min-w-0">
+                    <div className="text-xs font-bold text-slate-800 truncate">UPI QR Code</div>
+                    <div className="text-[10px] text-slate-500 font-medium truncate">Instant Scan &amp; Pay</div>
+                  </div>
+                </div>
+
+                <div
+                  className={`relative inline-flex h-5 w-9 shrink-0 rounded-full border-2 border-transparent transition-colors duration-200 ease-in-out ${
                     isQrEnabled ? 'bg-blue-600' : 'bg-slate-300'
                   }`}
                 >
                   <span
-                    className={`pointer-events-none inline-block h-4 w-4 transform rounded-full bg-white shadow-sm ring-0 transition duration-200 ease-in-out ${
+                    className={`inline-block h-4 w-4 transform rounded-full bg-white shadow-sm transition duration-200 ease-in-out ${
                       isQrEnabled ? 'translate-x-4' : 'translate-x-0'
                     }`}
                   />
-                </button>
+                </div>
               </div>
 
-              {/* Client Enters Amount Switch (Optional: Available when UPI QR is enabled) */}
+              {/* Client Enters Amount Switch Card (Shown when QR is enabled) */}
               {isQrEnabled && (
-                <div className="flex items-center gap-2 bg-white px-3 py-1.5 rounded-lg border border-slate-200 shadow-xs animate-in fade-in duration-200">
-                  <Smartphone size={13} className={allowCustomerEditQrAmount ? 'text-indigo-600' : 'text-slate-400'} />
-                  <span className="text-xs font-semibold text-slate-700">Client Enters Amount</span>
-                  <button
-                    type="button"
-                    role="switch"
-                    aria-checked={allowCustomerEditQrAmount}
-                    onClick={() => {
-                      const next = !allowCustomerEditQrAmount;
-                      onChange({ ...quotation, allowCustomerEditQrAmount: next });
-                      toast.info(next ? 'Client can now enter any amount at their end upon scanning QR' : 'QR payment amount is now fixed');
-                    }}
-                    className={`relative inline-flex h-5 w-9 shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors duration-200 ease-in-out focus:outline-none ${
+                <div 
+                  onClick={() => {
+                    const next = !allowCustomerEditQrAmount;
+                    onChange({ ...quotation, allowCustomerEditQrAmount: next });
+                    toast.info(next ? 'Client can now enter custom payment amount upon scanning QR' : 'QR payment amount is now fixed');
+                  }}
+                  className={`flex items-center justify-between p-2.5 rounded-xl border transition-all cursor-pointer select-none active:scale-[0.99] animate-in fade-in duration-200 ${
+                    allowCustomerEditQrAmount 
+                      ? 'bg-indigo-50/70 border-indigo-200 ring-1 ring-indigo-500/20 shadow-2xs' 
+                      : 'bg-white border-slate-200 hover:border-slate-300 shadow-2xs'
+                  }`}
+                >
+                  <div className="flex items-center gap-2.5 min-w-0">
+                    <div className={`p-1.5 rounded-lg shrink-0 ${allowCustomerEditQrAmount ? 'bg-indigo-600 text-white' : 'bg-slate-100 text-slate-500'}`}>
+                      <Smartphone size={15} />
+                    </div>
+                    <div className="min-w-0">
+                      <div className="text-xs font-bold text-slate-800 truncate">Client Amount</div>
+                      <div className="text-[10px] text-slate-500 font-medium truncate">Open amount on scan</div>
+                    </div>
+                  </div>
+
+                  <div
+                    className={`relative inline-flex h-5 w-9 shrink-0 rounded-full border-2 border-transparent transition-colors duration-200 ease-in-out ${
                       allowCustomerEditQrAmount ? 'bg-indigo-600' : 'bg-slate-300'
                     }`}
-                    title="Allow client to enter any payment amount at their end when scanning QR"
                   >
                     <span
-                      className={`pointer-events-none inline-block h-4 w-4 transform rounded-full bg-white shadow-sm ring-0 transition duration-200 ease-in-out ${
+                      className={`inline-block h-4 w-4 transform rounded-full bg-white shadow-sm transition duration-200 ease-in-out ${
                         allowCustomerEditQrAmount ? 'translate-x-4' : 'translate-x-0'
                       }`}
                     />
-                  </button>
+                  </div>
                 </div>
               )}
 
-              {/* Advance & Payment Ledger Switch */}
-              <div className="flex items-center gap-2 bg-white px-3 py-1.5 rounded-lg border border-slate-200 shadow-xs">
-                <CreditCard size={13} className={isLedgerEnabled ? 'text-emerald-600' : 'text-slate-400'} />
-                <span className="text-xs font-semibold text-slate-700">Advance Ledger</span>
-                <button
-                  type="button"
-                  role="switch"
-                  aria-checked={isLedgerEnabled}
-                  onClick={() => {
-                    const next = !isLedgerEnabled;
-                    onChange({
-                      ...quotation,
-                      enablePaymentLedger: next,
-                      advancePercentage: quotation.advancePercentage ?? 70,
-                      advanceAmount: Math.round((grandTotal * (quotation.advancePercentage ?? 70)) / 100),
-                    });
-                    toast.info(`Advance & Payment Ledger ${next ? 'enabled' : 'disabled'}`);
-                  }}
-                  className={`relative inline-flex h-5 w-9 shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors duration-200 ease-in-out focus:outline-none ${
+              {/* Advance & Payment Ledger Switch Card */}
+              <div 
+                onClick={() => {
+                  const next = !isLedgerEnabled;
+                  onChange({
+                    ...quotation,
+                    enablePaymentLedger: next,
+                    advancePercentage: quotation.advancePercentage ?? 70,
+                    advanceAmount: Math.round((grandTotal * (quotation.advancePercentage ?? 70)) / 100),
+                  });
+                  toast.info(`Advance & Payment Ledger ${next ? 'enabled' : 'disabled'}`);
+                }}
+                className={`flex items-center justify-between p-2.5 rounded-xl border transition-all cursor-pointer select-none active:scale-[0.99] ${
+                  isLedgerEnabled 
+                    ? 'bg-emerald-50/70 border-emerald-200 ring-1 ring-emerald-500/20 shadow-2xs' 
+                    : 'bg-white border-slate-200 hover:border-slate-300 shadow-2xs'
+                }`}
+              >
+                <div className="flex items-center gap-2.5 min-w-0">
+                  <div className={`p-1.5 rounded-lg shrink-0 ${isLedgerEnabled ? 'bg-emerald-600 text-white' : 'bg-slate-100 text-slate-500'}`}>
+                    <CreditCard size={15} />
+                  </div>
+                  <div className="min-w-0">
+                    <div className="text-xs font-bold text-slate-800 truncate">Advance Ledger</div>
+                    <div className="text-[10px] text-slate-500 font-medium truncate">Milestones &amp; balance</div>
+                  </div>
+                </div>
+
+                <div
+                  className={`relative inline-flex h-5 w-9 shrink-0 rounded-full border-2 border-transparent transition-colors duration-200 ease-in-out ${
                     isLedgerEnabled ? 'bg-emerald-600' : 'bg-slate-300'
                   }`}
                 >
                   <span
-                    className={`pointer-events-none inline-block h-4 w-4 transform rounded-full bg-white shadow-sm ring-0 transition duration-200 ease-in-out ${
+                    className={`inline-block h-4 w-4 transform rounded-full bg-white shadow-sm transition duration-200 ease-in-out ${
                       isLedgerEnabled ? 'translate-x-4' : 'translate-x-0'
                     }`}
                   />
-                </button>
+                </div>
               </div>
 
             </div>
@@ -1695,92 +1743,193 @@ export const QuotationEditor: React.FC<Props> = ({
               
               {/* Bank Details & Optional Live UPI QR Box */}
               <div className="bg-slate-50 p-4 rounded-xl border border-slate-200/80 space-y-3">
-                <div className="flex items-center justify-between">
-                  <div className="flex items-center gap-1.5">
-                    <QrCode size={14} className={isQrEnabled ? 'text-blue-600' : 'text-slate-400'} />
-                    <span className="text-xs font-bold uppercase tracking-wider text-slate-700">
+                <div className="flex items-center justify-between gap-2">
+                  <div className="flex items-center gap-1.5 min-w-0">
+                    <QrCode size={14} className={isQrEnabled ? 'text-blue-600 shrink-0' : 'text-slate-400 shrink-0'} />
+                    <span className="text-xs font-bold uppercase tracking-wider text-slate-700 truncate">
                       Bank {isQrEnabled ? '& Instant UPI QR' : 'Details'}
                     </span>
                   </div>
-                  <div className="flex items-center gap-3">
+                  <div className="flex items-center gap-2.5 shrink-0">
                     <button
                       type="button"
                       onClick={() => onChange({ ...quotation, enableUpiQr: !isQrEnabled })}
-                      className="text-[11px] font-bold text-slate-500 hover:text-blue-600"
+                      className="text-[11px] font-bold text-slate-500 hover:text-blue-600 px-2 py-0.5 rounded hover:bg-slate-200/60 transition-colors"
                     >
                       {isQrEnabled ? 'Hide QR' : '+ Add QR'}
                     </button>
                     <button
                       type="button"
                       onClick={onOpenSettings}
-                      className="text-[11px] text-blue-600 hover:underline font-semibold"
+                      className="text-[11px] text-blue-600 hover:text-blue-700 font-semibold px-2 py-0.5 rounded hover:bg-blue-50 transition-colors"
                     >
                       Edit Info
                     </button>
                   </div>
                 </div>
 
-                <div className="flex flex-col sm:flex-row items-center sm:items-start gap-4">
-                  {/* Bank Text Details */}
-                  <div className="text-xs space-y-1 text-slate-700 flex-1">
-                    <div><span className="text-slate-400 font-medium">A/C Name:</span> <strong>{quotation.company.bankDetails.accountName || quotation.company.name}</strong></div>
-                    <div><span className="text-slate-400 font-medium">Bank:</span> <strong>{quotation.company.bankDetails.bankName || 'Not Set'}</strong></div>
-                    <div><span className="text-slate-400 font-medium">Account No:</span> <span className="font-mono font-bold text-slate-900">{quotation.company.bankDetails.accountNumber || '—'}</span></div>
-                    <div><span className="text-slate-400 font-medium">IFSC Code:</span> <span className="font-mono font-bold text-slate-900">{quotation.company.bankDetails.ifscCode || '—'}</span></div>
-                    {quotation.company.bankDetails.upiId ? (
-                      <div className="text-blue-700 font-semibold pt-0.5">
-                        <span className="text-slate-400 font-medium">UPI ID:</span> <span className="font-mono">{quotation.company.bankDetails.upiId}</span>
+                <div className="space-y-3.5">
+                  {/* Bank Details Executive Card (Full Width - Zero Truncation) */}
+                  <div className="bg-white rounded-xl border border-slate-200/90 shadow-2xs overflow-hidden">
+                    <div className="px-4 py-2.5 bg-slate-50/80 border-b border-slate-100 flex items-center justify-between gap-2">
+                      <div className="flex items-center gap-2 min-w-0">
+                        <Building2 size={14} className="text-blue-600 shrink-0" />
+                        <span className="font-bold text-slate-800 text-xs sm:text-sm">
+                          {quotation.company.bankDetails.bankName || 'Bank Account Details'}
+                        </span>
                       </div>
-                    ) : (
-                      <div className="text-[11px] text-amber-600">
-                        Add UPI ID in Settings to enable Scan &amp; Pay QR
+                      <span className="text-[10px] font-semibold text-emerald-700 bg-emerald-50 px-2.5 py-0.5 rounded-full border border-emerald-200/70 shrink-0">
+                        ✓ Verified Account
+                      </span>
+                    </div>
+
+                    <div className="p-3.5 space-y-2 text-xs">
+                      {/* Beneficiary */}
+                      <div className="flex items-center justify-between gap-3 py-1 border-b border-slate-100/70">
+                        <span className="text-slate-500 text-[11px] font-medium shrink-0">A/C Beneficiary</span>
+                        <span className="font-bold text-slate-900 text-right truncate">
+                          {quotation.company.bankDetails.accountName || quotation.company.name}
+                        </span>
                       </div>
-                    )}
+
+                      {/* Account Number */}
+                      <div className="flex items-center justify-between gap-3 py-1 border-b border-slate-100/70">
+                        <span className="text-slate-500 text-[11px] font-medium shrink-0">Account Number</span>
+                        <div className="flex items-center gap-1.5 shrink-0">
+                          <span className="font-mono font-bold text-slate-900 tracking-wider">
+                            {quotation.company.bankDetails.accountNumber || '—'}
+                          </span>
+                          {quotation.company.bankDetails.accountNumber && (
+                            <button
+                              type="button"
+                              onClick={() => {
+                                navigator.clipboard.writeText(quotation.company.bankDetails.accountNumber);
+                                toast.success('Account number copied!');
+                              }}
+                              className="p-1 text-slate-400 hover:text-blue-600 hover:bg-blue-50 rounded transition-colors"
+                              title="Copy Account Number"
+                            >
+                              <Copy size={12} />
+                            </button>
+                          )}
+                        </div>
+                      </div>
+
+                      {/* IFSC Code */}
+                      <div className="flex items-center justify-between gap-3 py-1 border-b border-slate-100/70">
+                        <span className="text-slate-500 text-[11px] font-medium shrink-0">IFSC Code</span>
+                        <div className="flex items-center gap-1.5 shrink-0">
+                          <span className="font-mono font-bold text-slate-900">
+                            {quotation.company.bankDetails.ifscCode || '—'}
+                          </span>
+                          {quotation.company.bankDetails.ifscCode && (
+                            <button
+                              type="button"
+                              onClick={() => {
+                                navigator.clipboard.writeText(quotation.company.bankDetails.ifscCode);
+                                toast.success('IFSC Code copied!');
+                              }}
+                              className="p-1 text-slate-400 hover:text-blue-600 hover:bg-blue-50 rounded transition-colors"
+                              title="Copy IFSC Code"
+                            >
+                              <Copy size={12} />
+                            </button>
+                          )}
+                        </div>
+                      </div>
+
+                      {/* UPI ID */}
+                      {quotation.company.bankDetails.upiId ? (
+                        <div className="flex items-center justify-between gap-3 pt-1">
+                          <span className="text-slate-500 text-[11px] font-medium shrink-0">UPI VPA</span>
+                          <div className="flex items-center gap-1.5 min-w-0">
+                            <span className="font-mono font-bold text-blue-700 bg-blue-50/80 px-2 py-0.5 rounded text-[11px] border border-blue-200/60">
+                              {quotation.company.bankDetails.upiId}
+                            </span>
+                            <button
+                              type="button"
+                              onClick={() => {
+                                navigator.clipboard.writeText(quotation.company.bankDetails.upiId);
+                                toast.success('UPI ID copied!');
+                              }}
+                              className="p-1 text-slate-400 hover:text-blue-600 hover:bg-blue-50 rounded transition-colors shrink-0"
+                              title="Copy UPI ID"
+                            >
+                              <Copy size={12} />
+                            </button>
+                          </div>
+                        </div>
+                      ) : (
+                        <div className="text-[11px] text-amber-600 pt-1">
+                          Add UPI ID in Settings to enable Scan &amp; Pay QR
+                        </div>
+                      )}
+                    </div>
                   </div>
 
-                  {/* Live UPI QR Code Preview (Shown only when isQrEnabled is ON) */}
+                  {/* Live UPI QR Code Section (Shown only when isQrEnabled is ON) */}
                   {isQrEnabled && liveQrUrl ? (
-                    <div className="flex flex-col items-center justify-center p-3 bg-white rounded-xl border border-blue-200 shadow-sm shrink-0 min-w-[175px] space-y-2">
-                      <img
-                        src={liveQrUrl}
-                        alt="UPI Payment QR Code"
-                        className="w-24 h-24 object-contain rounded"
-                      />
+                    <div className="bg-white rounded-xl border border-blue-200/90 shadow-2xs p-3.5 flex flex-col sm:flex-row items-center sm:items-start gap-4">
+                      {/* QR Image Box */}
+                      <div className="p-2 bg-slate-50 rounded-xl border border-slate-200/70 flex items-center justify-center shrink-0">
+                        <img
+                          src={liveQrUrl}
+                          alt="UPI Payment QR Code"
+                          className="w-24 h-24 object-contain rounded"
+                        />
+                      </div>
 
-                      {/* Switch-Based Mode: Open Amount (Client Enters Amount) vs Fixed Amount */}
-                      <div className="w-full pt-1.5 border-t border-slate-100 flex flex-col items-center space-y-1.5">
-                        <label className="flex items-center justify-between w-full text-[10px] font-bold text-slate-600 cursor-pointer">
-                          <span title="When enabled, client can type custom payment amount at their end on PhonePe/GPay">Client Enters Amount</span>
-                          <button
-                            type="button"
-                            role="switch"
-                            aria-checked={allowCustomerEditQrAmount}
-                            onClick={() => {
-                              const next = !allowCustomerEditQrAmount;
-                              onChange({ ...quotation, allowCustomerEditQrAmount: next });
-                              toast.info(next ? 'Client can now enter any amount upon scanning QR' : 'QR payment amount is now fixed');
-                            }}
-                            className={`relative inline-flex h-4 w-7 shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors duration-200 ease-in-out focus:outline-none ${
+                      {/* QR Controls & Amount Settings */}
+                      <div className="flex-1 min-w-0 space-y-2.5 w-full">
+                        <div className="flex items-center justify-between gap-2">
+                          <div className="flex items-center gap-1.5 min-w-0">
+                            <QrCode size={13} className="text-blue-600 shrink-0" />
+                            <span className="font-bold text-slate-800 text-xs">Instant Scan &amp; Pay</span>
+                          </div>
+                          <div className="text-[10px] text-slate-400 font-semibold tracking-wide flex items-center gap-1 shrink-0">
+                            <span>PhonePe</span>
+                            <span>•</span>
+                            <span>GPay</span>
+                            <span>•</span>
+                            <span>Paytm</span>
+                          </div>
+                        </div>
+
+                        {/* Switch-Based Mode: Open Amount (Client Enters Amount) vs Fixed Amount */}
+                        <div
+                          onClick={() => {
+                            const next = !allowCustomerEditQrAmount;
+                            onChange({ ...quotation, allowCustomerEditQrAmount: next });
+                            toast.info(next ? 'Client can now enter custom amount' : 'QR payment amount is now fixed');
+                          }}
+                          className="flex items-center justify-between p-2 rounded-lg bg-slate-50 border border-slate-200/70 cursor-pointer select-none text-[11px] font-semibold text-slate-700 hover:bg-slate-100/70 transition-colors"
+                        >
+                          <span className="flex items-center gap-1.5 truncate">
+                            <Smartphone size={13} className={allowCustomerEditQrAmount ? 'text-indigo-600' : 'text-slate-400'} />
+                            <span className="text-[10.5px]">Client Enters Custom Amount</span>
+                          </span>
+                          <div
+                            className={`relative inline-flex h-4 w-7 shrink-0 rounded-full border-2 border-transparent transition-colors duration-200 ease-in-out ${
                               allowCustomerEditQrAmount ? 'bg-indigo-600' : 'bg-slate-300'
                             }`}
                           >
                             <span
-                              className={`pointer-events-none inline-block h-3 w-3 transform rounded-full bg-white shadow-sm ring-0 transition duration-200 ease-in-out ${
+                              className={`inline-block h-3 w-3 transform rounded-full bg-white shadow-sm transition duration-200 ease-in-out ${
                                 allowCustomerEditQrAmount ? 'translate-x-3' : 'translate-x-0'
                               }`}
                             />
-                          </button>
-                        </label>
+                          </div>
+                        </div>
 
                         {allowCustomerEditQrAmount ? (
-                          <div className="w-full text-center bg-indigo-50 text-indigo-700 text-[10px] font-extrabold px-2 py-1 rounded-md border border-indigo-200">
-                            ✍️ Open Amount (Client Enters)
+                          <div className="w-full text-center bg-indigo-50/80 text-indigo-700 text-[10.5px] font-bold px-3 py-1.5 rounded-lg border border-indigo-200/80">
+                            ✍️ Open Amount (Client enters payable amount on scanning)
                           </div>
                         ) : (
-                          <div className="w-full space-y-1">
+                          <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-2">
                             {/* Editable QR Amount Input */}
-                            <div className="flex items-center bg-slate-50 border border-slate-200 rounded px-1.5 py-0.5 shadow-2xs focus-within:border-blue-500 focus-within:bg-white">
-                              <span className="text-[11px] font-bold text-slate-500 mr-1">₹</span>
+                            <div className="flex items-center bg-slate-50 border border-slate-200 rounded-lg px-2.5 py-1 shadow-2xs focus-within:border-blue-500 focus-within:bg-white focus-within:ring-2 focus-within:ring-blue-100 transition-all flex-1">
+                              <span className="text-xs font-bold text-slate-500 mr-1.5">₹</span>
                               <input
                                 type="number"
                                 min={0}
@@ -1807,14 +1956,14 @@ export const QuotationEditor: React.FC<Props> = ({
                                     qrAmountType: 'custom',
                                   });
                                 }}
-                                className="w-full text-center font-black text-xs text-slate-900 bg-transparent focus:outline-none [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
+                                className="w-full font-bold text-xs sm:text-sm text-slate-900 bg-transparent focus:outline-none [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
                                 title={`Edit fixed QR payment amount (Max: ₹${grandTotal.toLocaleString('en-IN')})`}
                               />
-                              <PenLine size={11} className="text-slate-400 shrink-0 ml-0.5" />
+                              <PenLine size={11} className="text-slate-400 shrink-0 ml-1" />
                             </div>
 
                             {/* Preset Buttons: Auto Total vs Advance */}
-                            <div className="flex items-center justify-center gap-1 text-[9px] pt-0.5">
+                            <div className="flex items-center gap-1.5 text-[10px] shrink-0">
                               <button
                                 type="button"
                                 onClick={() => {
@@ -1825,14 +1974,14 @@ export const QuotationEditor: React.FC<Props> = ({
                                   });
                                   toast.info('QR amount reset to Total Payable');
                                 }}
-                                className={`px-2 py-0.5 rounded font-bold border transition-colors ${
+                                className={`py-1 px-2.5 rounded-md font-bold border transition-colors ${
                                   !isCustomQr && qrAmountType === 'total'
-                                    ? 'bg-blue-600 text-white border-blue-600'
-                                    : 'bg-white text-slate-600 border-slate-200 hover:bg-slate-100'
+                                    ? 'bg-blue-600 text-white border-blue-600 shadow-2xs'
+                                    : 'bg-slate-50 text-slate-600 border-slate-200 hover:bg-slate-100'
                                 }`}
                                 title="Snap QR amount to full quotation total"
                               >
-                                Auto Total
+                                Full Total
                               </button>
 
                               {isLedgerEnabled && effectiveAdvanceAmount > 0 && (
@@ -1846,24 +1995,20 @@ export const QuotationEditor: React.FC<Props> = ({
                                     });
                                     toast.info('QR amount set to Advance Milestone');
                                   }}
-                                  className={`px-2 py-0.5 rounded font-bold border transition-colors ${
+                                  className={`py-1 px-2.5 rounded-md font-bold border transition-colors ${
                                     !isCustomQr && qrAmountType === 'advance'
-                                      ? 'bg-blue-600 text-white border-blue-600'
-                                      : 'bg-white text-slate-600 border-slate-200 hover:bg-slate-100'
+                                      ? 'bg-blue-600 text-white border-blue-600 shadow-2xs'
+                                      : 'bg-slate-50 text-slate-600 border-slate-200 hover:bg-slate-100'
                                   }`}
                                   title="Snap QR amount to advance milestone"
                                 >
-                                  Advance
+                                  Advance ({quotation.advancePercentage ?? 70}%)
                                 </button>
                               )}
                             </div>
                           </div>
                         )}
                       </div>
-
-                      <span className="text-[9px] text-slate-400 font-medium">
-                        PhonePe • GPay • Paytm
-                      </span>
                     </div>
                   ) : null}
                 </div>
@@ -2350,20 +2495,21 @@ export const QuotationEditor: React.FC<Props> = ({
             
             {/* Left: Company Authorized Signatory & Official Stamp */}
             <div className="border border-slate-200/90 rounded-xl p-4 bg-slate-50/60 space-y-3">
-              <div className="flex items-center justify-between">
-                <div className="flex items-center gap-2">
-                  <Building2 size={15} className="text-blue-600" />
-                  <h4 className="text-xs font-bold uppercase tracking-wider text-slate-800">
-                    Authorized Signatory &amp; Stamp
+              <div className="flex items-center justify-between gap-2">
+                <div className="flex items-center gap-1.5 min-w-0">
+                  <Building2 size={15} className="text-blue-600 shrink-0" />
+                  <h4 className="text-xs font-bold uppercase tracking-wider text-slate-800 truncate">
+                    <span className="sm:hidden">Signatory &amp; Stamp</span>
+                    <span className="hidden sm:inline">Authorized Signatory &amp; Stamp</span>
                   </h4>
                 </div>
                 {quotation.company.signature ? (
-                  <span className="inline-flex items-center gap-1 text-[11px] font-bold px-2.5 py-0.5 rounded-full bg-blue-50 text-blue-700 border border-blue-200">
-                    <CheckCircle2 size={12} />
-                    Stamp Configured
+                  <span className="shrink-0 inline-flex items-center gap-1 text-[11px] font-bold px-2.5 py-0.5 rounded-full bg-blue-50 text-blue-700 border border-blue-200 whitespace-nowrap">
+                    <CheckCircle2 size={12} className="text-blue-600 shrink-0" />
+                    <span className="hidden sm:inline">Stamp </span>Configured
                   </span>
                 ) : (
-                  <span className="text-[11px] text-amber-600 font-medium">
+                  <span className="shrink-0 text-[11px] text-amber-600 font-medium whitespace-nowrap">
                     No Stamp Uploaded
                   </span>
                 )}
@@ -2389,11 +2535,11 @@ export const QuotationEditor: React.FC<Props> = ({
                   </div>
 
                   <div className="pt-2.5 border-t border-slate-100 flex items-center justify-between gap-2">
-                    <div className="flex items-center gap-2">
+                    <div className="flex items-center gap-1.5 flex-wrap">
                       <button
                         type="button"
                         onClick={() => setIsCompanyStampModalOpen(true)}
-                        className="inline-flex items-center gap-1.5 px-2.5 py-1.5 text-xs font-semibold text-blue-600 hover:text-blue-700 hover:bg-blue-50 border border-blue-200/80 rounded-lg transition-colors"
+                        className="inline-flex items-center gap-1.5 px-2.5 py-1.5 text-xs font-semibold text-blue-600 hover:text-blue-700 hover:bg-blue-50 border border-blue-200/80 rounded-lg transition-colors active:scale-95"
                         title="Draw signature or change stamp"
                       >
                         <PenTool size={13} />
@@ -2402,7 +2548,7 @@ export const QuotationEditor: React.FC<Props> = ({
                       <button
                         type="button"
                         onClick={() => handleSaveCompanyStamp(OFFICIAL_TISHA_STAMP, true)}
-                        className="inline-flex items-center gap-1.5 px-2.5 py-1.5 text-xs font-semibold text-slate-700 hover:text-blue-700 bg-slate-100 hover:bg-blue-50 border border-slate-200 rounded-lg transition-colors"
+                        className="inline-flex items-center gap-1.5 px-2.5 py-1.5 text-xs font-semibold text-slate-700 hover:text-blue-700 bg-slate-100 hover:bg-blue-50 border border-slate-200 rounded-lg transition-colors active:scale-95"
                         title="Set official Tisha LED Walls preset stamp as default"
                       >
                         <Sparkles size={13} className="text-blue-600" />
@@ -2415,7 +2561,7 @@ export const QuotationEditor: React.FC<Props> = ({
                       onClick={() => {
                         handleSaveCompanyStamp('', true);
                       }}
-                      className="p-1.5 text-slate-400 hover:text-rose-600 hover:bg-rose-50 rounded-lg transition-colors"
+                      className="p-1.5 text-slate-400 hover:text-rose-600 hover:bg-rose-50 rounded-lg transition-colors shrink-0"
                       title="Remove Stamp"
                     >
                       <Trash2 size={15} />
@@ -2451,20 +2597,21 @@ export const QuotationEditor: React.FC<Props> = ({
 
             {/* Right: Client Sign-Off & Digital Signature Section */}
             <div className="border border-slate-200/90 rounded-xl p-4 bg-slate-50/60 space-y-3">
-              <div className="flex items-center justify-between">
-                <div className="flex items-center gap-2">
-                  <PenTool size={15} className="text-emerald-600" />
-                  <h4 className="text-xs font-bold uppercase tracking-wider text-slate-800">
-                    Client Acceptance &amp; Sign-Off
+              <div className="flex items-center justify-between gap-2">
+                <div className="flex items-center gap-1.5 min-w-0">
+                  <PenTool size={15} className="text-emerald-600 shrink-0" />
+                  <h4 className="text-xs font-bold uppercase tracking-wider text-slate-800 truncate">
+                    <span className="sm:hidden">Client Sign-Off</span>
+                    <span className="hidden sm:inline">Client Acceptance &amp; Sign-Off</span>
                   </h4>
                 </div>
                 {quotation.clientSignature ? (
-                  <span className="inline-flex items-center gap-1 text-[11px] font-bold px-2.5 py-0.5 rounded-full bg-emerald-50 text-emerald-700 border border-emerald-200">
-                    <CheckCircle2 size={12} />
-                    Digitally Signed
+                  <span className="shrink-0 inline-flex items-center gap-1 text-[11px] font-bold px-2.5 py-0.5 rounded-full bg-emerald-50 text-emerald-700 border border-emerald-200 whitespace-nowrap">
+                    <CheckCircle2 size={12} className="text-emerald-600 shrink-0" />
+                    <span>Digitally Signed</span>
                   </span>
                 ) : (
-                  <span className="text-[11px] text-slate-400">
+                  <span className="shrink-0 text-[11px] text-slate-400 font-medium whitespace-nowrap">
                     Awaiting Client
                   </span>
                 )}

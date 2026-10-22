@@ -16,6 +16,7 @@ import { MessageTemplatesModal } from './MessageTemplatesModal';
 import { WeeklyEmailSettingsModal } from './ledger/WeeklyEmailSettingsModal';
 import { ManageLedgerPasscodeModal } from './ledger/ManageLedgerPasscodeModal';
 import { BackupManagementModal } from './BackupManagementModal';
+import { ChangePasswordModal } from './ChangePasswordModal';
 import { useLockBodyScroll } from '../hooks/useLockBodyScroll';
 
 interface Props {
@@ -65,6 +66,8 @@ export const CompanySettingsModal: React.FC<Props> = ({
   const [backupConfig, setBackupConfig] = useState(() => backupService.getConfig());
   const [securitySettings, setSecuritySettings] = useState<SecuritySettings>(() => securityService.getSettings());
   const [testingConn, setTestingConn] = useState(false);
+  const [syncingCloud, setSyncingCloud] = useState(false);
+  const [isChangePasswordOpen, setIsChangePasswordOpen] = useState(false);
   const [testResult, setTestResult] = useState<{ success: boolean; message: string; tableReady?: boolean } | null>(null);
 
   const formRef = useRef<HTMLDivElement>(null);
@@ -133,23 +136,31 @@ export const CompanySettingsModal: React.FC<Props> = ({
     }
   };
 
+  const handleSyncCloud = async () => {
+    setSyncingCloud(true);
+    try {
+      const res = await storage.forceSyncAllToCloud();
+      if (res.success) {
+        toast.success(res.message);
+        if (onRestoreBackup) onRestoreBackup();
+        const connRes = await cloudSync.testConnection();
+        setTestResult(connRes);
+      } else {
+        toast.error(res.message);
+      }
+    } catch (err: any) {
+      toast.error('Sync failed: ' + (err?.message || String(err)));
+    } finally {
+      setSyncingCloud(false);
+    }
+  };
+
   const handleLogoUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file) return;
     const reader = new FileReader();
     reader.onloadend = () => {
       setProfile((prev) => ({ ...prev, logo: reader.result as string }));
-    };
-    reader.readAsDataURL(file);
-  };
-
-  const handleSignatureUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    if (!file) return;
-    const reader = new FileReader();
-    reader.onloadend = () => {
-      setProfile((prev) => ({ ...prev, signature: reader.result as string }));
-      toast.success('Official Stamp & Signature uploaded');
     };
     reader.readAsDataURL(file);
   };
@@ -584,16 +595,74 @@ export const CompanySettingsModal: React.FC<Props> = ({
               </span>
             </div>
 
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3.5 pt-1">
-              {/* Idle Timeout Auto-Logout Selector */}
-              <div className="bg-white p-3 rounded-lg border border-slate-200 space-y-1.5">
-                <div className="flex items-center gap-1.5 text-xs font-bold text-slate-800">
-                  <Clock size={14} className="text-blue-600" />
-                  <span>Idle Inactivity Auto-Logout</span>
+            <div className="grid grid-cols-1 sm:grid-cols-3 gap-3.5 pt-1">
+              {/* Account Login Password */}
+              <div className="bg-white p-3 rounded-lg border border-slate-200 space-y-1.5 flex flex-col justify-between">
+                <div>
+                  <div className="flex items-center gap-1.5 text-xs font-bold text-slate-800">
+                    <Lock size={14} className="text-indigo-600" />
+                    <span>Account Password</span>
+                  </div>
+                  <p className="text-[11px] text-slate-500 leading-tight">
+                    Update login password for <span className="font-semibold text-slate-700">{user?.email || 'your account'}</span> across desktop &amp; mobile.
+                  </p>
                 </div>
-                <p className="text-[11px] text-slate-500 leading-tight">
-                  Automatically log out session if user is idle with no mouse or keyboard activity.
-                </p>
+                <div className="pt-1">
+                  <button
+                    type="button"
+                    onClick={() => setIsChangePasswordOpen(true)}
+                    className="w-full py-1.5 px-2.5 bg-indigo-50 hover:bg-indigo-100 text-indigo-700 border border-indigo-200 rounded-lg text-xs font-bold transition-colors cursor-pointer text-center flex items-center justify-center gap-1.5"
+                  >
+                    <KeyRound size={13} />
+                    <span>Change Password</span>
+                  </button>
+                </div>
+              </div>
+
+              {/* Payment Ledger Passcode Controls */}
+              <div className="bg-white p-3 rounded-lg border border-slate-200 space-y-1.5 flex flex-col justify-between">
+                <div>
+                  <div className="flex items-center gap-1.5 text-xs font-bold text-slate-800">
+                    <KeyRound size={14} className="text-amber-500" />
+                    <span>Ledger Passcode (PIN)</span>
+                  </div>
+                  <p className="text-[11px] text-slate-500 leading-tight">
+                    Requires a numeric PIN before opening payment collections and client balance data.
+                  </p>
+                </div>
+                <div className="flex items-center gap-2 pt-1">
+                  <button
+                    type="button"
+                    onClick={() => setIsPasscodeModalOpen(true)}
+                    className="flex-1 py-1.5 px-2.5 bg-amber-500/10 hover:bg-amber-500/20 text-amber-700 border border-amber-300 rounded-lg text-xs font-bold transition-colors cursor-pointer text-center"
+                  >
+                    Manage / Reset
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      passcodeService.lockSession();
+                      toast.info('Payment Ledger session locked. Passcode required on next visit.');
+                    }}
+                    className="py-1.5 px-2 bg-slate-100 hover:bg-slate-200 text-slate-700 border border-slate-200 rounded-lg text-xs font-semibold transition-colors cursor-pointer"
+                    title="Lock Payment Ledger session immediately"
+                  >
+                    Lock Now
+                  </button>
+                </div>
+              </div>
+
+              {/* Idle Timeout Auto-Logout Selector */}
+              <div className="bg-white p-3 rounded-lg border border-slate-200 space-y-1.5 flex flex-col justify-between">
+                <div>
+                  <div className="flex items-center gap-1.5 text-xs font-bold text-slate-800">
+                    <Clock size={14} className="text-blue-600" />
+                    <span>Idle Auto-Logout</span>
+                  </div>
+                  <p className="text-[11px] text-slate-500 leading-tight">
+                    Automatically log out session if user is idle with no mouse or keyboard activity.
+                  </p>
+                </div>
                 <select
                   value={securitySettings.idleTimeoutMinutes}
                   onChange={(e) => handleTimeoutChange(Number(e.target.value))}
@@ -610,39 +679,6 @@ export const CompanySettingsModal: React.FC<Props> = ({
                   <option value={240}>4 Hours</option>
                   <option value={0}>Disabled (Never Logout)</option>
                 </select>
-              </div>
-
-              {/* Payment Ledger Passcode Controls */}
-              <div className="bg-white p-3 rounded-lg border border-slate-200 space-y-1.5 flex flex-col justify-between">
-                <div>
-                  <div className="flex items-center gap-1.5 text-xs font-bold text-slate-800">
-                    <KeyRound size={14} className="text-amber-500" />
-                    <span>Payment Ledger Passcode</span>
-                  </div>
-                  <p className="text-[11px] text-slate-500 leading-tight">
-                    Requires a security PIN before opening payment collections and client balance data.
-                  </p>
-                </div>
-                <div className="flex items-center gap-2 pt-1">
-                  <button
-                    type="button"
-                    onClick={() => setIsPasscodeModalOpen(true)}
-                    className="flex-1 py-1.5 px-2.5 bg-amber-500/10 hover:bg-amber-500/20 text-amber-700 border border-amber-300 rounded-lg text-xs font-bold transition-colors cursor-pointer text-center"
-                  >
-                    Manage / Reset Passcode
-                  </button>
-                  <button
-                    type="button"
-                    onClick={() => {
-                      passcodeService.lockSession();
-                      toast.info('Payment Ledger session locked. Passcode required on next visit.');
-                    }}
-                    className="py-1.5 px-2 bg-slate-100 hover:bg-slate-200 text-slate-700 border border-slate-200 rounded-lg text-xs font-semibold transition-colors cursor-pointer"
-                    title="Lock Payment Ledger session immediately"
-                  >
-                    Lock Now
-                  </button>
-                </div>
               </div>
             </div>
           </div>
@@ -727,15 +763,27 @@ export const CompanySettingsModal: React.FC<Props> = ({
 
             <div className="flex flex-wrap gap-2 pt-1">
               {isSupabaseConfigured() && (
-                <button
-                  type="button"
-                  disabled={testingConn}
-                  onClick={handleTestConnection}
-                  className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-blue-50 hover:bg-blue-100 text-blue-700 rounded-lg border border-blue-200 text-xs font-bold shadow-2xs transition-colors disabled:opacity-50"
-                >
-                  <RefreshCw size={13} className={testingConn ? 'animate-spin' : ''} />
-                  <span>{testingConn ? 'Testing Connection...' : 'Test DB Connection'}</span>
-                </button>
+                <>
+                  <button
+                    type="button"
+                    disabled={testingConn}
+                    onClick={handleTestConnection}
+                    className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-blue-50 hover:bg-blue-100 text-blue-700 rounded-lg border border-blue-200 text-xs font-bold shadow-2xs transition-colors disabled:opacity-50"
+                  >
+                    <RefreshCw size={13} className={testingConn ? 'animate-spin' : ''} />
+                    <span>{testingConn ? 'Testing Connection...' : 'Test DB Connection'}</span>
+                  </button>
+
+                  <button
+                    type="button"
+                    disabled={syncingCloud}
+                    onClick={handleSyncCloud}
+                    className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-emerald-50 hover:bg-emerald-100 text-emerald-700 rounded-lg border border-emerald-200 text-xs font-bold shadow-2xs transition-colors disabled:opacity-50"
+                  >
+                    <Cloud size={13} className={syncingCloud ? 'animate-spin' : ''} />
+                    <span>{syncingCloud ? 'Syncing...' : 'Sync & Push All to Cloud'}</span>
+                  </button>
+                </>
               )}
 
               <button
@@ -909,6 +957,13 @@ export const CompanySettingsModal: React.FC<Props> = ({
           onRestoreComplete={() => {
             if (onRestoreBackup) onRestoreBackup();
           }}
+        />
+      )}
+
+      {isChangePasswordOpen && (
+        <ChangePasswordModal
+          isOpen={isChangePasswordOpen}
+          onClose={() => setIsChangePasswordOpen(false)}
         />
       )}
     </div>

@@ -127,8 +127,11 @@ export const ManageLedgerPasscodeModal: React.FC<Props> = ({ isOpen, onClose }) 
               </label>
               <input
                 type={showPass ? 'text' : 'password'}
+                inputMode="numeric"
+                pattern="[0-9]*"
+                maxLength={8}
                 value={currentPasscode}
-                onChange={(e) => setCurrentPasscode(e.target.value)}
+                onChange={(e) => setCurrentPasscode(e.target.value.replace(/\D/g, ''))}
                 placeholder="Enter current passcode (default: 1234)"
                 className="w-full px-3.5 py-2.5 bg-slate-950 border border-slate-700 rounded-xl text-xs text-white focus:outline-none focus:border-indigo-500 font-mono tracking-wider"
               />
@@ -139,7 +142,7 @@ export const ManageLedgerPasscodeModal: React.FC<Props> = ({ isOpen, onClose }) 
           <div>
             <div className="flex items-center justify-between mb-1.5">
               <label className="text-xs font-bold text-slate-300">
-                New Passcode (4-8 digits/characters)
+                New Passcode (4-8 digits)
               </label>
               <button
                 type="button"
@@ -152,9 +155,11 @@ export const ManageLedgerPasscodeModal: React.FC<Props> = ({ isOpen, onClose }) 
             </div>
             <input
               type={showPass ? 'text' : 'password'}
+              inputMode="numeric"
+              pattern="[0-9]*"
               maxLength={8}
               value={newPasscode}
-              onChange={(e) => setNewPasscode(e.target.value)}
+              onChange={(e) => setNewPasscode(e.target.value.replace(/\D/g, ''))}
               placeholder="e.g. 5678"
               className="w-full px-3.5 py-2.5 bg-slate-950 border border-slate-700 rounded-xl text-xs text-white focus:outline-none focus:border-indigo-500 font-mono tracking-wider"
             />
@@ -167,9 +172,11 @@ export const ManageLedgerPasscodeModal: React.FC<Props> = ({ isOpen, onClose }) 
             </label>
             <input
               type={showPass ? 'text' : 'password'}
+              inputMode="numeric"
+              pattern="[0-9]*"
               maxLength={8}
               value={confirmPasscode}
-              onChange={(e) => setConfirmPasscode(e.target.value)}
+              onChange={(e) => setConfirmPasscode(e.target.value.replace(/\D/g, ''))}
               placeholder="Re-enter new passcode"
               className="w-full px-3.5 py-2.5 bg-slate-950 border border-slate-700 rounded-xl text-xs text-white focus:outline-none focus:border-indigo-500 font-mono tracking-wider"
             />

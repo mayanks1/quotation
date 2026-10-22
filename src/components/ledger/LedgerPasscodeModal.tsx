@@ -32,9 +32,39 @@ export const LedgerPasscodeModal: React.FC<Props> = ({
       setErrorMsg(null);
       // Auto fetch latest passcode from cloud to ensure up-to-date
       passcodeService.loadFromCloud();
-      setTimeout(() => inputRef.current?.focus(), 100);
     }
   }, [isOpen]);
+
+  // Support physical keyboard on desktop while completely suppressing mobile virtual keyboard
+  useEffect(() => {
+    if (!isOpen) return;
+
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.target instanceof HTMLInputElement && e.target !== inputRef.current) return;
+      if (e.target instanceof HTMLTextAreaElement) return;
+
+      if (e.key >= '0' && e.key <= '9') {
+        e.preventDefault();
+        if (passcode.length < 8) {
+          setPasscode((prev) => prev + e.key);
+          setErrorMsg(null);
+        }
+      } else if (e.key === 'Backspace') {
+        e.preventDefault();
+        setPasscode((prev) => prev.slice(0, -1));
+        setErrorMsg(null);
+      } else if (e.key === 'Escape') {
+        e.preventDefault();
+        onClose();
+      } else if (e.key === 'Enter') {
+        e.preventDefault();
+        handleSubmit();
+      }
+    };
+
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, [isOpen, passcode]);
 
   if (!isOpen) return null;
 
@@ -56,7 +86,6 @@ export const LedgerPasscodeModal: React.FC<Props> = ({
     } else {
       setErrorMsg('Incorrect passcode. Please try again.');
       setPasscode('');
-      inputRef.current?.focus();
     }
     setIsVerifying(false);
   };
@@ -108,14 +137,13 @@ export const LedgerPasscodeModal: React.FC<Props> = ({
             <input
               ref={inputRef}
               type={showPasscode ? 'text' : 'password'}
+              inputMode="none"
+              readOnly
+              tabIndex={-1}
               maxLength={8}
               value={passcode}
-              onChange={(e) => {
-                setPasscode(e.target.value);
-                setErrorMsg(null);
-              }}
-              placeholder="Enter passcode"
-              className="w-full text-center tracking-[0.3em] font-mono text-xl py-3 px-4 bg-slate-950 border border-slate-700 rounded-2xl text-white placeholder:text-slate-600 focus:outline-none focus:border-emerald-500 focus:ring-2 focus:ring-emerald-500/20"
+              placeholder="••••"
+              className="w-full text-center tracking-[0.35em] font-mono text-2xl py-3 px-4 bg-slate-950 border border-slate-700 rounded-2xl text-white placeholder:text-slate-600 focus:outline-none focus:border-emerald-500 focus:ring-2 focus:ring-emerald-500/20 select-none cursor-default"
             />
             <button
               type="button"

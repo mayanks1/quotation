@@ -52,6 +52,8 @@ export const cloudSync = {
     if (!cloudSync.isEnabled() || !supabase) return;
 
     try {
+      const activeOrgId = quote.organizationId || (typeof window !== 'undefined' ? localStorage.getItem('tisha_active_org_id') || 'org_tisha_main' : 'org_tisha_main');
+      const companyPayload = quote.company && quote.company.name ? quote.company : { name: 'Tisha LED Walls' };
       const row = {
         id: quote.id,
         quotation_number: quote.quotationNumber,
@@ -65,9 +67,10 @@ export const cloudSync = {
         invoice_date: quote.invoiceDate || null,
         is_deleted: Boolean(quote.isDeleted),
         deleted_at: quote.deletedAt || null,
-        company: quote.company,
+        company: companyPayload,
         client: {
-          ...quote.client,
+          ...(quote.client || {}),
+          organizationId: activeOrgId,
           clientSignature: quote.clientSignature,
           adjustmentAmount: quote.adjustmentAmount,
           advancePercentage: quote.advancePercentage,
@@ -89,9 +92,9 @@ export const cloudSync = {
           isDeleted: Boolean(quote.isDeleted),
           deletedAt: quote.deletedAt || null,
         },
-        line_items: quote.lineItems,
+        line_items: quote.lineItems || [],
         discount_amount: quote.discountAmount || 0,
-        tax_scheme: quote.taxScheme,
+        tax_scheme: quote.taxScheme || 'cgst_sgst',
         tax_rate: quote.taxRate || 18,
         shipping_charges: quote.shippingCharges || 0,
         notes: quote.notes || null,
@@ -223,6 +226,7 @@ export const cloudSync = {
 
           const q: Quotation = {
             id: row.id,
+            organizationId: row.organization_id || row.client?.organizationId || localExisting?.organizationId || 'org_tisha_main',
             quotationNumber: row.quotation_number,
             quotationDate: row.quotation_date,
             validUntil: row.valid_until,
@@ -273,10 +277,28 @@ export const cloudSync = {
           };
           await idb.saveQuotation(q);
         }
+
+        // BI-DIRECTIONAL RECONCILIATION:
+        // Any quote present in local IndexedDB but missing in cloud is uploaded to Supabase
+        const cloudIds = new Set(quotesRes.data.map((r: any) => r.id));
+        for (const localQ of localQuotesList) {
+          if (!cloudIds.has(localQ.id)) {
+            try {
+              await cloudSync.syncQuotation(localQ);
+              console.log(`[CloudSync] Auto-uploaded missing local quote ${localQ.quotationNumber} (${localQ.id}) to cloud.`);
+            } catch (err) {
+              console.warn(`[CloudSync] Failed to push local quote ${localQ.id} to cloud:`, err);
+            }
+          }
+        }
       }
 
       if (clientsRes.data) {
+        const localClients = await idb.getAllClients();
+        const cloudClientIds = new Set(clientsRes.data.map((c: any) => c.id));
+        const cloudClientNames = new Set(clientsRes.data.map((c: any) => (c.name || '').toLowerCase().trim()));
         const seenNames = new Set<string>();
+
         for (const c of clientsRes.data) {
           const norm = (c.name || '').toLowerCase().trim();
           if (!norm || norm === 'event organizer / client name') {
@@ -299,6 +321,17 @@ export const cloudSync = {
             email: c.email || '',
             gstin: c.gstin || '',
           });
+        }
+
+        // Reconcile local clients missing from cloud
+        for (const lc of localClients) {
+          const norm = (lc.name || '').toLowerCase().trim();
+          if (norm && norm !== 'event organizer / client name' && !cloudClientIds.has(lc.id) && !cloudClientNames.has(norm)) {
+            try {
+              await cloudSync.syncClient(lc);
+              console.log(`[CloudSync] Auto-uploaded missing local client ${lc.name} to cloud.`);
+            } catch (e) {}
+          }
         }
       }
 
@@ -535,6 +568,43 @@ export const cloudSync = {
       return { success: true };
     } catch (err: any) {
       return { success: false, error: err?.message || 'Failed to update user.' };
+    }
+  },
+
+  async changeUserPassword(userId: string, currentPass: string, newPass: string): Promise<{ success: boolean; error?: string }> {
+    if (!cloudSync.isEnabled() || !supabase) {
+      return { success: false, error: 'Database connection not available.' };
+    }
+
+    try {
+      const { data, error } = await supabase
+        .from('users')
+        .select('id, password')
+        .eq('id', userId)
+        .maybeSingle();
+
+      if (error) {
+        return { success: false, error: error.message };
+      }
+      if (!data) {
+        return { success: false, error: 'User record not found.' };
+      }
+      if (data.password && data.password !== currentPass) {
+        return { success: false, error: 'Current password does not match.' };
+      }
+
+      const { error: updateErr } = await supabase
+        .from('users')
+        .update({ password: newPass })
+        .eq('id', userId);
+
+      if (updateErr) {
+        return { success: false, error: updateErr.message };
+      }
+
+      return { success: true };
+    } catch (err: any) {
+      return { success: false, error: err?.message || 'Failed to update password.' };
     }
   },
 

@@ -424,18 +424,18 @@ export const UsersPage: React.FC = () => {
         </div>
 
         {/* Action Button */}
-        <div className="flex items-center gap-2">
+        <div className="flex items-center gap-2 w-full sm:w-auto">
           {activeTab === 'members' ? (
             isSuperAdmin ? (
               <button
                 onClick={handleOpenCreate}
-                className="flex items-center gap-2 px-5 py-2.5 bg-gradient-to-r from-purple-600 via-indigo-600 to-purple-700 hover:from-purple-500 hover:to-indigo-500 text-white rounded-xl text-xs font-extrabold transition-all shadow-[0_0_25px_rgba(168,85,247,0.35)] active:scale-95 cursor-pointer"
+                className="w-full sm:w-auto flex items-center justify-center gap-2 px-5 py-2.5 bg-gradient-to-r from-purple-600 via-indigo-600 to-purple-700 hover:from-purple-500 hover:to-indigo-500 text-white rounded-xl text-xs font-extrabold transition-all shadow-[0_0_25px_rgba(168,85,247,0.35)] active:scale-95 cursor-pointer"
               >
                 <UserPlus size={16} />
                 <span>Add Team Member</span>
               </button>
             ) : (
-              <div className="flex items-center gap-1.5 px-3 py-2 bg-amber-950/80 text-amber-300 border border-amber-500/30 rounded-xl text-xs font-semibold shadow-xs">
+              <div className="w-full sm:w-auto flex items-center justify-center gap-1.5 px-3 py-2 bg-amber-950/80 text-amber-300 border border-amber-500/30 rounded-xl text-xs font-semibold shadow-xs">
                 <Lock size={14} className="text-amber-400" />
                 <span>Creation Locked to Super Admin</span>
               </div>
@@ -444,7 +444,7 @@ export const UsersPage: React.FC = () => {
             isSuperAdmin && (
               <button
                 onClick={handleOpenCreateWorkspace}
-                className="flex items-center gap-2 px-5 py-2.5 bg-gradient-to-r from-purple-600 via-indigo-600 to-purple-700 hover:from-purple-500 hover:to-indigo-500 text-white rounded-xl text-xs font-extrabold transition-all shadow-[0_0_25px_rgba(168,85,247,0.35)] active:scale-95 cursor-pointer"
+                className="w-full sm:w-auto flex items-center justify-center gap-2 px-5 py-2.5 bg-gradient-to-r from-purple-600 via-indigo-600 to-purple-700 hover:from-purple-500 hover:to-indigo-500 text-white rounded-xl text-xs font-extrabold transition-all shadow-[0_0_25px_rgba(168,85,247,0.35)] active:scale-95 cursor-pointer"
               >
                 <FolderPlus size={16} />
                 <span>New Workspace</span>
@@ -576,12 +576,12 @@ export const UsersPage: React.FC = () => {
             <div className="space-y-1">
               <div className="font-bold flex items-center gap-2 flex-wrap">
                 <span className="text-white text-sm font-black">Master Super Admin &amp; Authority Model</span>
-                <span className="text-[10px] font-extrabold px-2 py-0.5 bg-purple-900/80 text-purple-200 rounded-full border border-purple-400/40 font-mono">
+                <span className="text-[10px] font-extrabold px-2 py-0.5 bg-purple-900/80 text-purple-200 rounded-full border border-purple-400/40 font-mono break-all">
                   {MASTER_SUPER_ADMIN_EMAIL}
                 </span>
               </div>
               <p className="text-purple-200/90 text-xs">
-                <strong className="text-white">{MASTER_SUPER_ADMIN_EMAIL}</strong> holds permanent Master Super Admin authority across all multi-tenant workspaces. Only the Super Admin can provision accounts, create new organization workspaces, and configure financial permission matrices.
+                <strong className="text-white break-all">{MASTER_SUPER_ADMIN_EMAIL}</strong> holds permanent Master Super Admin authority across all multi-tenant workspaces. Only the Super Admin can provision accounts, create new organization workspaces, and configure financial permission matrices.
               </p>
             </div>
           </div>
@@ -622,10 +622,236 @@ export const UsersPage: React.FC = () => {
             </div>
           </div>
 
-          {/* Users Directory Table (Luxury Dark Table) */}
-          <div className="bg-slate-900/65 backdrop-blur-xl rounded-2xl border border-white/10 shadow-xl overflow-hidden">
+          {/* Mobile View: Team Member Cards (md:hidden) */}
+          <div className="md:hidden space-y-3">
+            {filteredUsers.length === 0 ? (
+              <div className="p-8 text-center bg-slate-900/65 backdrop-blur-xl rounded-2xl border border-white/10 text-slate-400 text-xs shadow-lg">
+                No team members found matching current filters.
+              </div>
+            ) : (
+              filteredUsers.map((u) => {
+                const isUserMaster = u.email.toLowerCase() === MASTER_SUPER_ADMIN_EMAIL.toLowerCase();
+                const isUserOwner = u.role === 'owner' || isUserMaster;
+                const isCurrent = u.id === currentUser?.id;
+                const userOrg = organizations.find((o) => o.id === (u.organizationId || 'org_tisha_main')) || {
+                  name: 'Tisha LED Walls',
+                  plan: 'pro'
+                };
+
+                return (
+                  <div
+                    key={u.id}
+                    className="bg-slate-900/75 backdrop-blur-xl rounded-2xl border border-white/10 p-4 shadow-xl space-y-3.5 relative overflow-hidden"
+                  >
+                    {/* Top glow accent stripe */}
+                    <div
+                      className={`absolute top-0 inset-x-0 h-0.5 ${
+                        isUserOwner
+                          ? 'bg-gradient-to-r from-purple-500 via-indigo-500 to-pink-500 shadow-[0_0_10px_rgba(168,85,247,0.5)]'
+                          : 'bg-gradient-to-r from-blue-500 to-cyan-500 shadow-[0_0_10px_rgba(59,130,246,0.5)]'
+                      }`}
+                    />
+
+                    {/* Member Profile Header */}
+                    <div className="flex items-start justify-between gap-2.5">
+                      <div className="flex items-center gap-3 min-w-0">
+                        {u.avatar ? (
+                          <img
+                            src={u.avatar}
+                            alt={u.name}
+                            className="w-11 h-11 rounded-xl object-cover border border-white/10 shadow-md shrink-0"
+                          />
+                        ) : (
+                          <div
+                            className={`w-11 h-11 rounded-xl flex items-center justify-center font-black text-base shrink-0 shadow-md ring-1 ring-white/10 ${
+                              isUserOwner
+                                ? 'bg-gradient-to-br from-purple-600 to-indigo-600 text-white'
+                                : 'bg-gradient-to-br from-blue-600 to-cyan-600 text-white'
+                            }`}
+                          >
+                            {u.name.charAt(0).toUpperCase()}
+                          </div>
+                        )}
+                        <div className="min-w-0">
+                          <div className="font-extrabold text-white text-sm flex items-center gap-1.5 flex-wrap">
+                            <span className="truncate">{u.name}</span>
+                            {isCurrent && (
+                              <span className="text-[10px] font-black px-1.5 py-0.2 bg-blue-950/80 text-blue-300 border border-blue-500/40 rounded-full">
+                                You
+                              </span>
+                            )}
+                            {isUserMaster && (
+                              <span className="text-[9px] font-black uppercase px-1.5 py-0.2 bg-amber-950/80 text-amber-300 rounded border border-amber-500/40">
+                                Master
+                              </span>
+                            )}
+                          </div>
+                          <div className="text-slate-400 font-mono text-[11px] truncate mt-0.5">{u.email}</div>
+                          {u.phone && <div className="text-slate-500 text-[10px] font-mono mt-0.5">{u.phone}</div>}
+                        </div>
+                      </div>
+
+                      {/* Header Actions */}
+                      <div className="flex items-center gap-1 shrink-0">
+                        {canManage && (
+                          <button
+                            onClick={() => handleOpenEdit(u)}
+                            title="Edit Role & Permissions"
+                            className="w-8 h-8 flex items-center justify-center text-slate-300 hover:text-white bg-slate-800/80 hover:bg-purple-600/30 border border-white/10 rounded-xl transition-all cursor-pointer shadow-xs active:scale-95"
+                          >
+                            <Edit size={14} />
+                          </button>
+                        )}
+
+                        {isSuperAdmin && !isUserOwner && !isUserMaster && (
+                          <button
+                            onClick={() => handleDeleteUser(u)}
+                            title="Delete User"
+                            className="w-8 h-8 flex items-center justify-center text-slate-300 hover:text-rose-400 bg-slate-800/80 hover:bg-rose-500/20 border border-white/10 rounded-xl transition-all cursor-pointer shadow-xs active:scale-95"
+                          >
+                            <Trash2 size={14} />
+                          </button>
+                        )}
+                      </div>
+                    </div>
+
+                    {/* Attributes Bar: Role, Status, Workspace */}
+                    <div className="flex flex-wrap items-center gap-2 pt-2 border-t border-white/5">
+                      {/* Role Badge */}
+                      {u.role === 'owner' && (
+                        <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-xl text-[11px] font-bold bg-purple-950/80 text-purple-300 border border-purple-500/40 shadow-xs">
+                          <Crown size={12} className="text-purple-400" />
+                          <span>Super Admin</span>
+                        </span>
+                      )}
+                      {u.role === 'admin' && (
+                        <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-xl text-[11px] font-bold bg-blue-950/80 text-blue-300 border border-blue-500/40 shadow-xs">
+                          <Shield size={12} className="text-blue-400" />
+                          <span>Admin</span>
+                        </span>
+                      )}
+                      {u.role === 'manager' && (
+                        <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-xl text-[11px] font-bold bg-emerald-950/80 text-emerald-300 border border-emerald-500/40 shadow-xs">
+                          <Briefcase size={12} className="text-emerald-400" />
+                          <span>Sales Manager</span>
+                        </span>
+                      )}
+                      {u.role === 'member' && (
+                        <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-xl text-[11px] font-bold bg-slate-800/80 text-slate-300 border border-slate-700 shadow-xs">
+                          <User size={12} className="text-slate-400" />
+                          <span>Executive</span>
+                        </span>
+                      )}
+
+                      {/* Status Toggle */}
+                      <button
+                        onClick={() => canManage && handleToggleStatus(u)}
+                        disabled={!canManage || isUserOwner}
+                        className={`inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-[10.5px] font-bold transition-all ${
+                          u.status === 'active'
+                            ? 'bg-emerald-950/80 text-emerald-300 border border-emerald-500/40 shadow-[0_0_8px_rgba(16,185,129,0.25)]'
+                            : 'bg-rose-950/80 text-rose-300 border border-rose-500/40 shadow-[0_0_8px_rgba(244,63,94,0.25)]'
+                        } ${(!canManage || isUserOwner) ? 'cursor-default opacity-90' : 'cursor-pointer active:scale-95'}`}
+                      >
+                        {u.status === 'active' ? (
+                          <>
+                            <CheckCircle2 size={11} className="text-emerald-400" />
+                            <span>Active</span>
+                          </>
+                        ) : (
+                          <>
+                            <XCircle size={11} className="text-rose-400" />
+                            <span>Suspended</span>
+                          </>
+                        )}
+                      </button>
+
+                      {/* Workspace context */}
+                      <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-xl text-[10.5px] font-semibold bg-slate-950/80 text-slate-300 border border-white/10 shrink-0">
+                        <Building2 size={11} className="text-purple-400 shrink-0" />
+                        <span className="truncate max-w-[130px] font-medium">{userOrg.name}</span>
+                      </span>
+                    </div>
+
+                    {/* Permissions Matrix Pills Box */}
+                    <div className="bg-slate-950/70 rounded-xl p-2.5 border border-white/5 space-y-1.5">
+                      <div className="text-[10px] font-black uppercase tracking-wider text-slate-400 flex items-center justify-between">
+                        <span className="flex items-center gap-1 text-slate-300 font-bold">
+                          <Shield size={11} className="text-purple-400" />
+                          Permissions Matrix
+                        </span>
+                        <span className="text-[9.5px] font-mono text-slate-500">
+                          {[
+                            u.permissions.canEditBankDetails,
+                            u.permissions.canDeleteQuotes,
+                            u.permissions.canManageUsers,
+                            u.permissions.canRestoreBackups,
+                            isPaymentLedgerEnabled && (isUserOwner || u.permissions.canViewPaymentLedger),
+                            isUserOwner || u.permissions.canManageEmailDigest,
+                          ].filter(Boolean).length} / 6 active
+                        </span>
+                      </div>
+
+                      <div className="flex flex-wrap gap-1.5">
+                        <span className={`px-2 py-0.5 rounded-md text-[10px] font-semibold flex items-center gap-1 ${
+                          u.permissions.canEditBankDetails
+                            ? 'bg-emerald-950/80 text-emerald-300 border border-emerald-500/30'
+                            : 'bg-slate-900/60 text-slate-600 border border-white/5 line-through opacity-60'
+                        }`}>
+                          Bank / UPI
+                        </span>
+
+                        <span className={`px-2 py-0.5 rounded-md text-[10px] font-semibold flex items-center gap-1 ${
+                          u.permissions.canDeleteQuotes
+                            ? 'bg-emerald-950/80 text-emerald-300 border border-emerald-500/30'
+                            : 'bg-slate-900/60 text-slate-600 border border-white/5 line-through opacity-60'
+                        }`}>
+                          Delete Quotes
+                        </span>
+
+                        <span className={`px-2 py-0.5 rounded-md text-[10px] font-semibold flex items-center gap-1 ${
+                          u.permissions.canManageUsers
+                            ? 'bg-purple-950/80 text-purple-300 border border-purple-500/30'
+                            : 'bg-slate-900/60 text-slate-600 border border-white/5 line-through opacity-60'
+                        }`}>
+                          Manage Users
+                        </span>
+
+                        <span className={`px-2 py-0.5 rounded-md text-[10px] font-semibold flex items-center gap-1 ${
+                          u.permissions.canRestoreBackups
+                            ? 'bg-amber-950/80 text-amber-300 border border-amber-500/30'
+                            : 'bg-slate-900/60 text-slate-600 border border-white/5 line-through opacity-60'
+                        }`}>
+                          Restore DB
+                        </span>
+
+                        <span className={`px-2 py-0.5 rounded-md text-[10px] font-semibold flex items-center gap-1 ${
+                          isPaymentLedgerEnabled && (isUserOwner || u.permissions.canViewPaymentLedger)
+                            ? 'bg-blue-950/80 text-blue-300 border border-blue-500/30'
+                            : 'bg-slate-900/60 text-slate-600 border border-white/5 line-through opacity-60'
+                        }`}>
+                          Ledger Access
+                        </span>
+
+                        <span className={`px-2 py-0.5 rounded-md text-[10px] font-semibold flex items-center gap-1 ${
+                          isUserOwner || u.permissions.canManageEmailDigest
+                            ? 'bg-indigo-950/80 text-indigo-300 border border-indigo-500/30'
+                            : 'bg-slate-900/60 text-slate-600 border border-white/5 line-through opacity-60'
+                        }`}>
+                          Email Digest
+                        </span>
+                      </div>
+                    </div>
+                  </div>
+                );
+              })
+            )}
+          </div>
+
+          {/* Desktop View: Full Luxury Table (hidden md:block) */}
+          <div className="hidden md:block bg-slate-900/65 backdrop-blur-xl rounded-2xl border border-white/10 shadow-xl overflow-hidden">
             <div className="overflow-x-auto">
-              <table className="w-full text-left text-xs border-collapse">
+              <table className="w-full min-w-[760px] text-left text-xs border-collapse">
                 <thead>
                   <tr className="bg-slate-950/60 text-slate-400 font-bold border-b border-white/10 text-[11px] uppercase tracking-wider">
                     <th className="py-3.5 px-4">User &amp; Contact</th>
@@ -1124,7 +1350,7 @@ export const UsersPage: React.FC = () => {
                       </span>
                     )}
                   </div>
-                  <div className={`grid grid-cols-3 gap-2 ${!isSuperAdmin ? 'opacity-60 pointer-events-none' : ''}`}>
+                  <div className={`grid grid-cols-1 sm:grid-cols-3 gap-2 ${!isSuperAdmin ? 'opacity-60 pointer-events-none' : ''}`}>
                     {[
                       { id: 'manager', label: 'Sales Manager', desc: 'Creates quotes, clients, signatures' },
                       { id: 'admin', label: 'Admin', desc: 'Can delete quotes & manage team' },
