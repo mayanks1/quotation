@@ -34,7 +34,7 @@ export const UsersPage: React.FC = () => {
   } = useAuth();
 
   const toast = useToast();
-  const confirm = useConfirm();
+  const { confirm } = useConfirm();
 
   // Active Tab: Team Members vs Workspaces
   const [activeTab, setActiveTab] = useState<'members' | 'workspaces'>('members');
@@ -260,7 +260,7 @@ export const UsersPage: React.FC = () => {
       title: `Delete User "${target.name}"?`,
       message: `Are you sure you want to remove ${target.email} from the workspace? They will immediately lose access.`,
       confirmText: 'Delete User',
-      danger: true,
+      variant: 'danger',
     });
     if (!ok) return;
 
@@ -393,7 +393,7 @@ export const UsersPage: React.FC = () => {
       message: `Are you sure you want to delete this organization workspace? ${orgUsersCount > 0 ? `It currently has ${orgUsersCount} assigned team member(s).` : ''
         } All workspace context will be removed.`,
       confirmText: 'Delete Workspace',
-      danger: true,
+      variant: 'danger',
     });
     if (!ok) return;
 

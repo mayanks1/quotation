@@ -11,6 +11,8 @@ export interface LineItem {
   // Optional industry metadata
   hsnSac?: string;
   unit?: string; // 'Days', 'Sq.Ft', 'Units', 'Set', 'Lot'
+  specifications?: string;
+  days?: number;
   dimensions?: {
     widthFt?: number;
     heightFt?: number;

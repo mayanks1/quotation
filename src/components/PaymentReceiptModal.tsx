@@ -30,6 +30,7 @@ import {
 import { amountToWordsIndian } from '../utils/numberToWords';
 import { OFFICIAL_TISHA_STAMP } from '../config/officialStamp';
 import { PaymentMode } from '../types/quotation';
+import { PaymentReceipt, ReceiptMilestone } from '../types/receipt';
 import { useToast } from '../context/ToastContext';
 import { useLockBodyScroll } from '../hooks/useLockBodyScroll';
 import { PdfGeneratingOverlay } from './PdfGeneratingOverlay';

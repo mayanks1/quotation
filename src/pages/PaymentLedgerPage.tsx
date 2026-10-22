@@ -30,6 +30,7 @@ import { LedgerAccountingExportModal } from '../components/ledger/LedgerAccounti
 import { PaymentReceiptModal } from '../components/PaymentReceiptModal';
 import { storage } from '../services/storage';
 import { PaymentReceipt } from '../types/receipt';
+import { OFFICIAL_TISHA_STAMP } from '../config/officialStamp';
 import { useNavigate } from 'react-router-dom';
 import { Calendar, Check, ChevronDown, FileSpreadsheet, Plus, RotateCcw, Mail, KeyRound, Lock } from 'lucide-react';
 import { DraggableFab } from '../components/DraggableFab';
@@ -767,7 +768,7 @@ export const PaymentLedgerPage: React.FC = () => {
             <ChartsSection
               monthlyData={monthlyChartData}
               yearlyData={yearlyChartData}
-              records={yearAndClientFilteredData}
+              records={yearAndClientFilteredData as any}
               metrics={metrics}
               activeMonth={activeMonth}
               onSelectMonth={(month: any) => setActiveMonth(prev => prev === month ? null : month)}
@@ -775,8 +776,8 @@ export const PaymentLedgerPage: React.FC = () => {
 
             {/* Records Table */}
             <DataTable
-              records={finalFilteredData}
-              trashedRecords={trashedRecords}
+              records={finalFilteredData as any}
+              trashedRecords={trashedRecords as any}
               allClients={allClients}
               allYears={allYears}
               selectedYear={selectedYear}
@@ -860,7 +861,7 @@ export const PaymentLedgerPage: React.FC = () => {
         <NoteModal
           isOpen={Boolean(noteModalRecord)}
           onClose={() => setNoteModalRecord(null)}
-          onSave={(noteText: string) => handleSaveQuickNote(noteModalRecord, noteText)}
+          onSaveNote={(noteText: string) => handleSaveQuickNote(noteModalRecord, noteText)}
           record={noteModalRecord}
           isSaving={false}
         />

@@ -6,7 +6,7 @@ import {
   QrCode, ExternalLink, PenTool
 } from 'lucide-react';
 import { storage } from '../services/storage';
-import { Quotation, getItemAmount } from '../types/quotation';
+import { Quotation, getItemAmount, ClientSignature } from '../types/quotation';
 import { exportQuotationPDF } from '../services/pdfGenerator';
 import { generateUpiQrDataUrl, buildUpiPaymentUrl } from '../services/upiQr';
 import { getQuotationExpiryStatus } from '../utils/quotationExpiry';
@@ -191,16 +191,12 @@ export const PublicQuoteView: React.FC = () => {
 
   const expiry = getQuotationExpiryStatus(quotation.validUntil);
 
-  const handleSaveSignature = (sig: {
-    dataUrl: string;
-    signedAt: string;
-    signerName: string;
-    signerPhone?: string;
-  }) => {
+  const handleSaveSignature = (sig: ClientSignature | undefined) => {
+    if (!sig) return;
     const updated: Quotation = {
       ...quotation,
       clientSignature: sig,
-      status: 'Approved',
+      status: 'approved',
     };
     storage.saveQuotation(updated);
     setQuotation(updated);
@@ -224,7 +220,7 @@ export const PublicQuoteView: React.FC = () => {
               <div className="flex items-center gap-2">
                 <h1 className="text-sm sm:text-base font-black text-white">{quotation.quotationNumber}</h1>
                 <span className={`text-[10px] font-bold px-2 py-0.5 rounded-full border ${
-                  quotation.status === 'Approved'
+                  quotation.status === 'approved'
                     ? 'bg-emerald-500/20 text-emerald-400 border-emerald-500/30'
                     : 'bg-blue-500/20 text-blue-400 border-blue-500/30'
                 }`}>
@@ -360,10 +356,10 @@ export const PublicQuoteView: React.FC = () => {
                       )}
                     </td>
                     <td className="py-2.5 px-3 text-center text-slate-600 font-mono">
-                      {item.quantity} {item.unit || 'Unit'} {item.days > 1 ? `× ${item.days}d` : ''}
+                      {item.quantity} {item.unit || 'Unit'} {(item.days || 0) > 1 ? `× ${item.days}d` : ''}
                     </td>
                     <td className="py-2.5 px-3 text-right text-slate-600 font-mono">
-                      ₹{item.rate.toLocaleString('en-IN')}
+                      ₹{(item.rate ?? 0).toLocaleString('en-IN')}
                     </td>
                     <td className="py-2.5 px-3 text-right font-bold text-slate-900 font-mono">
                       ₹{getItemAmount(item).toLocaleString('en-IN')}

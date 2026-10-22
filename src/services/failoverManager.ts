@@ -8,7 +8,7 @@
 
 import { supabase, isSupabaseConfigured } from './supabaseClient';
 import { firestoreUpsert, firestoreGetAll, firestoreDelete, isFirebaseConfigured, testFirestoreConnection } from './firebaseService';
-import type { Quotation, ClientProfile } from '../types';
+import type { Quotation, ClientProfile } from '../types/quotation';
 import type { LedgerRecord } from './ledgerService';
 import { toDbRow, fromDbRow } from './ledgerService';
 

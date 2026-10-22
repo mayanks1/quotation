@@ -124,7 +124,11 @@ export const MessageTemplatesModal: React.FC<Props> = ({
     advancePercentage: 70,
     paidAmount: 15000,
     paymentStatus: 'partial',
-    enableUpiQr: true
+    enableUpiQr: true,
+    notes: 'Thank you for choosing Tisha LED Walls.',
+    paymentTerms: '70% Advance with booking confirmation, 30% before setup.',
+    createdAt: new Date().toISOString(),
+    updatedAt: new Date().toISOString(),
   };
 
   // Insert variable at cursor position

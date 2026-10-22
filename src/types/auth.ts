@@ -3,6 +3,7 @@ export type UserRole = 'owner' | 'admin' | 'manager' | 'member';
 export type UserStatus = 'active' | 'suspended';
 
 export interface UserPermissions {
+  canCreateQuotes?: boolean;   // Create new quotations
   canEditBankDetails: boolean; // Alter UPI ID, Bank Accounts, Company Legal GSTIN
   canDeleteQuotes: boolean;    // Permanently delete quotations
   canManageUsers: boolean;     // Add, edit, remove team users & assign roles
@@ -95,6 +96,7 @@ export interface AuthContextType {
 
 export const DEFAULT_PERMISSIONS_BY_ROLE: Record<UserRole, UserPermissions> = {
   owner: {
+    canCreateQuotes: true,
     canEditBankDetails: true,
     canDeleteQuotes: true,
     canManageUsers: true,
@@ -107,6 +109,7 @@ export const DEFAULT_PERMISSIONS_BY_ROLE: Record<UserRole, UserPermissions> = {
     canManageDowntimeSync: true,
   },
   admin: {
+    canCreateQuotes: true,
     canEditBankDetails: false,
     canDeleteQuotes: true,
     canManageUsers: true,
@@ -119,6 +122,7 @@ export const DEFAULT_PERMISSIONS_BY_ROLE: Record<UserRole, UserPermissions> = {
     canManageDowntimeSync: false,
   },
   manager: {
+    canCreateQuotes: true,
     canEditBankDetails: false,
     canDeleteQuotes: false,
     canManageUsers: false,
@@ -131,6 +135,7 @@ export const DEFAULT_PERMISSIONS_BY_ROLE: Record<UserRole, UserPermissions> = {
     canManageDowntimeSync: false,
   },
   member: {
+    canCreateQuotes: true,
     canEditBankDetails: false,
     canDeleteQuotes: false,
     canManageUsers: false,

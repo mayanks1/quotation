@@ -104,7 +104,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
           id: 'module_payment_ledger',
           profile: { enabled, updated_at: new Date().toISOString() },
           updated_at: new Date().toISOString(),
-        }, { onConflict: 'id' }).catch(() => { });
+        }, { onConflict: 'id' });
       }
     } catch (e) {
       console.warn('Failed saving module setting:', e);
@@ -769,7 +769,7 @@ export const useAuth = () => {
       updateUser: () => { },
       updateOrganization: () => { },
       switchOrganization: () => { },
-      createWorkspace: async () => ({ success: false, error: 'Please refresh to manage workspaces.' }),
+      createWorkspace: async () => ({ success: false, org: undefined, error: 'Please refresh to manage workspaces.' }),
       updateWorkspace: async () => ({ success: false, error: 'Please refresh to manage workspaces.' }),
       deleteWorkspace: async () => ({ success: false, error: 'Please refresh to manage workspaces.' }),
       createUser: async () => ({ success: false, error: 'Please refresh to manage team.' }),

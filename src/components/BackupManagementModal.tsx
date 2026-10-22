@@ -103,7 +103,7 @@ export const BackupManagementModal: React.FC<Props> = ({ isOpen, onClose, onRest
       message: `This will restore ${snapshot.quotationsCount} quotations, ${snapshot.clientsCount} clients, and company profiles from ${snapshot.dateFormatted}. Existing records will be merged/updated.`,
       confirmText: 'Yes, Restore Backup',
       cancelText: 'Cancel',
-      type: 'warning'
+      variant: 'warning'
     });
 
     if (!isConfirmed) return;
@@ -126,7 +126,7 @@ export const BackupManagementModal: React.FC<Props> = ({ isOpen, onClose, onRest
       message: `Are you sure you want to delete "${name}"? This cannot be undone.`,
       confirmText: 'Delete',
       cancelText: 'Keep',
-      type: 'danger'
+      variant: 'danger'
     });
 
     if (!isConfirmed) return;

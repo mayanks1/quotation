@@ -1,5 +1,5 @@
 import { supabase, isSupabaseConfigured } from './supabaseClient';
-import { Quotation, getItemAmount } from '../types/quotation';
+import { Quotation, getItemAmount, LineItem } from '../types/quotation';
 import { failoverManager } from './failoverManager';
 
 export interface LedgerRecord {
@@ -13,6 +13,7 @@ export interface LedgerRecord {
   paidAmount: number;
   pendingAmount: number;
   note: string;
+  sheetRow?: number;
   // Soft-delete & 30-day retention
   isDeleted?: boolean;
   deletedAt?: string;
@@ -979,6 +980,8 @@ export function subscribeToLedgerChanges(onUpdate: () => void): () => void {
     .subscribe();
 
   return () => {
-    supabase.removeChannel(channel);
+    if (supabase) {
+      supabase.removeChannel(channel);
+    }
   };
 }

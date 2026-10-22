@@ -227,12 +227,14 @@ export const WeeklyEmailSettingsModal: React.FC<Props> = ({ isOpen, onClose }) =
 
     setTestStatus(null);
     if (isSupabaseConfigured() && supabase) {
-      supabase
-        .from('company_settings')
-        .select('profile')
-        .eq('id', 'weekly_email_settings')
-        .maybeSingle()
-        .then(({ data, error }) => {
+      (async () => {
+        try {
+          const { data, error } = await supabase
+            .from('company_settings')
+            .select('profile')
+            .eq('id', 'weekly_email_settings')
+            .maybeSingle();
+
           if (!error && data && data.profile) {
             const loaded = {
               ...DEFAULT_CONFIG,
@@ -245,8 +247,10 @@ export const WeeklyEmailSettingsModal: React.FC<Props> = ({ isOpen, onClose }) =
               localStorage.setItem(STORAGE_KEY, JSON.stringify(loaded));
             } catch (e) { }
           }
-        })
-        .catch(console.warn);
+        } catch (err) {
+          console.warn(err);
+        }
+      })();
     }
   }, [isOpen]);
 
