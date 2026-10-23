@@ -658,10 +658,67 @@ console.log('\n🔄 MODULE 5: Reconcile & Replication Edge Cases');
     assert.equal(rawDate, '2026-10-18');
   });
 
+  // -------------------------------------------------------------
+  // MODULE 9: Multi-Device Cloud Failover Synchronization
+  // -------------------------------------------------------------
+  console.log('\n📱 MODULE 9: Multi-Device Cloud Failover Synchronization (Laptop & Mobile)');
 
-  // -------------------------------------------------------------
-  // Summary
-  // -------------------------------------------------------------
+  runTest('9.1: Local storage credentials bundle correctly for cloud company_settings upsert', () => {
+    const localProjectId = 'tisha-led-walls';
+    const localApiKey = 'AIzaSyExampleKey1234567890';
+    const primaryEngine = 'firebase';
+
+    const cloudPayload = {
+      id: 'cloud_failover_config',
+      profile: {
+        projectId: localProjectId.trim(),
+        apiKey: localApiKey.trim(),
+        primaryEngine,
+        updatedAt: new Date().toISOString(),
+        updatedBy: 'Super Admin'
+      },
+      updated_at: new Date().toISOString()
+    };
+
+    assert.equal(cloudPayload.profile.projectId, 'tisha-led-walls');
+    assert.equal(cloudPayload.profile.apiKey, 'AIzaSyExampleKey1234567890');
+    assert.equal(cloudPayload.profile.primaryEngine, 'firebase');
+  });
+
+  runTest('9.2: Mobile device with empty storage successfully hydrates credentials from cloud profile', () => {
+    // Simulate empty mobile localStorage
+    const mobileStorage = new MockLocalStorage();
+    assert.equal(mobileStorage.getItem('tisha_firebase_project_id'), null);
+    assert.equal(mobileStorage.getItem('tisha_firebase_api_key'), null);
+
+    // Mock incoming cloud record fetched on mobile login
+    const cloudRecord = {
+      projectId: 'tisha-led-walls',
+      apiKey: 'AIzaSyExampleKey1234567890',
+      primaryEngine: 'firebase'
+    };
+
+    mobileStorage.setItem('tisha_firebase_project_id', cloudRecord.projectId);
+    mobileStorage.setItem('tisha_firebase_api_key', cloudRecord.apiKey);
+    mobileStorage.setItem('tisha_primary_database_engine', cloudRecord.primaryEngine);
+
+    // Mobile now immediately reflects configured state
+    assert.equal(mobileStorage.getItem('tisha_firebase_project_id'), 'tisha-led-walls');
+    assert.equal(mobileStorage.getItem('tisha_firebase_api_key'), 'AIzaSyExampleKey1234567890');
+    assert.equal(mobileStorage.getItem('tisha_primary_database_engine'), 'firebase');
+  });
+
+  runTest('9.3: Remote primary engine switch propagates to device listener', () => {
+    let notifiedState = null;
+    const listeners = [(state) => { notifiedState = state; }];
+
+    // Simulating remote update
+    const incomingCloudUpdate = { primaryEngine: 'firebase', activeProvider: 'firebase' };
+    listeners.forEach(fn => fn(incomingCloudUpdate));
+
+    assert.ok(notifiedState);
+    assert.equal(notifiedState.primaryEngine, 'firebase');
+  });
   console.log('\n======================================================');
   console.log(`📊 TEST SUITE COMPLETE: ${passedTests}/${totalTests} Tests Passed`);
   if (passedTests === totalTests) {

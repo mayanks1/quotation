@@ -7,7 +7,10 @@
  */
 
 import { supabase, isSupabaseConfigured } from './supabaseClient';
-import { firestoreUpsert, firestoreGetAll, firestoreDelete, isFirebaseConfigured, testFirestoreConnection } from './firebaseService';
+import {
+  firestoreUpsert, firestoreGetAll, firestoreDelete, isFirebaseConfigured, testFirestoreConnection,
+  getFirebaseConfig, setFirebaseLocalConfig, saveFirebaseConfigToCloud, CLOUD_FAILOVER_CONFIG_ID, CloudFailoverConfigRecord
+} from './firebaseService';
 import type { Quotation, ClientProfile } from '../types/quotation';
 import type { LedgerRecord } from './ledgerService';
 import { toDbRow, fromDbRow } from './ledgerService';
@@ -49,7 +52,66 @@ class FailoverManager {
       } else {
         this.activeProvider = this.primaryEngine;
       }
+      // Initialize background cloud sync so mobile/laptop stay in sync
+      this.syncWithCloud().catch(() => {});
     }
+  }
+
+  /**
+   * Synchronize failover configuration and Firebase credentials with Supabase company_settings.
+   * Ensures settings saved on desktop/laptop immediately propagate to mobile phones upon login.
+   */
+  public async syncWithCloud(): Promise<{ synced: boolean; source: string }> {
+    if (!isSupabaseConfigured() || !supabase) {
+      return { synced: false, source: 'offline' };
+    }
+
+    try {
+      const { data, error } = await supabase
+        .from('company_settings')
+        .select('profile')
+        .eq('id', CLOUD_FAILOVER_CONFIG_ID)
+        .maybeSingle();
+
+      if (!error && data && data.profile) {
+        const profile = data.profile as CloudFailoverConfigRecord;
+        let stateChanged = false;
+
+        if (profile.projectId && profile.apiKey) {
+          setFirebaseLocalConfig(profile.apiKey, profile.projectId);
+          stateChanged = true;
+        }
+
+        if (profile.primaryEngine && (profile.primaryEngine === 'supabase' || profile.primaryEngine === 'firebase')) {
+          if (this.primaryEngine !== profile.primaryEngine) {
+            this.primaryEngine = profile.primaryEngine;
+            this.activeProvider = profile.primaryEngine;
+            if (typeof window !== 'undefined') {
+              localStorage.setItem(PRIMARY_ENGINE_KEY, profile.primaryEngine);
+              localStorage.setItem(FAILOVER_STATE_KEY, profile.primaryEngine);
+            }
+            stateChanged = true;
+          }
+        }
+
+        if (stateChanged) {
+          this.notifyListeners();
+        }
+        return { synced: true, source: 'cloud' };
+      } else {
+        // Auto-migrate: If cloud row does not exist yet, but local storage on this machine has credentials,
+        // automatically push them to Supabase company_settings so other devices (e.g. mobile) receive them!
+        const localCfg = getFirebaseConfig();
+        if (localCfg && localCfg.projectId && localCfg.apiKey) {
+          await saveFirebaseConfigToCloud(localCfg, this.primaryEngine, 'Auto-Migrate');
+          return { synced: true, source: 'pushed-local' };
+        }
+      }
+    } catch (err) {
+      console.warn('[FailoverManager] Cloud sync notice:', err);
+    }
+
+    return { synced: false, source: 'none' };
   }
 
   // --- Engine Preferences ---
@@ -94,9 +156,37 @@ class FailoverManager {
       localStorage.setItem(FAILOVER_STATE_KEY, engine);
     }
 
+    // Persist to Supabase cloud company_settings so mobile receives new engine selection
+    const cfg = getFirebaseConfig();
+    if (cfg && isSupabaseConfigured() && supabase) {
+      saveFirebaseConfigToCloud(cfg, engine, 'Super Admin').catch(e => console.warn('Cloud engine sync:', e));
+    }
+
     this.notifyListeners();
     console.log(`🔄 [FailoverManager] Primary Database set to "${engine.toUpperCase()}". Secondary Mirror is "${this.getSecondaryEngine().toUpperCase()}".`);
     return { success: true };
+  }
+
+  /**
+   * Save Firebase credentials to local storage and sync to Supabase company_settings.
+   */
+  public async saveCredentials(projectId: string, apiKey: string, updatedBy?: string): Promise<{ success: boolean; error?: string }> {
+    const cleanId = projectId.trim();
+    const cleanKey = apiKey.trim();
+    if (!cleanId || !cleanKey) {
+      return { success: false, error: 'Firebase Project ID and Web API Key are required.' };
+    }
+
+    const res = await saveFirebaseConfigToCloud(
+      { projectId: cleanId, apiKey: cleanKey },
+      this.primaryEngine,
+      updatedBy || 'Super Admin'
+    );
+
+    if (res.success) {
+      this.notifyListeners();
+    }
+    return res;
   }
 
   public reportPrimarySuccess() {
@@ -214,6 +304,8 @@ class FailoverManager {
             notes: quotation.notes || null,
             payment_terms: quotation.paymentTerms || null,
             organization_id: activeOrgId,
+            is_deleted: Boolean(quotation.isDeleted),
+            deleted_at: quotation.deletedAt || null,
             updated_at: quotation.updatedAt || new Date().toISOString()
           };
           await supabase.from('quotations').upsert(row);
@@ -350,6 +442,8 @@ class FailoverManager {
           shippingCharges: Number(row.shipping_charges || 0),
           notes: row.notes || '',
           paymentTerms: row.payment_terms || '',
+          isDeleted: Boolean(row.is_deleted ?? row.client?.isDeleted),
+          deletedAt: row.deleted_at || row.client?.deletedAt || undefined,
           createdAt: row.created_at,
           updatedAt: row.updated_at
         })) as Quotation[];

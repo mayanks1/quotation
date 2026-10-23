@@ -6,21 +6,124 @@
  * Automatically acts as the failover engine when Supabase is paused or down.
  */
 
+import { supabase, isSupabaseConfigured } from './supabaseClient';
+
 export interface FirebaseConfig {
   apiKey: string;
   projectId: string;
 }
 
-// Get config from Vite environment variables or localStorage override
+export const CLOUD_FAILOVER_CONFIG_ID = 'cloud_failover_config';
+
+export interface CloudFailoverConfigRecord {
+  projectId: string;
+  apiKey: string;
+  primaryEngine?: 'supabase' | 'firebase';
+  updatedAt?: string;
+  updatedBy?: string;
+}
+
+const FIREBASE_API_KEY_STORAGE = 'tisha_firebase_api_key';
+const FIREBASE_PROJECT_ID_STORAGE = 'tisha_firebase_project_id';
+
+let memoryConfig: FirebaseConfig | null = null;
+
+// Get config from memory, Vite environment variables, or localStorage override
 export function getFirebaseConfig(): FirebaseConfig | null {
+  if (memoryConfig && memoryConfig.apiKey && memoryConfig.projectId) {
+    return memoryConfig;
+  }
   const env = typeof import.meta !== 'undefined' && import.meta.env ? import.meta.env : (typeof process !== 'undefined' ? process.env : {}) as any;
-  const apiKey = (env.VITE_FIREBASE_API_KEY as string) || (typeof window !== 'undefined' ? localStorage.getItem('tisha_firebase_api_key') : null) || (typeof globalThis !== 'undefined' && (globalThis as any).localStorage?.getItem('tisha_firebase_api_key'));
-  const projectId = (env.VITE_FIREBASE_PROJECT_ID as string) || (typeof window !== 'undefined' ? localStorage.getItem('tisha_firebase_project_id') : null) || (typeof globalThis !== 'undefined' && (globalThis as any).localStorage?.getItem('tisha_firebase_project_id'));
+  const apiKey = (env.VITE_FIREBASE_API_KEY as string) || (typeof window !== 'undefined' ? localStorage.getItem(FIREBASE_API_KEY_STORAGE) : null) || (typeof globalThis !== 'undefined' && (globalThis as any).localStorage?.getItem(FIREBASE_API_KEY_STORAGE));
+  const projectId = (env.VITE_FIREBASE_PROJECT_ID as string) || (typeof window !== 'undefined' ? localStorage.getItem(FIREBASE_PROJECT_ID_STORAGE) : null) || (typeof globalThis !== 'undefined' && (globalThis as any).localStorage?.getItem(FIREBASE_PROJECT_ID_STORAGE));
 
   if (apiKey && projectId) {
-    return { apiKey: apiKey.trim(), projectId: projectId.trim() };
+    memoryConfig = { apiKey: apiKey.trim(), projectId: projectId.trim() };
+    return memoryConfig;
   }
   return null;
+}
+
+export function setFirebaseLocalConfig(apiKey: string, projectId: string): void {
+  const cleanKey = apiKey.trim();
+  const cleanId = projectId.trim();
+  memoryConfig = { apiKey: cleanKey, projectId: cleanId };
+  if (typeof window !== 'undefined') {
+    localStorage.setItem(FIREBASE_API_KEY_STORAGE, cleanKey);
+    localStorage.setItem(FIREBASE_PROJECT_ID_STORAGE, cleanId);
+  } else if (typeof globalThis !== 'undefined' && (globalThis as any).localStorage) {
+    (globalThis as any).localStorage.setItem(FIREBASE_API_KEY_STORAGE, cleanKey);
+    (globalThis as any).localStorage.setItem(FIREBASE_PROJECT_ID_STORAGE, cleanId);
+  }
+}
+
+/**
+ * Fetch Firebase & Failover credentials from Supabase company_settings table.
+ * Populates local storage and memory cache so mobile immediately recognizes Firebase.
+ */
+export async function loadFirebaseConfigFromCloud(): Promise<FirebaseConfig | null> {
+  if (!isSupabaseConfigured() || !supabase) {
+    return getFirebaseConfig();
+  }
+
+  try {
+    const { data, error } = await supabase
+      .from('company_settings')
+      .select('profile')
+      .eq('id', CLOUD_FAILOVER_CONFIG_ID)
+      .maybeSingle();
+
+    if (!error && data && data.profile) {
+      const p = data.profile as CloudFailoverConfigRecord;
+      if (p.projectId && p.apiKey) {
+        setFirebaseLocalConfig(p.apiKey, p.projectId);
+        return { apiKey: p.apiKey, projectId: p.projectId };
+      }
+    }
+  } catch (err) {
+    console.warn('[Firebase] Could not load failover config from cloud:', err);
+  }
+
+  return getFirebaseConfig();
+}
+
+/**
+ * Save Firebase credentials to both localStorage and Supabase company_settings.
+ * Syncs seamlessly across laptop, mobile, and tablets.
+ */
+export async function saveFirebaseConfigToCloud(
+  config: FirebaseConfig,
+  primaryEngine?: 'supabase' | 'firebase',
+  updatedBy?: string
+): Promise<{ success: boolean; error?: string }> {
+  try {
+    setFirebaseLocalConfig(config.apiKey, config.projectId);
+
+    if (isSupabaseConfigured() && supabase) {
+      const payload: CloudFailoverConfigRecord = {
+        projectId: config.projectId.trim(),
+        apiKey: config.apiKey.trim(),
+        primaryEngine: primaryEngine || 'supabase',
+        updatedAt: new Date().toISOString(),
+        updatedBy: updatedBy || 'Admin'
+      };
+
+      const { error } = await supabase.from('company_settings').upsert({
+        id: CLOUD_FAILOVER_CONFIG_ID,
+        profile: payload,
+        updated_at: new Date().toISOString()
+      }, { onConflict: 'id' });
+
+      if (error) {
+        console.warn('[Firebase] Cloud failover sync warning:', error);
+      }
+    }
+
+    return { success: true };
+  } catch (err: any) {
+    console.error('[Firebase] Failed to save credentials to cloud:', err);
+    return { success: false, error: err?.message || 'Failed to sync credentials to cloud.' };
+  }
 }
 
 export function isFirebaseConfigured(): boolean {

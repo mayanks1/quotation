@@ -100,10 +100,11 @@ export function App() {
   const [isSettingsOpen, setIsSettingsOpen] = useState(false);
   const [isCatalogOpen, setIsCatalogOpen] = useState(false);
 
-  // Workspace-scoped quotations & clients
+  // Workspace-scoped quotations & clients (strictly exclude trashed/deleted quotes from active view)
+  const activeQuotations = quotations.filter((q) => !q.isDeleted);
   const displayedQuotations = isSuperAdmin
-    ? quotations
-    : quotations.filter((q) => q.organizationId === activeOrgId || (!q.organizationId && activeOrgId === 'org_tisha_main'));
+    ? activeQuotations
+    : activeQuotations.filter((q) => q.organizationId === activeOrgId || (!q.organizationId && activeOrgId === 'org_tisha_main'));
 
   const displayedClients = isSuperAdmin
     ? clients

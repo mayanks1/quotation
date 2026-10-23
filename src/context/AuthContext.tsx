@@ -7,6 +7,7 @@ import {
 import { supabase, isSupabaseConfigured } from '../services/supabaseClient';
 import { cloudSync } from '../services/cloudSync';
 import { passcodeService } from '../services/passcodeService';
+import { failoverManager } from '../services/failoverManager';
 
 // Persistent context singleton to guarantee stability across Vite Fast Refresh & HMR updates
 const getOrCreateAuthContext = () => {
@@ -147,6 +148,9 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
           const active = combined.find((o) => o.id === activeId) || combined[0];
           setOrganization(active);
         }
+
+        // Sync failover configuration & Firebase credentials from Supabase
+        failoverManager.syncWithCloud().catch(() => {});
       } catch (err) {
         console.warn('Failed to load users or orgs from cloud database:', err);
       }
@@ -171,6 +175,8 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
           setOrganizations(combined);
           localStorage.setItem(ORGS_CACHE_KEY, JSON.stringify(combined));
         }
+        // Realtime update failover & Firebase credentials across devices
+        failoverManager.syncWithCloud().catch(() => {});
       }
     });
 
@@ -230,6 +236,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
     initSession();
     passcodeService.lockSession();
+    failoverManager.syncWithCloud().catch(() => {});
   }, []);
 
   const login = async (email: string, password: string): Promise<{ success: boolean; error?: string }> => {
@@ -245,6 +252,9 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         sessionStorage.removeItem('tisha_logged_out');
         passcodeService.lockSession();
         localStorage.setItem(SESSION_KEY, JSON.stringify({ user: cloudAuth.user, organization: DEFAULT_ORG }));
+
+        // Refresh failover credentials so mobile immediately has Firebase credentials ready
+        failoverManager.syncWithCloud().catch(() => {});
 
         // Refresh team roster dynamically
         cloudSync.fetchUsersFromCloud().then((fresh) => {

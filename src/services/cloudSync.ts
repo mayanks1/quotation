@@ -317,15 +317,29 @@ export const cloudSync = {
         }
 
         // BI-DIRECTIONAL RECONCILIATION:
-        // Any quote present in local IndexedDB but missing in cloud is uploaded to Supabase
+        // If a quote exists locally but not in cloud:
+        // - If it is marked deleted, prune it from local IndexedDB
+        // - If it was permanently removed from cloud, prune it locally so it does not resurrect
+        // - Only push fresh active quotes created offline in the last 1 hour
         const cloudIds = new Set(quotesRes.data.map((r: any) => r.id));
         for (const localQ of localQuotesList) {
           if (!cloudIds.has(localQ.id)) {
-            try {
-              await cloudSync.syncQuotation(localQ);
-              console.log(`[CloudSync] Auto-uploaded missing local quote ${localQ.quotationNumber} (${localQ.id}) to cloud.`);
-            } catch (err) {
-              console.warn(`[CloudSync] Failed to push local quote ${localQ.id} to cloud:`, err);
+            if (localQ.isDeleted) {
+              await idb.deleteQuotation(localQ.id);
+            } else {
+              const createdAgeMs = Date.now() - new Date(localQ.createdAt || 0).getTime();
+              // Only sync genuinely new offline drafts created in the last 1 hour
+              if (createdAgeMs < 60 * 60 * 1000 && localQ.quotationNumber) {
+                try {
+                  await cloudSync.syncQuotation(localQ);
+                  console.log(`[CloudSync] Auto-uploaded new offline draft ${localQ.quotationNumber} (${localQ.id}) to cloud.`);
+                } catch (err) {
+                  console.warn(`[CloudSync] Failed to push local quote ${localQ.id} to cloud:`, err);
+                }
+              } else {
+                // Stale quotation purged from cloud: prune from local IndexedDB
+                await idb.deleteQuotation(localQ.id);
+              }
             }
           }
         }

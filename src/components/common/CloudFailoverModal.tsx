@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { X, Cloud, ShieldCheck, RefreshCw, CheckCircle2, AlertTriangle, ArrowRight, Database, Server, Zap, Check, Lock } from 'lucide-react';
-import { getFirebaseConfig, testFirestoreConnection } from '../../services/firebaseService';
+import { getFirebaseConfig, testFirestoreConnection, setFirebaseLocalConfig } from '../../services/firebaseService';
 import { failoverManager, DatabaseEngine } from '../../services/failoverManager';
 import { storage } from '../../services/storage';
 import { fetchLedgerRecords } from '../../services/ledgerService';
@@ -20,6 +20,7 @@ export const CloudFailoverModal: React.FC<Props> = ({ isOpen, onClose }) => {
   const [projectId, setProjectId] = useState('');
   const [apiKey, setApiKey] = useState('');
   const [isTesting, setIsTesting] = useState(false);
+  const [isSaving, setIsSaving] = useState(false);
   const [testResult, setTestResult] = useState<{ success: boolean; message: string } | null>(null);
   const [isSyncing, setIsSyncing] = useState(false);
   const [syncProgress, setSyncProgress] = useState('');
@@ -27,12 +28,23 @@ export const CloudFailoverModal: React.FC<Props> = ({ isOpen, onClose }) => {
 
   useEffect(() => {
     if (isOpen) {
+      // 1. Immediately display local or cached values
       const cfg = getFirebaseConfig();
       if (cfg) {
         setProjectId(cfg.projectId);
         setApiKey(cfg.apiKey);
       }
       setStatus(failoverManager.getStatus());
+
+      // 2. Fetch fresh cloud config from Supabase so mobile loads desktop settings automatically
+      failoverManager.syncWithCloud().then(() => {
+        const fresh = getFirebaseConfig();
+        if (fresh) {
+          setProjectId(fresh.projectId);
+          setApiKey(fresh.apiKey);
+        }
+        setStatus(failoverManager.getStatus());
+      });
     }
   }, [isOpen]);
 
@@ -58,7 +70,7 @@ export const CloudFailoverModal: React.FC<Props> = ({ isOpen, onClose }) => {
     }
   };
 
-  const handleSaveConfig = (e: React.FormEvent) => {
+  const handleSaveConfig = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!canManageDowntimeSync) {
       toast.error('Restricted: Saving Firebase credentials requires Super Admin authorization in Permissions Matrix.');
@@ -69,11 +81,19 @@ export const CloudFailoverModal: React.FC<Props> = ({ isOpen, onClose }) => {
       return;
     }
 
-    localStorage.setItem('tisha_firebase_project_id', projectId.trim());
-    localStorage.setItem('tisha_firebase_api_key', apiKey.trim());
-    setStatus(failoverManager.getStatus());
-    toast.success('Firebase failover credentials saved successfully!');
-    setTestResult(null);
+    setIsSaving(true);
+    try {
+      const res = await failoverManager.saveCredentials(projectId.trim(), apiKey.trim());
+      if (res.success) {
+        setStatus(failoverManager.getStatus());
+        toast.success('Firebase failover credentials synced across all devices (Laptop & Mobile)!');
+        setTestResult(null);
+      } else {
+        toast.error(res.error || 'Failed to save Firebase credentials.');
+      }
+    } finally {
+      setIsSaving(false);
+    }
   };
 
   const handleTest = async () => {
@@ -88,8 +108,7 @@ export const CloudFailoverModal: React.FC<Props> = ({ isOpen, onClose }) => {
     setIsTesting(true);
     setTestResult(null);
     try {
-      localStorage.setItem('tisha_firebase_project_id', projectId.trim());
-      localStorage.setItem('tisha_firebase_api_key', apiKey.trim());
+      setFirebaseLocalConfig(apiKey.trim(), projectId.trim());
       const res = await testFirestoreConnection();
       setTestResult(res);
       if (res.success) {
@@ -276,7 +295,7 @@ export const CloudFailoverModal: React.FC<Props> = ({ isOpen, onClose }) => {
                   <span>Firebase Credentials</span>
                 </h4>
                 <p className="text-[11px] text-neutral-400 mt-0.5">
-                  Free Firebase Spark tier credentials for automatic secondary mirroring.
+                  Free Firebase Spark tier credentials. Automatically synced across Laptop, Mobile & Tablets.
                 </p>
               </div>
             </div>
@@ -328,9 +347,11 @@ export const CloudFailoverModal: React.FC<Props> = ({ isOpen, onClose }) => {
               </button>
               <button
                 type="submit"
-                className="px-4 py-2 rounded-lg bg-blue-600 hover:bg-blue-500 text-xs text-white font-bold transition-colors shadow-sm flex items-center justify-center cursor-pointer"
+                disabled={isSaving}
+                className="px-4 py-2 rounded-lg bg-blue-600 hover:bg-blue-500 disabled:opacity-50 text-xs text-white font-bold transition-colors shadow-sm flex items-center justify-center gap-1.5 cursor-pointer"
               >
-                Save Credentials
+                {isSaving && <RefreshCw size={13} className="animate-spin" />}
+                <span>{isSaving ? 'Syncing...' : 'Save Credentials'}</span>
               </button>
             </div>
           </form>
