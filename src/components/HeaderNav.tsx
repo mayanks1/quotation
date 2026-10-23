@@ -104,10 +104,9 @@ export const HeaderNav: React.FC<Props> = ({
             <NavLink
               to="/quotes"
               className={({ isActive }) =>
-                `flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold whitespace-nowrap transition-all ${
-                  isActive
-                    ? 'bg-blue-600 text-white shadow-sm shadow-blue-500/30 font-bold'
-                    : 'text-neutral-300 hover:text-white hover:bg-neutral-800/90'
+                `flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold whitespace-nowrap transition-all ${isActive
+                  ? 'bg-blue-600 text-white shadow-sm shadow-blue-500/30 font-bold'
+                  : 'text-neutral-300 hover:text-white hover:bg-neutral-800/90'
                 }`
               }
             >
@@ -119,10 +118,9 @@ export const HeaderNav: React.FC<Props> = ({
               <NavLink
                 to="/clients"
                 className={({ isActive }) =>
-                  `flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold whitespace-nowrap transition-all ${
-                    isActive
-                      ? 'bg-blue-600 text-white shadow-sm shadow-blue-500/30 font-bold'
-                      : 'text-neutral-300 hover:text-white hover:bg-neutral-800/90'
+                  `flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold whitespace-nowrap transition-all ${isActive
+                    ? 'bg-blue-600 text-white shadow-sm shadow-blue-500/30 font-bold'
+                    : 'text-neutral-300 hover:text-white hover:bg-neutral-800/90'
                   }`
                 }
               >
@@ -135,11 +133,10 @@ export const HeaderNav: React.FC<Props> = ({
               <button
                 type="button"
                 onClick={handleLedgerClick}
-                className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold whitespace-nowrap transition-all cursor-pointer ${
-                  location.pathname.startsWith('/ledger')
-                    ? 'bg-emerald-600 text-white shadow-sm shadow-emerald-500/30 font-bold'
-                    : 'text-emerald-400 hover:text-white hover:bg-emerald-950/50'
-                }`}
+                className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold whitespace-nowrap transition-all cursor-pointer ${location.pathname.startsWith('/ledger')
+                  ? 'bg-emerald-600 text-white shadow-sm shadow-emerald-500/30 font-bold'
+                  : 'text-emerald-400 hover:text-white hover:bg-emerald-950/50'
+                  }`}
               >
                 <CreditCard size={14} className="text-emerald-400 shrink-0" />
                 <span>Payment Ledger</span>
@@ -150,10 +147,9 @@ export const HeaderNav: React.FC<Props> = ({
               <NavLink
                 to="/team"
                 className={({ isActive }) =>
-                  `flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold whitespace-nowrap transition-all ${
-                    isActive
-                      ? 'bg-purple-600 text-white shadow-sm shadow-purple-500/30 font-bold'
-                      : 'text-purple-300 hover:text-white hover:bg-purple-950/60'
+                  `flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold whitespace-nowrap transition-all ${isActive
+                    ? 'bg-purple-600 text-white shadow-sm shadow-purple-500/30 font-bold'
+                    : 'text-purple-300 hover:text-white hover:bg-purple-950/60'
                   }`
                 }
               >
@@ -288,18 +284,6 @@ export const HeaderNav: React.FC<Props> = ({
                         type="button"
                         onClick={() => {
                           setIsUserMenuOpen(false);
-                          onOpenSettings();
-                        }}
-                        className="w-full flex items-center gap-2.5 px-3.5 py-2 text-xs hover:bg-neutral-800/80 transition-colors text-left"
-                      >
-                        <Settings size={14} className="text-neutral-400" />
-                        <span>Company &amp; System Settings</span>
-                      </button>
-
-                      <button
-                        type="button"
-                        onClick={() => {
-                          setIsUserMenuOpen(false);
                           setIsChangePasswordOpen(true);
                         }}
                         className="w-full flex items-center gap-2.5 px-3.5 py-2 text-xs hover:bg-neutral-800/80 transition-colors text-left text-amber-300 font-semibold cursor-pointer"
@@ -321,6 +305,20 @@ export const HeaderNav: React.FC<Props> = ({
                           <span>0% Downtime Sync &amp; Failover</span>
                         </button>
                       )}
+
+                      <button
+                        type="button"
+                        onClick={() => {
+                          setIsUserMenuOpen(false);
+                          onOpenSettings();
+                        }}
+                        className="w-full flex items-center gap-2.5 px-3.5 py-2 text-xs hover:bg-neutral-800/80 transition-colors text-left"
+                      >
+                        <Settings size={14} className="text-neutral-400" />
+                        <span>
+                          {/* Company &amp;  */}
+                          System Settings</span>
+                      </button>
                     </div>
 
                     {/* Multi-Workspace Switcher: Only Super Admin can view & switch all workspaces */}
@@ -434,11 +432,10 @@ export const HeaderNav: React.FC<Props> = ({
               <button
                 type="button"
                 onClick={handleLedgerClick}
-                className={`flex-1 flex items-center justify-center gap-1 py-1.5 px-2 rounded-lg text-xs font-bold transition-all whitespace-nowrap cursor-pointer ${
-                  location.pathname.startsWith('/ledger')
-                    ? 'bg-emerald-600 text-white shadow-sm shadow-emerald-500/30'
-                    : 'text-emerald-400 hover:text-white hover:bg-neutral-800'
-                }`}
+                className={`flex-1 flex items-center justify-center gap-1 py-1.5 px-2 rounded-lg text-xs font-bold transition-all whitespace-nowrap cursor-pointer ${location.pathname.startsWith('/ledger')
+                  ? 'bg-emerald-600 text-white shadow-sm shadow-emerald-500/30'
+                  : 'text-emerald-400 hover:text-white hover:bg-neutral-800'
+                  }`}
               >
                 <CreditCard size={13} />
                 <span>Ledger</span>

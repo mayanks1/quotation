@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { X, Building2, Save, Image as ImageIcon, CreditCard, Download, Upload, Cloud, HardDrive, CheckCircle2, RefreshCw, AlertCircle, Trash2, PenTool, Package, Lock, MessageSquare, Sliders, Mail, KeyRound, Shield, Clock, Archive, BookOpen } from 'lucide-react';
+import { X, Building2, Save, Image as ImageIcon, CreditCard, Download, Upload, Cloud, HardDrive, CheckCircle2, RefreshCw, AlertCircle, Trash2, PenTool, Package, Lock, MessageSquare, Sliders, Mail, KeyRound, Shield, Clock, Archive, BookOpen, Pin } from 'lucide-react';
 import { CompanyProfile } from '../types/quotation';
 import { storage } from '../services/storage';
 import { DEFAULT_COMPANY } from '../config/defaults';
@@ -41,11 +41,11 @@ const ensureCompanyProfile = (c?: Partial<CompanyProfile> | null): CompanyProfil
   };
 };
 
-export const CompanySettingsModal: React.FC<Props> = ({ 
-  isOpen, 
-  onClose, 
-  company, 
-  onSave, 
+export const CompanySettingsModal: React.FC<Props> = ({
+  isOpen,
+  onClose,
+  company,
+  onSave,
   onRestoreBackup,
   onOpenCatalog
 }) => {
@@ -74,6 +74,14 @@ export const CompanySettingsModal: React.FC<Props> = ({
   const [isCloudFailoverModalOpen, setIsCloudFailoverModalOpen] = useState(false);
   const [testResult, setTestResult] = useState<{ success: boolean; message: string; tableReady?: boolean } | null>(null);
   const [autoLedgerSync, setAutoLedgerSync] = useState<boolean>(() => storage.isAutoLedgerSyncEnabled());
+  const [isStickyHeader, setIsStickyHeader] = useState<boolean>(() => {
+    try {
+      const val = localStorage.getItem('tlw_sticky_header_dock');
+      return val !== null ? val === 'true' : true;
+    } catch {
+      return true;
+    }
+  });
 
   const formRef = useRef<HTMLDivElement>(null);
   const [activeTabId, setActiveTabId] = useState<string>('section-company');
@@ -103,6 +111,10 @@ export const CompanySettingsModal: React.FC<Props> = ({
       setTestResult(null);
       setBackupConfig(backupService.getConfig());
       setAutoLedgerSync(storage.isAutoLedgerSyncEnabled());
+      try {
+        const val = localStorage.getItem('tlw_sticky_header_dock');
+        setIsStickyHeader(val !== null ? val === 'true' : true);
+      } catch { }
       securityService.loadFromCloud().then(setSecuritySettings);
       backupService.loadFromCloud().then(() => setBackupConfig(backupService.getConfig()));
     }
@@ -189,13 +201,15 @@ export const CompanySettingsModal: React.FC<Props> = ({
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm p-3 sm:p-4 animate-fade-in">
       <div className="bg-white text-slate-900 rounded-2xl shadow-2xl max-w-3xl w-full max-h-[92vh] flex flex-col overflow-hidden border border-slate-100">
-        
+
         {/* Header */}
         <div className="flex items-center justify-between px-4 sm:px-6 py-3.5 sm:py-4 bg-slate-900 text-white shrink-0">
           <div className="flex items-center gap-2.5 min-w-0 flex-1 mr-2">
             <Building2 className="text-blue-400 shrink-0" size={22} />
             <div className="min-w-0">
-              <h3 className="text-base sm:text-lg font-bold leading-tight truncate">Company Profile &amp; System Settings</h3>
+              <h3 className="text-base sm:text-lg font-bold leading-tight truncate">
+                {/* Company Profile &amp;  */}
+                System Settings</h3>
               <p className="text-[11px] sm:text-xs text-slate-400 leading-tight mt-0.5 truncate sm:whitespace-normal">Configure company branding, banking, templates, equipment catalog &amp; security preferences</p>
             </div>
           </div>
@@ -214,11 +228,10 @@ export const CompanySettingsModal: React.FC<Props> = ({
                 key={tab.id}
                 type="button"
                 onClick={() => scrollToSection(tab.id)}
-                className={`inline-flex items-center gap-1.5 px-2.5 sm:px-3 py-1.5 rounded-lg text-xs font-semibold whitespace-nowrap transition-all cursor-pointer shrink-0 ${
-                  isActive
+                className={`inline-flex items-center gap-1.5 px-2.5 sm:px-3 py-1.5 rounded-lg text-xs font-semibold whitespace-nowrap transition-all cursor-pointer shrink-0 ${isActive
                     ? 'bg-blue-600 text-white shadow-xs'
                     : 'bg-white hover:bg-slate-200/80 text-slate-600 hover:text-slate-900 border border-slate-200/80 shadow-2xs'
-                }`}
+                  }`}
               >
                 <Icon size={13} className={isActive ? 'text-white' : 'text-slate-500'} />
                 <span className="hidden sm:inline">{tab.label}</span>
@@ -235,738 +248,781 @@ export const CompanySettingsModal: React.FC<Props> = ({
 
             {/* Logo, Stamp & Basic Info */}
             <div id="section-company" className="scroll-mt-4">
-            <h4 className="text-xs font-bold text-slate-500 uppercase tracking-wider mb-3">Company Details &amp; Branding</h4>
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 mb-4">
-              
-              {/* Logo Box */}
-              <div>
-                <label className="text-xs font-medium text-slate-600 block mb-1">Company Logo</label>
-                <div className="h-24 border-2 border-dashed border-slate-300 rounded-xl flex flex-col items-center justify-center overflow-hidden relative group bg-slate-50">
-                  {profile.logo ? (
-                    <>
-                      <img src={profile.logo} alt="Logo" className="w-full h-full object-contain p-1.5" />
-                      <label className="absolute inset-0 bg-black/60 opacity-0 group-hover:opacity-100 flex items-center justify-center cursor-pointer transition-opacity">
-                        <ImageIcon size={20} className="text-white" />
+              <h4 className="text-xs font-bold text-slate-500 uppercase tracking-wider mb-3">Company Details &amp; Branding</h4>
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 mb-4">
+
+                {/* Logo Box */}
+                <div>
+                  <label className="text-xs font-medium text-slate-600 block mb-1">Company Logo</label>
+                  <div className="h-24 border-2 border-dashed border-slate-300 rounded-xl flex flex-col items-center justify-center overflow-hidden relative group bg-slate-50">
+                    {profile.logo ? (
+                      <>
+                        <img src={profile.logo} alt="Logo" className="w-full h-full object-contain p-1.5" />
+                        <label className="absolute inset-0 bg-black/60 opacity-0 group-hover:opacity-100 flex items-center justify-center cursor-pointer transition-opacity">
+                          <ImageIcon size={20} className="text-white" />
+                          <input type="file" accept="image/*" onChange={handleLogoUpload} className="hidden" />
+                        </label>
+                      </>
+                    ) : (
+                      <label className="flex flex-col items-center justify-center cursor-pointer p-2 text-center text-slate-400 hover:text-blue-600">
+                        <ImageIcon size={22} className="mb-1" />
+                        <span className="text-[10px] font-medium leading-tight">Upload Logo</span>
                         <input type="file" accept="image/*" onChange={handleLogoUpload} className="hidden" />
                       </label>
-                    </>
-                  ) : (
-                    <label className="flex flex-col items-center justify-center cursor-pointer p-2 text-center text-slate-400 hover:text-blue-600">
-                      <ImageIcon size={22} className="mb-1" />
-                      <span className="text-[10px] font-medium leading-tight">Upload Logo</span>
-                      <input type="file" accept="image/*" onChange={handleLogoUpload} className="hidden" />
-                    </label>
-                  )}
-                </div>
-                {profile.logo && (
-                  <button
-                    type="button"
-                    onClick={() => {
-                      setProfile((prev) => ({ ...prev, logo: '' }));
-                      toast.info('Logo cleared');
-                    }}
-                    className="mt-1 w-full text-center text-[10px] font-bold text-rose-600 hover:text-rose-700 hover:bg-rose-50 py-0.5 rounded transition-colors flex items-center justify-center gap-1 cursor-pointer"
-                  >
-                    <Trash2 size={11} />
-                    <span>Clear Logo</span>
-                  </button>
-                )}
-              </div>
-
-              {/* Stamp & Signature Box */}
-              <div>
-                <label className="text-xs font-medium text-slate-600 block mb-1">Official Stamp &amp; Signature</label>
-                <div className="h-24 border-2 border-dashed border-slate-300 rounded-xl flex flex-col items-center justify-center overflow-hidden relative group bg-slate-50">
-                  {profile.signature ? (
-                    <>
-                      <img src={profile.signature} alt="Official Stamp & Signature" className="w-full h-full object-contain p-1.5" />
-                      <button
-                        type="button"
-                        onClick={() => setIsStampModalOpen(true)}
-                        className="absolute inset-0 bg-black/60 opacity-0 group-hover:opacity-100 flex items-center justify-center cursor-pointer transition-opacity text-white text-xs font-bold gap-1.5"
-                      >
-                        <PenTool size={16} />
-                        <span>Change Stamp</span>
-                      </button>
-                    </>
-                  ) : (
+                    )}
+                  </div>
+                  {profile.logo && (
                     <button
                       type="button"
-                      onClick={() => setIsStampModalOpen(true)}
-                      className="flex flex-col items-center justify-center cursor-pointer p-2 text-center text-slate-400 hover:text-blue-600 w-full h-full"
+                      onClick={() => {
+                        setProfile((prev) => ({ ...prev, logo: '' }));
+                        toast.info('Logo cleared');
+                      }}
+                      className="mt-1 w-full text-center text-[10px] font-bold text-rose-600 hover:text-rose-700 hover:bg-rose-50 py-0.5 rounded transition-colors flex items-center justify-center gap-1 cursor-pointer"
                     >
-                      <PenTool size={22} className="mb-1 text-slate-400" />
-                      <span className="text-[10px] font-medium leading-tight">Upload / Draw Stamp &amp; Signature</span>
-                      <span className="text-[9px] text-slate-400 leading-tight mt-0.5">Draw signature or upload stamp</span>
+                      <Trash2 size={11} />
+                      <span>Clear Logo</span>
                     </button>
                   )}
                 </div>
-                {profile.signature && (
-                  <button
-                    type="button"
-                    onClick={() => {
-                      setProfile((prev) => ({ ...prev, signature: '' }));
-                      toast.info('Official Stamp & Signature cleared');
-                    }}
-                    className="mt-1 w-full text-center text-[10px] font-bold text-rose-600 hover:text-rose-700 hover:bg-rose-50 py-0.5 rounded transition-colors flex items-center justify-center gap-1 cursor-pointer"
-                  >
-                    <Trash2 size={11} />
-                    <span>Clear Stamp</span>
-                  </button>
+
+                {/* Stamp & Signature Box */}
+                <div>
+                  <label className="text-xs font-medium text-slate-600 block mb-1">Official Stamp &amp; Signature</label>
+                  <div className="h-24 border-2 border-dashed border-slate-300 rounded-xl flex flex-col items-center justify-center overflow-hidden relative group bg-slate-50">
+                    {profile.signature ? (
+                      <>
+                        <img src={profile.signature} alt="Official Stamp & Signature" className="w-full h-full object-contain p-1.5" />
+                        <button
+                          type="button"
+                          onClick={() => setIsStampModalOpen(true)}
+                          className="absolute inset-0 bg-black/60 opacity-0 group-hover:opacity-100 flex items-center justify-center cursor-pointer transition-opacity text-white text-xs font-bold gap-1.5"
+                        >
+                          <PenTool size={16} />
+                          <span>Change Stamp</span>
+                        </button>
+                      </>
+                    ) : (
+                      <button
+                        type="button"
+                        onClick={() => setIsStampModalOpen(true)}
+                        className="flex flex-col items-center justify-center cursor-pointer p-2 text-center text-slate-400 hover:text-blue-600 w-full h-full"
+                      >
+                        <PenTool size={22} className="mb-1 text-slate-400" />
+                        <span className="text-[10px] font-medium leading-tight">Upload / Draw Stamp &amp; Signature</span>
+                        <span className="text-[9px] text-slate-400 leading-tight mt-0.5">Draw signature or upload stamp</span>
+                      </button>
+                    )}
+                  </div>
+                  {profile.signature && (
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setProfile((prev) => ({ ...prev, signature: '' }));
+                        toast.info('Official Stamp & Signature cleared');
+                      }}
+                      className="mt-1 w-full text-center text-[10px] font-bold text-rose-600 hover:text-rose-700 hover:bg-rose-50 py-0.5 rounded transition-colors flex items-center justify-center gap-1 cursor-pointer"
+                    >
+                      <Trash2 size={11} />
+                      <span>Clear Stamp</span>
+                    </button>
+                  )}
+                </div>
+
+              </div>
+
+              <div className="space-y-3">
+                <div>
+                  <label className="text-xs font-medium text-slate-600 block mb-1">Business Name</label>
+                  <input
+                    type="text"
+                    required
+                    value={profile.name}
+                    onChange={(e) => setProfile({ ...profile, name: e.target.value })}
+                    className="w-full bg-slate-50 border border-slate-200 rounded-lg p-2 text-sm font-semibold focus:outline-blue-500"
+                  />
+                </div>
+                <div>
+                  <label className="text-xs font-medium text-slate-600 block mb-1">Tagline / Subheading</label>
+                  <input
+                    type="text"
+                    value={profile.tagline || ''}
+                    onChange={(e) => setProfile({ ...profile, tagline: e.target.value })}
+                    className="w-full bg-slate-50 border border-slate-200 rounded-lg p-2 text-xs focus:outline-blue-500"
+                    placeholder="e.g. Professional LED Video Walls & Stage Solutions"
+                  />
+                </div>
+              </div>
+            </div>
+
+            {/* Contact & Registration */}
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3.5">
+              <div className="sm:col-span-2">
+                <label className="text-xs font-medium text-slate-600 block mb-1">Office / Warehouse Address</label>
+                <textarea
+                  rows={2}
+                  value={profile.address}
+                  onChange={(e) => setProfile({ ...profile, address: e.target.value })}
+                  className="w-full bg-slate-50 border border-slate-200 rounded-lg p-2 text-xs focus:outline-blue-500"
+                />
+              </div>
+              <div>
+                <label className="text-xs font-medium text-slate-600 block mb-1">Primary Phone</label>
+                <input
+                  type="text"
+                  value={profile.phone}
+                  onChange={(e) => setProfile({ ...profile, phone: e.target.value })}
+                  className="w-full bg-slate-50 border border-slate-200 rounded-lg p-2 text-xs focus:outline-blue-500"
+                />
+              </div>
+              <div>
+                <label className="text-xs font-medium text-slate-600 block mb-1">Alternate Phone</label>
+                <input
+                  type="text"
+                  value={profile.phoneAlt || ''}
+                  onChange={(e) => setProfile({ ...profile, phoneAlt: e.target.value })}
+                  className="w-full bg-slate-50 border border-slate-200 rounded-lg p-2 text-xs focus:outline-blue-500"
+                />
+              </div>
+              <div>
+                <label className="text-xs font-medium text-slate-600 block mb-1">Official Email</label>
+                <input
+                  type="email"
+                  value={profile.email}
+                  onChange={(e) => setProfile({ ...profile, email: e.target.value })}
+                  className="w-full bg-slate-50 border border-slate-200 rounded-lg p-2 text-xs focus:outline-blue-500"
+                />
+              </div>
+              <div>
+                <label className="text-xs font-medium text-slate-600 block mb-1">GSTIN Number</label>
+                <input
+                  type="text"
+                  value={profile.gstin || ''}
+                  onChange={(e) => setProfile({ ...profile, gstin: e.target.value })}
+                  placeholder="06XXXXX0000X1Z5"
+                  className="w-full bg-slate-50 border border-slate-200 rounded-lg p-2 text-xs font-mono uppercase focus:outline-blue-500"
+                />
+              </div>
+            </div>
+
+            {/* Banking & UPI */}
+            <div id="section-banking" className="scroll-mt-4 bg-slate-50/80 p-4 rounded-xl border border-slate-200/80 space-y-3">
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-2 text-xs font-bold text-slate-700 uppercase tracking-wider">
+                  <CreditCard size={16} className="text-blue-600" />
+                  <span>Bank Account &amp; UPI Details</span>
+                </div>
+                {!canEditBank && (
+                  <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded text-[10px] font-bold bg-amber-100 text-amber-800 border border-amber-200">
+                    <Lock size={10} />
+                    <span>Super Admin Only</span>
+                  </span>
                 )}
               </div>
 
-            </div>
-
-            <div className="space-y-3">
-              <div>
-                <label className="text-xs font-medium text-slate-600 block mb-1">Business Name</label>
-                <input
-                  type="text"
-                  required
-                  value={profile.name}
-                  onChange={(e) => setProfile({ ...profile, name: e.target.value })}
-                  className="w-full bg-slate-50 border border-slate-200 rounded-lg p-2 text-sm font-semibold focus:outline-blue-500"
-                />
-              </div>
-              <div>
-                <label className="text-xs font-medium text-slate-600 block mb-1">Tagline / Subheading</label>
-                <input
-                  type="text"
-                  value={profile.tagline || ''}
-                  onChange={(e) => setProfile({ ...profile, tagline: e.target.value })}
-                  className="w-full bg-slate-50 border border-slate-200 rounded-lg p-2 text-xs focus:outline-blue-500"
-                  placeholder="e.g. Professional LED Video Walls & Stage Solutions"
-                />
-              </div>
-            </div>
-          </div>
-
-          {/* Contact & Registration */}
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3.5">
-            <div className="sm:col-span-2">
-              <label className="text-xs font-medium text-slate-600 block mb-1">Office / Warehouse Address</label>
-              <textarea
-                rows={2}
-                value={profile.address}
-                onChange={(e) => setProfile({ ...profile, address: e.target.value })}
-                className="w-full bg-slate-50 border border-slate-200 rounded-lg p-2 text-xs focus:outline-blue-500"
-              />
-            </div>
-            <div>
-              <label className="text-xs font-medium text-slate-600 block mb-1">Primary Phone</label>
-              <input
-                type="text"
-                value={profile.phone}
-                onChange={(e) => setProfile({ ...profile, phone: e.target.value })}
-                className="w-full bg-slate-50 border border-slate-200 rounded-lg p-2 text-xs focus:outline-blue-500"
-              />
-            </div>
-            <div>
-              <label className="text-xs font-medium text-slate-600 block mb-1">Alternate Phone</label>
-              <input
-                type="text"
-                value={profile.phoneAlt || ''}
-                onChange={(e) => setProfile({ ...profile, phoneAlt: e.target.value })}
-                className="w-full bg-slate-50 border border-slate-200 rounded-lg p-2 text-xs focus:outline-blue-500"
-              />
-            </div>
-            <div>
-              <label className="text-xs font-medium text-slate-600 block mb-1">Official Email</label>
-              <input
-                type="email"
-                value={profile.email}
-                onChange={(e) => setProfile({ ...profile, email: e.target.value })}
-                className="w-full bg-slate-50 border border-slate-200 rounded-lg p-2 text-xs focus:outline-blue-500"
-              />
-            </div>
-            <div>
-              <label className="text-xs font-medium text-slate-600 block mb-1">GSTIN Number</label>
-              <input
-                type="text"
-                value={profile.gstin || ''}
-                onChange={(e) => setProfile({ ...profile, gstin: e.target.value })}
-                placeholder="06XXXXX0000X1Z5"
-                className="w-full bg-slate-50 border border-slate-200 rounded-lg p-2 text-xs font-mono uppercase focus:outline-blue-500"
-              />
-            </div>
-          </div>
-
-          {/* Banking & UPI */}
-          <div id="section-banking" className="scroll-mt-4 bg-slate-50/80 p-4 rounded-xl border border-slate-200/80 space-y-3">
-            <div className="flex items-center justify-between">
-              <div className="flex items-center gap-2 text-xs font-bold text-slate-700 uppercase tracking-wider">
-                <CreditCard size={16} className="text-blue-600" />
-                <span>Bank Account &amp; UPI Details</span>
-              </div>
               {!canEditBank && (
-                <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded text-[10px] font-bold bg-amber-100 text-amber-800 border border-amber-200">
-                  <Lock size={10} />
-                  <span>Super Admin Only</span>
-                </span>
+                <div className="p-2.5 bg-amber-50 border border-amber-200 rounded-lg flex items-start gap-2 text-xs text-amber-800">
+                  <Lock size={14} className="text-amber-600 shrink-0 mt-0.5" />
+                  <div className="text-[11px] leading-relaxed">
+                    <strong className="font-bold">Locked by Super Admin:</strong> You do not have permission to modify company payment bank accounts or UPI IDs. Contact Super Admin to request changes.
+                  </div>
+                </div>
               )}
-            </div>
 
-            {!canEditBank && (
-              <div className="p-2.5 bg-amber-50 border border-amber-200 rounded-lg flex items-start gap-2 text-xs text-amber-800">
-                <Lock size={14} className="text-amber-600 shrink-0 mt-0.5" />
-                <div className="text-[11px] leading-relaxed">
-                  <strong className="font-bold">Locked by Super Admin:</strong> You do not have permission to modify company payment bank accounts or UPI IDs. Contact Super Admin to request changes.
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                <div>
+                  <label className="text-xs font-medium text-slate-600 block mb-1">Account Holder Name</label>
+                  <input
+                    type="text"
+                    disabled={!canEditBank}
+                    value={profile.bankDetails?.accountName || ''}
+                    onChange={(e) =>
+                      setProfile((prev) => ({
+                        ...prev,
+                        bankDetails: { ...(prev.bankDetails || DEFAULT_COMPANY.bankDetails), accountName: e.target.value },
+                      }))
+                    }
+                    className="w-full bg-white border border-slate-200 rounded-lg p-2 text-xs focus:outline-blue-500 font-medium disabled:bg-slate-100 disabled:text-slate-500 disabled:cursor-not-allowed"
+                  />
+                </div>
+                <div>
+                  <label className="text-xs font-medium text-slate-600 block mb-1">Bank Name</label>
+                  <input
+                    type="text"
+                    disabled={!canEditBank}
+                    value={profile.bankDetails?.bankName || ''}
+                    onChange={(e) =>
+                      setProfile((prev) => ({
+                        ...prev,
+                        bankDetails: { ...(prev.bankDetails || DEFAULT_COMPANY.bankDetails), bankName: e.target.value },
+                      }))
+                    }
+                    className="w-full bg-white border border-slate-200 rounded-lg p-2 text-xs focus:outline-blue-500 font-medium disabled:bg-slate-100 disabled:text-slate-500 disabled:cursor-not-allowed"
+                  />
+                </div>
+                <div>
+                  <label className="text-xs font-medium text-slate-600 block mb-1">Account Number</label>
+                  <input
+                    type="text"
+                    disabled={!canEditBank}
+                    value={profile.bankDetails?.accountNumber || ''}
+                    onChange={(e) =>
+                      setProfile((prev) => ({
+                        ...prev,
+                        bankDetails: { ...(prev.bankDetails || DEFAULT_COMPANY.bankDetails), accountNumber: e.target.value },
+                      }))
+                    }
+                    className="w-full bg-white border border-slate-200 rounded-lg p-2 text-xs font-mono focus:outline-blue-500 font-semibold disabled:bg-slate-100 disabled:text-slate-500 disabled:cursor-not-allowed"
+                  />
+                </div>
+                <div>
+                  <label className="text-xs font-medium text-slate-600 block mb-1">IFSC Code</label>
+                  <input
+                    type="text"
+                    disabled={!canEditBank}
+                    value={profile.bankDetails?.ifscCode || ''}
+                    onChange={(e) =>
+                      setProfile((prev) => ({
+                        ...prev,
+                        bankDetails: { ...(prev.bankDetails || DEFAULT_COMPANY.bankDetails), ifscCode: e.target.value.toUpperCase() },
+                      }))
+                    }
+                    className="w-full bg-white border border-slate-200 rounded-lg p-2 text-xs font-mono uppercase focus:outline-blue-500 font-semibold disabled:bg-slate-100 disabled:text-slate-500 disabled:cursor-not-allowed"
+                  />
+                </div>
+                <div>
+                  <label className="text-xs font-medium text-slate-600 block mb-1">Bank Branch</label>
+                  <input
+                    type="text"
+                    disabled={!canEditBank}
+                    value={profile.bankDetails?.branch || ''}
+                    onChange={(e) =>
+                      setProfile((prev) => ({
+                        ...prev,
+                        bankDetails: { ...(prev.bankDetails || DEFAULT_COMPANY.bankDetails), branch: e.target.value },
+                      }))
+                    }
+                    className="w-full bg-white border border-slate-200 rounded-lg p-2 text-xs focus:outline-blue-500 disabled:bg-slate-100 disabled:text-slate-500 disabled:cursor-not-allowed"
+                  />
+                </div>
+                <div>
+                  <label className="text-xs font-medium text-blue-700 block mb-1">UPI ID (GooglePay / PhonePe / Paytm)</label>
+                  <input
+                    type="text"
+                    disabled={!canEditBank}
+                    value={profile.bankDetails?.upiId || ''}
+                    onChange={(e) =>
+                      setProfile((prev) => ({
+                        ...prev,
+                        bankDetails: { ...(prev.bankDetails || DEFAULT_COMPANY.bankDetails), upiId: e.target.value },
+                      }))
+                    }
+                    placeholder="e.g. 7703948857@upi"
+                    className="w-full bg-white border border-blue-200 rounded-lg p-2 text-xs font-mono text-blue-700 focus:outline-blue-500 font-semibold disabled:bg-slate-100 disabled:text-slate-500 disabled:cursor-not-allowed"
+                  />
                 </div>
               </div>
-            )}
-
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-              <div>
-                <label className="text-xs font-medium text-slate-600 block mb-1">Account Holder Name</label>
-                <input
-                  type="text"
-                  disabled={!canEditBank}
-                  value={profile.bankDetails?.accountName || ''}
-                  onChange={(e) =>
-                    setProfile((prev) => ({
-                      ...prev,
-                      bankDetails: { ...(prev.bankDetails || DEFAULT_COMPANY.bankDetails), accountName: e.target.value },
-                    }))
-                  }
-                  className="w-full bg-white border border-slate-200 rounded-lg p-2 text-xs focus:outline-blue-500 font-medium disabled:bg-slate-100 disabled:text-slate-500 disabled:cursor-not-allowed"
-                />
-              </div>
-              <div>
-                <label className="text-xs font-medium text-slate-600 block mb-1">Bank Name</label>
-                <input
-                  type="text"
-                  disabled={!canEditBank}
-                  value={profile.bankDetails?.bankName || ''}
-                  onChange={(e) =>
-                    setProfile((prev) => ({
-                      ...prev,
-                      bankDetails: { ...(prev.bankDetails || DEFAULT_COMPANY.bankDetails), bankName: e.target.value },
-                    }))
-                  }
-                  className="w-full bg-white border border-slate-200 rounded-lg p-2 text-xs focus:outline-blue-500 font-medium disabled:bg-slate-100 disabled:text-slate-500 disabled:cursor-not-allowed"
-                />
-              </div>
-              <div>
-                <label className="text-xs font-medium text-slate-600 block mb-1">Account Number</label>
-                <input
-                  type="text"
-                  disabled={!canEditBank}
-                  value={profile.bankDetails?.accountNumber || ''}
-                  onChange={(e) =>
-                    setProfile((prev) => ({
-                      ...prev,
-                      bankDetails: { ...(prev.bankDetails || DEFAULT_COMPANY.bankDetails), accountNumber: e.target.value },
-                    }))
-                  }
-                  className="w-full bg-white border border-slate-200 rounded-lg p-2 text-xs font-mono focus:outline-blue-500 font-semibold disabled:bg-slate-100 disabled:text-slate-500 disabled:cursor-not-allowed"
-                />
-              </div>
-              <div>
-                <label className="text-xs font-medium text-slate-600 block mb-1">IFSC Code</label>
-                <input
-                  type="text"
-                  disabled={!canEditBank}
-                  value={profile.bankDetails?.ifscCode || ''}
-                  onChange={(e) =>
-                    setProfile((prev) => ({
-                      ...prev,
-                      bankDetails: { ...(prev.bankDetails || DEFAULT_COMPANY.bankDetails), ifscCode: e.target.value.toUpperCase() },
-                    }))
-                  }
-                  className="w-full bg-white border border-slate-200 rounded-lg p-2 text-xs font-mono uppercase focus:outline-blue-500 font-semibold disabled:bg-slate-100 disabled:text-slate-500 disabled:cursor-not-allowed"
-                />
-              </div>
-              <div>
-                <label className="text-xs font-medium text-slate-600 block mb-1">Bank Branch</label>
-                <input
-                  type="text"
-                  disabled={!canEditBank}
-                  value={profile.bankDetails?.branch || ''}
-                  onChange={(e) =>
-                    setProfile((prev) => ({
-                      ...prev,
-                      bankDetails: { ...(prev.bankDetails || DEFAULT_COMPANY.bankDetails), branch: e.target.value },
-                    }))
-                  }
-                  className="w-full bg-white border border-slate-200 rounded-lg p-2 text-xs focus:outline-blue-500 disabled:bg-slate-100 disabled:text-slate-500 disabled:cursor-not-allowed"
-                />
-              </div>
-              <div>
-                <label className="text-xs font-medium text-blue-700 block mb-1">UPI ID (GooglePay / PhonePe / Paytm)</label>
-                <input
-                  type="text"
-                  disabled={!canEditBank}
-                  value={profile.bankDetails?.upiId || ''}
-                  onChange={(e) =>
-                    setProfile((prev) => ({
-                      ...prev,
-                      bankDetails: { ...(prev.bankDetails || DEFAULT_COMPANY.bankDetails), upiId: e.target.value },
-                    }))
-                  }
-                  placeholder="e.g. 7703948857@upi"
-                  className="w-full bg-white border border-blue-200 rounded-lg p-2 text-xs font-mono text-blue-700 focus:outline-blue-500 font-semibold disabled:bg-slate-100 disabled:text-slate-500 disabled:cursor-not-allowed"
-                />
-              </div>
-            </div>
-          </div>
-
-          {/* WhatsApp & Portal Message Templates */}
-          <div id="section-templates" className="scroll-mt-4 bg-slate-50/80 p-4 rounded-xl border border-slate-200/80 space-y-3">
-            <div className="flex items-center justify-between flex-wrap gap-2">
-              <div className="flex items-center gap-2 text-xs font-bold text-slate-700 uppercase tracking-wider">
-                <MessageSquare size={16} className="text-emerald-600" />
-                <span>WhatsApp Message Templates</span>
-              </div>
-              <button
-                type="button"
-                onClick={() => setIsTemplatesModalOpen(true)}
-                className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-emerald-600 hover:bg-emerald-700 active:scale-95 text-white rounded-lg text-xs font-bold transition-all shadow-xs cursor-pointer"
-              >
-                <Sliders size={13} />
-                <span>Manage Templates</span>
-              </button>
             </div>
 
-            <p className="text-[11px] text-slate-500 leading-relaxed">
-              Customize text breakdown, follow-up booking reminders, and 24h balance payment reminder templates with dynamic variables.
-            </p>
-          </div>
-
-          {/* Equipment & Services Catalog */}
-          {onOpenCatalog && (
-            <div id="section-catalog" className="scroll-mt-4 bg-slate-50/80 p-4 rounded-xl border border-slate-200/80 space-y-3">
+            {/* WhatsApp & Portal Message Templates */}
+            <div id="section-templates" className="scroll-mt-4 bg-slate-50/80 p-4 rounded-xl border border-slate-200/80 space-y-3">
               <div className="flex items-center justify-between flex-wrap gap-2">
                 <div className="flex items-center gap-2 text-xs font-bold text-slate-700 uppercase tracking-wider">
-                  <Package size={16} className="text-blue-600" />
-                  <span>Equipment &amp; Services Catalog</span>
+                  <MessageSquare size={16} className="text-emerald-600" />
+                  <span>WhatsApp Message Templates</span>
                 </div>
                 <button
                   type="button"
-                  onClick={() => {
-                    onClose();
-                    onOpenCatalog();
-                  }}
-                  className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-blue-600 hover:bg-blue-700 active:scale-95 text-white rounded-lg text-xs font-bold transition-all shadow-xs cursor-pointer"
+                  onClick={() => setIsTemplatesModalOpen(true)}
+                  className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-emerald-600 hover:bg-emerald-700 active:scale-95 text-white rounded-lg text-xs font-bold transition-all shadow-xs cursor-pointer"
                 >
-                  <Package size={13} />
-                  <span>Manage Catalog</span>
+                  <Sliders size={13} />
+                  <span>Manage Templates</span>
                 </button>
               </div>
 
               <p className="text-[11px] text-slate-500 leading-relaxed">
-                Configure presets (55" LED TV / Standee, LED walls, processors, sound, staging) and default item rates for quick insertion in quotation builder.
+                Customize text breakdown, follow-up booking reminders, and 24h balance payment reminder templates with dynamic variables.
               </p>
             </div>
-          )}
 
-          {/* Automated Weekly Email Reports (Super Admin & Admin) */}
-          {canManageEmailDigest && (
-            <div id="section-email-digest" className="scroll-mt-4 bg-gradient-to-r from-indigo-50/80 to-purple-50/80 p-3.5 sm:p-4 rounded-xl border border-indigo-200/80 space-y-2.5 shadow-xs">
-              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
-                <div className="flex items-start sm:items-center gap-3 min-w-0 flex-1">
-                  <div className="w-8 h-8 rounded-lg bg-indigo-600 text-white flex items-center justify-center shrink-0 shadow-xs mt-0.5 sm:mt-0">
-                    <Mail size={16} />
+            {/* Equipment & Services Catalog */}
+            {onOpenCatalog && (
+              <div id="section-catalog" className="scroll-mt-4 bg-slate-50/80 p-4 rounded-xl border border-slate-200/80 space-y-3">
+                <div className="flex items-center justify-between flex-wrap gap-2">
+                  <div className="flex items-center gap-2 text-xs font-bold text-slate-700 uppercase tracking-wider">
+                    <Package size={16} className="text-blue-600" />
+                    <span>Equipment &amp; Services Catalog</span>
                   </div>
-                  <div className="min-w-0 flex-1">
-                    <div className="flex flex-wrap items-center gap-1.5 sm:gap-2">
-                      <span className="text-xs font-bold text-slate-800">Weekly Email Financial Digest</span>
-                      <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-indigo-100 text-indigo-700 border border-indigo-200 whitespace-nowrap shrink-0">
-                        Super Admin &amp; Admin
-                      </span>
-                    </div>
-                    <p className="text-[11px] text-slate-500 mt-0.5 leading-relaxed">
-                      Automated weekly collections &amp; dues summary to configured recipients
-                    </p>
-                  </div>
-                </div>
-                <button
-                  type="button"
-                  onClick={() => setIsWeeklyEmailModalOpen(true)}
-                  className="inline-flex items-center justify-center gap-1.5 px-3.5 py-1.5 bg-indigo-600 hover:bg-indigo-700 active:scale-95 text-white rounded-lg text-xs font-bold transition-all shadow-xs cursor-pointer shrink-0 w-full sm:w-auto"
-                >
-                  <span>Configure</span>
-                </button>
-              </div>
-            </div>
-          )}
-
-          {/* Security, Passcode & Idle Timeout */}
-          <div id="section-security" className="scroll-mt-4 bg-slate-50/80 p-3.5 sm:p-4 rounded-xl border border-slate-200/80 space-y-3.5">
-            <div className="flex flex-wrap items-center justify-between gap-2">
-              <div className="flex items-center gap-2 text-xs font-bold text-slate-700 uppercase tracking-wider">
-                <Shield size={16} className="text-indigo-600 shrink-0" />
-                <span>Security, Passcode &amp; Idle Timeout</span>
-              </div>
-              <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-indigo-50 text-indigo-700 border border-indigo-200 flex items-center gap-1 whitespace-nowrap shrink-0">
-                <KeyRound size={11} /> Passcode Protected
-              </span>
-            </div>
-
-            <div className="grid grid-cols-1 sm:grid-cols-3 gap-3.5 pt-1">
-              {/* Account Login Password */}
-              <div className="bg-white p-3 rounded-lg border border-slate-200 space-y-1.5 flex flex-col justify-between">
-                <div>
-                  <div className="flex items-center gap-1.5 text-xs font-bold text-slate-800">
-                    <Lock size={14} className="text-indigo-600" />
-                    <span>Account Password</span>
-                  </div>
-                  <p className="text-[11px] text-slate-500 leading-tight">
-                    Update login password for <span className="font-semibold text-slate-700">{user?.email || 'your account'}</span> across desktop &amp; mobile.
-                  </p>
-                </div>
-                <div className="pt-1">
-                  <button
-                    type="button"
-                    onClick={() => setIsChangePasswordOpen(true)}
-                    className="w-full py-1.5 px-2.5 bg-indigo-50 hover:bg-indigo-100 text-indigo-700 border border-indigo-200 rounded-lg text-xs font-bold transition-colors cursor-pointer text-center flex items-center justify-center gap-1.5"
-                  >
-                    <KeyRound size={13} />
-                    <span>Change Password</span>
-                  </button>
-                </div>
-              </div>
-
-              {/* Payment Ledger Passcode Controls */}
-              <div className="bg-white p-3 rounded-lg border border-slate-200 space-y-1.5 flex flex-col justify-between">
-                <div>
-                  <div className="flex items-center gap-1.5 text-xs font-bold text-slate-800">
-                    <KeyRound size={14} className="text-amber-500" />
-                    <span>Ledger Passcode (PIN)</span>
-                  </div>
-                  <p className="text-[11px] text-slate-500 leading-tight">
-                    Requires a numeric PIN before opening payment collections and client balance data.
-                  </p>
-                </div>
-                <div className="flex items-center gap-2 pt-1">
-                  <button
-                    type="button"
-                    onClick={() => setIsPasscodeModalOpen(true)}
-                    className="flex-1 py-1.5 px-2.5 bg-amber-500/10 hover:bg-amber-500/20 text-amber-700 border border-amber-300 rounded-lg text-xs font-bold transition-colors cursor-pointer text-center"
-                  >
-                    Manage / Reset
-                  </button>
                   <button
                     type="button"
                     onClick={() => {
-                      passcodeService.lockSession();
-                      toast.info('Payment Ledger session locked. Passcode required on next visit.');
+                      onClose();
+                      onOpenCatalog();
                     }}
-                    className="py-1.5 px-2 bg-slate-100 hover:bg-slate-200 text-slate-700 border border-slate-200 rounded-lg text-xs font-semibold transition-colors cursor-pointer"
-                    title="Lock Payment Ledger session immediately"
+                    className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-blue-600 hover:bg-blue-700 active:scale-95 text-white rounded-lg text-xs font-bold transition-all shadow-xs cursor-pointer"
                   >
-                    Lock Now
+                    <Package size={13} />
+                    <span>Manage Catalog</span>
                   </button>
                 </div>
+
+                <p className="text-[11px] text-slate-500 leading-relaxed">
+                  Configure presets (55" LED TV / Standee, LED walls, processors, sound, staging) and default item rates for quick insertion in quotation builder.
+                </p>
               </div>
+            )}
 
-              {/* Idle Timeout Auto-Logout Selector */}
-              <div className="bg-white p-3 rounded-lg border border-slate-200 space-y-1.5 flex flex-col justify-between">
-                <div>
-                  <div className="flex items-center gap-1.5 text-xs font-bold text-slate-800">
-                    <Clock size={14} className="text-blue-600" />
-                    <span>Idle Auto-Logout</span>
-                  </div>
-                  <p className="text-[11px] text-slate-500 leading-tight">
-                    Automatically log out session if user is idle with no mouse or keyboard activity.
-                  </p>
-                </div>
-                <select
-                  value={securitySettings.idleTimeoutMinutes}
-                  onChange={(e) => handleTimeoutChange(Number(e.target.value))}
-                  className="w-full mt-1 bg-slate-50 border border-slate-200 rounded-lg p-2 text-xs font-semibold text-slate-800 focus:outline-blue-500 cursor-pointer"
-                >
-                  <option value={-1}>Immediate</option>
-                  <option value={1}>1 Minute</option>
-                  <option value={5}>5 Minutes</option>
-                  <option value={10}>10 Minutes</option>
-                  <option value={15}>15 Minutes</option>
-                  <option value={30}>30 Minutes (Recommended)</option>
-                  <option value={60}>1 Hour</option>
-                  <option value={120}>2 Hours</option>
-                  <option value={240}>4 Hours</option>
-                  <option value={0}>Disabled (Never Logout)</option>
-                </select>
-              </div>
-            </div>
-          </div>
-
-          {/* Database & Cloud Sync Section */}
-          <div id="section-storage" className="scroll-mt-4 bg-slate-50/80 p-4 rounded-xl border border-slate-200/80 space-y-3">
-            <div className="flex items-center justify-between">
-              <div className="flex items-center gap-2 text-xs font-bold text-slate-700 uppercase tracking-wider">
-                <HardDrive size={16} className="text-blue-600" />
-                <span>Storage &amp; Cloud Database</span>
-              </div>
-
-              {isSupabaseConfigured() ? (
-                <span className="inline-flex items-center gap-1 text-[11px] font-bold text-emerald-700 bg-emerald-50 px-2 py-0.5 rounded-full border border-emerald-200">
-                  <Cloud size={12} /> Supabase Cloud Synced
-                </span>
-              ) : (
-                <span className="inline-flex items-center gap-1 text-[11px] font-bold text-blue-700 bg-blue-50 px-2 py-0.5 rounded-full border border-blue-200">
-                  <CheckCircle2 size={12} /> IndexedDB (Unlimited Local Storage)
-                </span>
-              )}
-            </div>
-
-            <p className="text-[11px] text-slate-500 leading-relaxed">
-              Your quotations and clients are safely stored in high-performance browser <strong>IndexedDB</strong>. 
-              {isSupabaseConfigured() 
-                ? ' Real-time cloud sync is enabled across devices.' 
-                : ' To enable sync across devices, paste your Supabase URL & Key into the .env file.'}
-            </p>
-
-            {/* Daily Automated Backup & Retention Card */}
-            <div className="bg-gradient-to-r from-blue-50/70 via-indigo-50/40 to-slate-50 border border-blue-200/80 rounded-xl p-3.5 space-y-3">
-              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
-                <div className="flex items-start sm:items-center gap-3 min-w-0 flex-1">
-                  <div className="w-9 h-9 rounded-lg bg-blue-600 text-white flex items-center justify-center shrink-0 shadow-xs mt-0.5 sm:mt-0">
-                    <Archive size={17} />
-                  </div>
-                  <div className="min-w-0 flex-1">
-                    <div className="flex flex-wrap items-center gap-2">
-                      <span className="text-xs font-bold text-slate-800">Daily Automated Backup</span>
-                      <span className={`inline-flex items-center gap-1 text-[10px] font-bold px-2 py-0.5 rounded-full border whitespace-nowrap shrink-0 ${
-                        backupConfig.enabled
-                          ? 'bg-emerald-50 text-emerald-700 border-emerald-200'
-                          : 'bg-slate-100 text-slate-600 border-slate-200'
-                      }`}>
-                        <span className={`w-1.5 h-1.5 rounded-full ${backupConfig.enabled ? 'bg-emerald-500' : 'bg-slate-400'}`}></span>
-                        <span>{backupConfig.enabled ? `Active • Keep Last ${backupConfig.retentionLimit}` : 'Paused'}</span>
-                      </span>
+            {/* Automated Weekly Email Reports (Super Admin & Admin) */}
+            {canManageEmailDigest && (
+              <div id="section-email-digest" className="scroll-mt-4 bg-gradient-to-r from-indigo-50/80 to-purple-50/80 p-3.5 sm:p-4 rounded-xl border border-indigo-200/80 space-y-2.5 shadow-xs">
+                <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+                  <div className="flex items-start sm:items-center gap-3 min-w-0 flex-1">
+                    <div className="w-8 h-8 rounded-lg bg-indigo-600 text-white flex items-center justify-center shrink-0 shadow-xs mt-0.5 sm:mt-0">
+                      <Mail size={16} />
                     </div>
-                    <p className="text-[11px] text-slate-500 mt-0.5 leading-snug">
-                      Snapshots saved daily with automated cleanup (keeps last {backupConfig.retentionLimit} backups).
-                    </p>
-                  </div>
-                </div>
-
-                <div className="flex flex-wrap items-center gap-2 shrink-0 w-full sm:w-auto pt-1 sm:pt-0">
-                  <button
-                    type="button"
-                    onClick={async () => {
-                      try {
-                        const snap = await backupService.runDailyBackup({ isManual: true });
-                        setBackupConfig(backupService.getConfig());
-                        toast.success(`Backup "${snap.name}" captured & old backups cleaned!`);
-                      } catch (e: any) {
-                        toast.error('Backup error: ' + e?.message);
-                      }
-                    }}
-                    className="flex-1 sm:flex-none inline-flex items-center justify-center gap-1 px-3 py-1.5 bg-white hover:bg-blue-50 text-blue-700 border border-blue-200 rounded-lg text-xs font-bold shadow-2xs transition-colors cursor-pointer whitespace-nowrap"
-                  >
-                    <span>Backup Now</span>
-                  </button>
-                  <button
-                    type="button"
-                    onClick={() => setIsBackupModalOpen(true)}
-                    className="flex-1 sm:flex-none inline-flex items-center justify-center gap-1.5 px-3 py-1.5 bg-blue-600 hover:bg-blue-700 active:scale-95 text-white rounded-lg text-xs font-bold transition-all shadow-xs cursor-pointer whitespace-nowrap"
-                  >
-                    <span>Manage Backups &amp; Drive</span>
-                  </button>
-                </div>
-              </div>
-            </div>
-
-            {/* Auto-Copy Invoiced Quotations to Payment Ledger Card */}
-            <div className="bg-gradient-to-r from-emerald-50/70 via-teal-50/40 to-slate-50 border border-emerald-200/80 rounded-xl p-3.5">
-              <div className="flex items-start justify-between gap-3">
-                <div className="flex items-start gap-3 min-w-0 flex-1">
-                  <div className="w-9 h-9 rounded-lg bg-emerald-600 text-white flex items-center justify-center shrink-0 shadow-xs mt-0.5">
-                    <BookOpen size={17} />
-                  </div>
-                  <div className="min-w-0 flex-1">
-                    <div className="flex flex-wrap items-center gap-2">
-                      <span className="text-xs font-bold text-slate-800">Auto-Copy Invoiced Quotations to Ledger</span>
-                      <span className={`inline-flex items-center gap-1 text-[10px] font-bold px-2 py-0.5 rounded-full border whitespace-nowrap shrink-0 ${
-                        autoLedgerSync
-                          ? 'bg-emerald-50 text-emerald-700 border-emerald-200'
-                          : 'bg-slate-100 text-slate-600 border-slate-200'
-                      }`}>
-                        <span className={`w-1.5 h-1.5 rounded-full ${autoLedgerSync ? 'bg-emerald-500' : 'bg-slate-400'}`}></span>
-                        <span>{autoLedgerSync ? 'Active / On' : 'Disabled / Off'}</span>
-                      </span>
+                    <div className="min-w-0 flex-1">
+                      <div className="flex flex-wrap items-center gap-1.5 sm:gap-2">
+                        <span className="text-xs font-bold text-slate-800">Weekly Email Financial Digest</span>
+                        <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-indigo-100 text-indigo-700 border border-indigo-200 whitespace-nowrap shrink-0">
+                          Super Admin &amp; Admin
+                        </span>
+                      </div>
+                      <p className="text-[11px] text-slate-500 mt-0.5 leading-relaxed">
+                        Automated weekly collections &amp; dues summary to configured recipients
+                      </p>
                     </div>
-                    <p className="text-[11px] text-slate-500 mt-1 leading-relaxed">
-                      When enabled, any quotation marked as <strong>Invoiced</strong> automatically synchronizes into the Payment Ledger with sanitized dates, client names, and invoice totals.
-                    </p>
                   </div>
-                </div>
-
-                <div className="shrink-0 pt-0.5">
-                  <label className="relative inline-flex items-center cursor-pointer">
-                    <input
-                      type="checkbox"
-                      checked={autoLedgerSync}
-                      onChange={(e) => {
-                        const checked = e.target.checked;
-                        setAutoLedgerSync(checked);
-                        storage.setAutoLedgerSync(checked);
-                        toast.success(`Auto-copy to Payment Ledger ${checked ? 'enabled' : 'disabled'}`);
-                      }}
-                      className="sr-only peer"
-                    />
-                    <div className="w-11 h-6 bg-slate-300 peer-focus:outline-hidden rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-slate-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-emerald-600"></div>
-                  </label>
-                </div>
-              </div>
-            </div>
-
-            {/* Dual-Cloud Failover & Primary Engine Selection Card */}
-            <div className="bg-slate-50 border border-slate-200/90 rounded-xl p-3.5 mb-1 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
-              <div className="flex items-start sm:items-center gap-2.5 min-w-0 flex-1">
-                <div className="w-8 h-8 rounded-lg bg-blue-100 text-blue-700 flex items-center justify-center shrink-0 mt-0.5 sm:mt-0">
-                  <Cloud size={16} />
-                </div>
-                <div className="min-w-0 flex-1">
-                  <div className="text-xs font-bold text-slate-800 flex items-center gap-1.5 flex-wrap">
-                    <span>Primary Database:</span>
-                    <span className="uppercase text-blue-700 bg-blue-100/80 px-2 py-0.5 rounded border border-blue-200 text-[10px] font-black shrink-0">
-                      {failoverManager.getPrimaryEngine()}
-                    </span>
-                    <span className="text-slate-400 font-normal">➔ Auto-Mirror:</span>
-                    <span className="uppercase text-slate-600 bg-slate-200/70 px-1.5 py-0.5 rounded text-[10px] font-bold shrink-0">
-                      {failoverManager.getSecondaryEngine()}
-                    </span>
-                  </div>
-                  <div className="text-[11px] text-slate-500 mt-0.5 leading-relaxed">
-                    Zero-downtime dual-cloud failover &amp; automatic background mirroring
-                  </div>
-                </div>
-              </div>
-
-              <div className="shrink-0 w-full sm:w-auto flex sm:justify-end">
-                {canManageDowntimeSync ? (
                   <button
                     type="button"
-                    onClick={() => setIsCloudFailoverModalOpen(true)}
-                    className="w-full sm:w-auto px-3.5 py-1.5 bg-blue-600 hover:bg-blue-500 text-white rounded-lg text-xs font-bold transition-all shadow-xs cursor-pointer text-center justify-center inline-flex items-center gap-1.5"
+                    onClick={() => setIsWeeklyEmailModalOpen(true)}
+                    className="inline-flex items-center justify-center gap-1.5 px-3.5 py-1.5 bg-indigo-600 hover:bg-indigo-700 active:scale-95 text-white rounded-lg text-xs font-bold transition-all shadow-xs cursor-pointer shrink-0 w-full sm:w-auto"
                   >
-                    <span>Configure Failover</span>
+                    <span>Configure</span>
                   </button>
-                ) : (
-                  <span className="inline-flex items-center justify-center text-[10px] font-semibold text-slate-500 bg-slate-100 px-2.5 py-1 rounded-md border border-slate-200 whitespace-nowrap w-full sm:w-auto">
-                    Super Admin / Authorized Only
-                  </span>
-                )}
-              </div>
-            </div>
-
-            <div className="flex flex-wrap gap-2 pt-1">
-              {isSupabaseConfigured() && (
-                <>
-                  <button
-                    type="button"
-                    disabled={testingConn}
-                    onClick={handleTestConnection}
-                    className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-blue-50 hover:bg-blue-100 text-blue-700 rounded-lg border border-blue-200 text-xs font-bold shadow-2xs transition-colors disabled:opacity-50"
-                  >
-                    <RefreshCw size={13} className={testingConn ? 'animate-spin' : ''} />
-                    <span>{testingConn ? 'Testing Connection...' : 'Test DB Connection'}</span>
-                  </button>
-
-                  <button
-                    type="button"
-                    disabled={syncingCloud}
-                    onClick={handleSyncCloud}
-                    className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-emerald-50 hover:bg-emerald-100 text-emerald-700 rounded-lg border border-emerald-200 text-xs font-bold shadow-2xs transition-colors disabled:opacity-50"
-                  >
-                    <Cloud size={13} className={syncingCloud ? 'animate-spin' : ''} />
-                    <span>{syncingCloud ? 'Syncing...' : 'Sync & Push All to Cloud'}</span>
-                  </button>
-                </>
-              )}
-
-              <button
-                type="button"
-                onClick={async () => {
-                  try {
-                    await storage.exportBackup();
-                    toast.success('Full database backup (.json) exported successfully');
-                  } catch (err) {
-                    toast.error('Export failed: ' + err);
-                  }
-                }}
-                className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-white hover:bg-slate-100 text-slate-700 rounded-lg border border-slate-200 text-xs font-semibold shadow-2xs transition-colors"
-              >
-                <Download size={14} className="text-blue-600" />
-                <span>Export Full Backup (.json)</span>
-              </button>
-
-              {canRestore ? (
-                <label className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-white hover:bg-slate-100 text-slate-700 rounded-lg border border-slate-200 text-xs font-semibold shadow-2xs cursor-pointer transition-colors">
-                  <Upload size={14} className="text-emerald-600" />
-                  <span>Restore from Backup (.json)</span>
-                  <input
-                    type="file"
-                    accept=".json,application/json"
-                    className="hidden"
-                    onChange={async (e) => {
-                      const file = e.target.files?.[0];
-                      if (!file) return;
-                      const confirmed = await confirm({
-                        title: 'Restore Database Backup',
-                        message: 'Restoring will merge quotations, clients, and catalog items from the backup file into your database. Continue?',
-                        confirmText: 'Restore Backup',
-                        cancelText: 'Cancel',
-                        variant: 'warning',
-                      });
-                      if (confirmed) {
-                        try {
-                          const res = await storage.importBackup(file);
-                          toast.success(`Restored successfully! Loaded ${res.quotationsCount} quotations.`);
-                          if (onRestoreBackup) onRestoreBackup();
-                          onClose();
-                        } catch (err) {
-                          toast.error('Restore failed: ' + err);
-                        }
-                      }
-                    }}
-                  />
-                </label>
-              ) : (
-                <button
-                  type="button"
-                  disabled
-                  title="Restricted: Only Super Admin can restore database backups"
-                  className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-slate-100 text-slate-400 rounded-lg border border-slate-200 text-xs font-semibold cursor-not-allowed opacity-75"
-                >
-                  <Lock size={13} className="text-slate-400" />
-                  <span>Restore from Backup (Super Admin Only)</span>
-                </button>
-              )}
-            </div>
-
-            {/* Test Connection Result Alert */}
-            {testResult && (
-              <div className={`p-3 rounded-lg text-xs border flex items-start gap-2.5 transition-all ${
-                testResult.success
-                  ? testResult.tableReady !== false
-                    ? 'bg-emerald-50 text-emerald-800 border-emerald-200'
-                    : 'bg-amber-50 text-amber-800 border-amber-200'
-                  : 'bg-rose-50 text-rose-800 border-rose-200'
-              }`}>
-                {testResult.success ? (
-                  testResult.tableReady !== false ? (
-                    <CheckCircle2 size={16} className="text-emerald-600 shrink-0 mt-0.5" />
-                  ) : (
-                    <AlertCircle size={16} className="text-amber-600 shrink-0 mt-0.5" />
-                  )
-                ) : (
-                  <AlertCircle size={16} className="text-rose-600 shrink-0 mt-0.5" />
-                )}
-                <div className="leading-relaxed">
-                  <div className="font-bold">
-                    {testResult.success 
-                      ? (testResult.tableReady !== false ? 'Database Connection Successful!' : 'Connected, But Setup Needed')
-                      : 'Database Connection Failed'}
-                  </div>
-                  <div>{testResult.message}</div>
                 </div>
               </div>
             )}
-          </div>
+
+            {/* Security, Passcode & Idle Timeout */}
+            <div id="section-security" className="scroll-mt-4 bg-slate-50/80 p-3.5 sm:p-4 rounded-xl border border-slate-200/80 space-y-3.5">
+              <div className="flex flex-wrap items-center justify-between gap-2">
+                <div className="flex items-center gap-2 text-xs font-bold text-slate-700 uppercase tracking-wider">
+                  <Shield size={16} className="text-indigo-600 shrink-0" />
+                  <span>Security, Passcode &amp; Idle Timeout</span>
+                </div>
+                <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-indigo-50 text-indigo-700 border border-indigo-200 flex items-center gap-1 whitespace-nowrap shrink-0">
+                  <KeyRound size={11} /> Passcode Protected
+                </span>
+              </div>
+
+              <div className="grid grid-cols-1 sm:grid-cols-3 gap-3.5 pt-1">
+                {/* Account Login Password */}
+                <div className="bg-white p-3 rounded-lg border border-slate-200 space-y-1.5 flex flex-col justify-between">
+                  <div>
+                    <div className="flex items-center gap-1.5 text-xs font-bold text-slate-800">
+                      <Lock size={14} className="text-indigo-600" />
+                      <span>Account Password</span>
+                    </div>
+                    <p className="text-[11px] text-slate-500 leading-tight">
+                      Update login password for <span className="font-semibold text-slate-700">{user?.email || 'your account'}</span> across desktop &amp; mobile.
+                    </p>
+                  </div>
+                  <div className="pt-1">
+                    <button
+                      type="button"
+                      onClick={() => setIsChangePasswordOpen(true)}
+                      className="w-full py-1.5 px-2.5 bg-indigo-50 hover:bg-indigo-100 text-indigo-700 border border-indigo-200 rounded-lg text-xs font-bold transition-colors cursor-pointer text-center flex items-center justify-center gap-1.5"
+                    >
+                      <KeyRound size={13} />
+                      <span>Change Password</span>
+                    </button>
+                  </div>
+                </div>
+
+                {/* Payment Ledger Passcode Controls */}
+                <div className="bg-white p-3 rounded-lg border border-slate-200 space-y-1.5 flex flex-col justify-between">
+                  <div>
+                    <div className="flex items-center gap-1.5 text-xs font-bold text-slate-800">
+                      <KeyRound size={14} className="text-amber-500" />
+                      <span>Ledger Passcode (PIN)</span>
+                    </div>
+                    <p className="text-[11px] text-slate-500 leading-tight">
+                      Requires a numeric PIN before opening payment collections and client balance data.
+                    </p>
+                  </div>
+                  <div className="flex items-center gap-2 pt-1">
+                    <button
+                      type="button"
+                      onClick={() => setIsPasscodeModalOpen(true)}
+                      className="flex-1 py-1.5 px-2.5 bg-amber-500/10 hover:bg-amber-500/20 text-amber-700 border border-amber-300 rounded-lg text-xs font-bold transition-colors cursor-pointer text-center"
+                    >
+                      Manage / Reset
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => {
+                        passcodeService.lockSession();
+                        toast.info('Payment Ledger session locked. Passcode required on next visit.');
+                      }}
+                      className="py-1.5 px-2 bg-slate-100 hover:bg-slate-200 text-slate-700 border border-slate-200 rounded-lg text-xs font-semibold transition-colors cursor-pointer"
+                      title="Lock Payment Ledger session immediately"
+                    >
+                      Lock Now
+                    </button>
+                  </div>
+                </div>
+
+                {/* Idle Timeout Auto-Logout Selector */}
+                <div className="bg-white p-3 rounded-lg border border-slate-200 space-y-1.5 flex flex-col justify-between">
+                  <div>
+                    <div className="flex items-center gap-1.5 text-xs font-bold text-slate-800">
+                      <Clock size={14} className="text-blue-600" />
+                      <span>Idle Auto-Logout</span>
+                    </div>
+                    <p className="text-[11px] text-slate-500 leading-tight">
+                      Automatically log out session if user is idle with no mouse or keyboard activity.
+                    </p>
+                  </div>
+                  <select
+                    value={securitySettings.idleTimeoutMinutes}
+                    onChange={(e) => handleTimeoutChange(Number(e.target.value))}
+                    className="w-full mt-1 bg-slate-50 border border-slate-200 rounded-lg p-2 text-xs font-semibold text-slate-800 focus:outline-blue-500 cursor-pointer"
+                  >
+                    <option value={-1}>Immediate</option>
+                    <option value={1}>1 Minute</option>
+                    <option value={5}>5 Minutes</option>
+                    <option value={10}>10 Minutes</option>
+                    <option value={15}>15 Minutes</option>
+                    <option value={30}>30 Minutes (Recommended)</option>
+                    <option value={60}>1 Hour</option>
+                    <option value={120}>2 Hours</option>
+                    <option value={240}>4 Hours</option>
+                    <option value={0}>Disabled (Never Logout)</option>
+                  </select>
+                </div>
+              </div>
+            </div>
+
+            {/* Database & Cloud Sync Section */}
+            <div id="section-storage" className="scroll-mt-4 bg-slate-50/80 p-4 rounded-xl border border-slate-200/80 space-y-3">
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-2 text-xs font-bold text-slate-700 uppercase tracking-wider">
+                  <HardDrive size={16} className="text-blue-600" />
+                  <span>Storage &amp; Cloud Database</span>
+                </div>
+
+                {isSupabaseConfigured() ? (
+                  <span className="inline-flex items-center gap-1 text-[11px] font-bold text-emerald-700 bg-emerald-50 px-2 py-0.5 rounded-full border border-emerald-200">
+                    <Cloud size={12} /> Supabase Cloud Synced
+                  </span>
+                ) : (
+                  <span className="inline-flex items-center gap-1 text-[11px] font-bold text-blue-700 bg-blue-50 px-2 py-0.5 rounded-full border border-blue-200">
+                    <CheckCircle2 size={12} /> IndexedDB (Unlimited Local Storage)
+                  </span>
+                )}
+              </div>
+
+              <p className="text-[11px] text-slate-500 leading-relaxed">
+                Your quotations and clients are safely stored in high-performance browser <strong>IndexedDB</strong>.
+                {isSupabaseConfigured()
+                  ? ' Real-time cloud sync is enabled across devices.'
+                  : ' To enable sync across devices, paste your Supabase URL & Key into the .env file.'}
+              </p>
+
+              {/* Daily Automated Backup & Retention Card */}
+              <div className="bg-gradient-to-r from-blue-50/70 via-indigo-50/40 to-slate-50 border border-blue-200/80 rounded-xl p-3.5 space-y-3">
+                <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+                  <div className="flex items-start sm:items-center gap-3 min-w-0 flex-1">
+                    <div className="w-9 h-9 rounded-lg bg-blue-600 text-white flex items-center justify-center shrink-0 shadow-xs mt-0.5 sm:mt-0">
+                      <Archive size={17} />
+                    </div>
+                    <div className="min-w-0 flex-1">
+                      <div className="flex flex-wrap items-center gap-2">
+                        <span className="text-xs font-bold text-slate-800">Daily Automated Backup</span>
+                        <span className={`inline-flex items-center gap-1 text-[10px] font-bold px-2 py-0.5 rounded-full border whitespace-nowrap shrink-0 ${backupConfig.enabled
+                            ? 'bg-emerald-50 text-emerald-700 border-emerald-200'
+                            : 'bg-slate-100 text-slate-600 border-slate-200'
+                          }`}>
+                          <span className={`w-1.5 h-1.5 rounded-full ${backupConfig.enabled ? 'bg-emerald-500' : 'bg-slate-400'}`}></span>
+                          <span>{backupConfig.enabled ? `Active • Keep Last ${backupConfig.retentionLimit}` : 'Paused'}</span>
+                        </span>
+                      </div>
+                      <p className="text-[11px] text-slate-500 mt-0.5 leading-snug">
+                        Snapshots saved daily with automated cleanup (keeps last {backupConfig.retentionLimit} backups).
+                      </p>
+                    </div>
+                  </div>
+
+                  <div className="flex flex-wrap items-center gap-2 shrink-0 w-full sm:w-auto pt-1 sm:pt-0">
+                    <button
+                      type="button"
+                      onClick={async () => {
+                        try {
+                          const snap = await backupService.runDailyBackup({ isManual: true });
+                          setBackupConfig(backupService.getConfig());
+                          toast.success(`Backup "${snap.name}" captured & old backups cleaned!`);
+                        } catch (e: any) {
+                          toast.error('Backup error: ' + e?.message);
+                        }
+                      }}
+                      className="flex-1 sm:flex-none inline-flex items-center justify-center gap-1 px-3 py-1.5 bg-white hover:bg-blue-50 text-blue-700 border border-blue-200 rounded-lg text-xs font-bold shadow-2xs transition-colors cursor-pointer whitespace-nowrap"
+                    >
+                      <span>Backup Now</span>
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => setIsBackupModalOpen(true)}
+                      className="flex-1 sm:flex-none inline-flex items-center justify-center gap-1.5 px-3 py-1.5 bg-blue-600 hover:bg-blue-700 active:scale-95 text-white rounded-lg text-xs font-bold transition-all shadow-xs cursor-pointer whitespace-nowrap"
+                    >
+                      <span>Manage Backups &amp; Drive</span>
+                    </button>
+                  </div>
+                </div>
+              </div>
+
+              {/* Auto-Copy Invoiced Quotations to Payment Ledger Card */}
+              <div className="bg-gradient-to-r from-emerald-50/70 via-teal-50/40 to-slate-50 border border-emerald-200/80 rounded-xl p-3.5">
+                <div className="flex items-start justify-between gap-3">
+                  <div className="flex items-start gap-3 min-w-0 flex-1">
+                    <div className="w-9 h-9 rounded-lg bg-emerald-600 text-white flex items-center justify-center shrink-0 shadow-xs mt-0.5">
+                      <BookOpen size={17} />
+                    </div>
+                    <div className="min-w-0 flex-1">
+                      <div className="flex flex-wrap items-center gap-2">
+                        <span className="text-xs font-bold text-slate-800">Auto-Copy Invoiced Quotations to Ledger</span>
+                        <span className={`inline-flex items-center gap-1 text-[10px] font-bold px-2 py-0.5 rounded-full border whitespace-nowrap shrink-0 ${autoLedgerSync
+                            ? 'bg-emerald-50 text-emerald-700 border-emerald-200'
+                            : 'bg-slate-100 text-slate-600 border-slate-200'
+                          }`}>
+                          <span className={`w-1.5 h-1.5 rounded-full ${autoLedgerSync ? 'bg-emerald-500' : 'bg-slate-400'}`}></span>
+                          <span>{autoLedgerSync ? 'Active / On' : 'Disabled / Off'}</span>
+                        </span>
+                      </div>
+                      <p className="text-[11px] text-slate-500 mt-1 leading-relaxed">
+                        When enabled, any quotation marked as <strong>Invoiced</strong> automatically synchronizes into the Payment Ledger with sanitized dates, client names, and invoice totals.
+                      </p>
+                    </div>
+                  </div>
+
+                  <div className="shrink-0 pt-0.5">
+                    <label className="relative inline-flex items-center cursor-pointer">
+                      <input
+                        type="checkbox"
+                        checked={autoLedgerSync}
+                        onChange={(e) => {
+                          const checked = e.target.checked;
+                          setAutoLedgerSync(checked);
+                          storage.setAutoLedgerSync(checked);
+                          toast.success(`Auto-copy to Payment Ledger ${checked ? 'enabled' : 'disabled'}`);
+                        }}
+                        className="sr-only peer"
+                      />
+                      <div className="w-11 h-6 bg-slate-300 peer-focus:outline-hidden rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-slate-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-emerald-600"></div>
+                    </label>
+                  </div>
+                </div>
+              </div>
+
+              {/* Quotation Command Header Dock Sticky / Fixed Preference Card */}
+              <div className="bg-gradient-to-r from-blue-50/70 via-indigo-50/40 to-slate-50 border border-blue-200/80 rounded-xl p-3.5">
+                <div className="flex items-start justify-between gap-3">
+                  <div className="flex items-start gap-3 min-w-0 flex-1">
+                    <div className="w-9 h-9 rounded-lg bg-blue-600 text-white flex items-center justify-center shrink-0 shadow-xs mt-0.5">
+                      <Pin size={17} />
+                    </div>
+                    <div className="min-w-0 flex-1">
+                      <div className="flex flex-wrap items-center gap-2">
+                        <span className="text-xs font-bold text-slate-800">Pin Quotation Header to Top</span>
+                        <span className={`inline-flex items-center gap-1 text-[10px] font-bold px-2 py-0.5 rounded-full border whitespace-nowrap shrink-0 ${isStickyHeader
+                            ? 'bg-blue-50 text-blue-700 border-blue-200'
+                            : 'bg-slate-100 text-slate-600 border-slate-200'
+                          }`}>
+                          <span className={`w-1.5 h-1.5 rounded-full ${isStickyHeader ? 'bg-blue-500' : 'bg-slate-400'}`}></span>
+                          <span>{isStickyHeader ? 'Fixed / Sticky' : 'Normal / Scrolling'}</span>
+                        </span>
+                      </div>
+                      <p className="text-[11px] text-slate-500 mt-1 leading-relaxed">
+                        Keep the top actions, quote status, and save/export dock fixed at the top while scrolling down through long quotations and line items.
+                      </p>
+                    </div>
+                  </div>
+
+                  <div className="shrink-0 pt-0.5">
+                    <label className="relative inline-flex items-center cursor-pointer">
+                      <input
+                        type="checkbox"
+                        checked={isStickyHeader}
+                        onChange={(e) => {
+                          const checked = e.target.checked;
+                          setIsStickyHeader(checked);
+                          try {
+                            localStorage.setItem('tlw_sticky_header_dock', String(checked));
+                            window.dispatchEvent(new Event('tlw_sticky_header_dock_changed'));
+                          } catch { }
+                          toast.success(`Quotation header dock set to ${checked ? 'Fixed / Sticky' : 'Scroll with page'}`);
+                        }}
+                        className="sr-only peer"
+                      />
+                      <div className="w-11 h-6 bg-slate-300 peer-focus:outline-hidden rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-slate-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-blue-600"></div>
+                    </label>
+                  </div>
+                </div>
+              </div>
+
+              {/* Dual-Cloud Failover & Primary Engine Selection Card */}
+              <div className="bg-slate-50 border border-slate-200/90 rounded-xl p-3.5 mb-1 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+                <div className="flex items-start sm:items-center gap-2.5 min-w-0 flex-1">
+                  <div className="w-8 h-8 rounded-lg bg-blue-100 text-blue-700 flex items-center justify-center shrink-0 mt-0.5 sm:mt-0">
+                    <Cloud size={16} />
+                  </div>
+                  <div className="min-w-0 flex-1">
+                    <div className="text-xs font-bold text-slate-800 flex items-center gap-1.5 flex-wrap">
+                      <span>Primary Database:</span>
+                      <span className="uppercase text-blue-700 bg-blue-100/80 px-2 py-0.5 rounded border border-blue-200 text-[10px] font-black shrink-0">
+                        {failoverManager.getPrimaryEngine()}
+                      </span>
+                      <span className="text-slate-400 font-normal">➔ Auto-Mirror:</span>
+                      <span className="uppercase text-slate-600 bg-slate-200/70 px-1.5 py-0.5 rounded text-[10px] font-bold shrink-0">
+                        {failoverManager.getSecondaryEngine()}
+                      </span>
+                    </div>
+                    <div className="text-[11px] text-slate-500 mt-0.5 leading-relaxed">
+                      Zero-downtime dual-cloud failover &amp; automatic background mirroring
+                    </div>
+                  </div>
+                </div>
+
+                <div className="shrink-0 w-full sm:w-auto flex sm:justify-end">
+                  {canManageDowntimeSync ? (
+                    <button
+                      type="button"
+                      onClick={() => setIsCloudFailoverModalOpen(true)}
+                      className="w-full sm:w-auto px-3.5 py-1.5 bg-blue-600 hover:bg-blue-500 text-white rounded-lg text-xs font-bold transition-all shadow-xs cursor-pointer text-center justify-center inline-flex items-center gap-1.5"
+                    >
+                      <span>Configure Failover</span>
+                    </button>
+                  ) : (
+                    <span className="inline-flex items-center justify-center text-[10px] font-semibold text-slate-500 bg-slate-100 px-2.5 py-1 rounded-md border border-slate-200 whitespace-nowrap w-full sm:w-auto">
+                      Super Admin / Authorized Only
+                    </span>
+                  )}
+                </div>
+              </div>
+
+              <div className="flex flex-wrap gap-2 pt-1">
+                {isSupabaseConfigured() && (
+                  <>
+                    <button
+                      type="button"
+                      disabled={testingConn}
+                      onClick={handleTestConnection}
+                      className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-blue-50 hover:bg-blue-100 text-blue-700 rounded-lg border border-blue-200 text-xs font-bold shadow-2xs transition-colors disabled:opacity-50"
+                    >
+                      <RefreshCw size={13} className={testingConn ? 'animate-spin' : ''} />
+                      <span>{testingConn ? 'Testing Connection...' : 'Test DB Connection'}</span>
+                    </button>
+
+                    <button
+                      type="button"
+                      disabled={syncingCloud}
+                      onClick={handleSyncCloud}
+                      className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-emerald-50 hover:bg-emerald-100 text-emerald-700 rounded-lg border border-emerald-200 text-xs font-bold shadow-2xs transition-colors disabled:opacity-50"
+                    >
+                      <Cloud size={13} className={syncingCloud ? 'animate-spin' : ''} />
+                      <span>{syncingCloud ? 'Syncing...' : 'Sync & Push All to Cloud'}</span>
+                    </button>
+                  </>
+                )}
+
+                <button
+                  type="button"
+                  onClick={async () => {
+                    try {
+                      await storage.exportBackup();
+                      toast.success('Full database backup (.json) exported successfully');
+                    } catch (err) {
+                      toast.error('Export failed: ' + err);
+                    }
+                  }}
+                  className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-white hover:bg-slate-100 text-slate-700 rounded-lg border border-slate-200 text-xs font-semibold shadow-2xs transition-colors"
+                >
+                  <Download size={14} className="text-blue-600" />
+                  <span>Export Full Backup (.json)</span>
+                </button>
+
+                {canRestore ? (
+                  <label className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-white hover:bg-slate-100 text-slate-700 rounded-lg border border-slate-200 text-xs font-semibold shadow-2xs cursor-pointer transition-colors">
+                    <Upload size={14} className="text-emerald-600" />
+                    <span>Restore from Backup (.json)</span>
+                    <input
+                      type="file"
+                      accept=".json,application/json"
+                      className="hidden"
+                      onChange={async (e) => {
+                        const file = e.target.files?.[0];
+                        if (!file) return;
+                        const confirmed = await confirm({
+                          title: 'Restore Database Backup',
+                          message: 'Restoring will merge quotations, clients, and catalog items from the backup file into your database. Continue?',
+                          confirmText: 'Restore Backup',
+                          cancelText: 'Cancel',
+                          variant: 'warning',
+                        });
+                        if (confirmed) {
+                          try {
+                            const res = await storage.importBackup(file);
+                            toast.success(`Restored successfully! Loaded ${res.quotationsCount} quotations.`);
+                            if (onRestoreBackup) onRestoreBackup();
+                            onClose();
+                          } catch (err) {
+                            toast.error('Restore failed: ' + err);
+                          }
+                        }
+                      }}
+                    />
+                  </label>
+                ) : (
+                  <button
+                    type="button"
+                    disabled
+                    title="Restricted: Only Super Admin can restore database backups"
+                    className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-slate-100 text-slate-400 rounded-lg border border-slate-200 text-xs font-semibold cursor-not-allowed opacity-75"
+                  >
+                    <Lock size={13} className="text-slate-400" />
+                    <span>Restore from Backup (Super Admin Only)</span>
+                  </button>
+                )}
+              </div>
+
+              {/* Test Connection Result Alert */}
+              {testResult && (
+                <div className={`p-3 rounded-lg text-xs border flex items-start gap-2.5 transition-all ${testResult.success
+                    ? testResult.tableReady !== false
+                      ? 'bg-emerald-50 text-emerald-800 border-emerald-200'
+                      : 'bg-amber-50 text-amber-800 border-amber-200'
+                    : 'bg-rose-50 text-rose-800 border-rose-200'
+                  }`}>
+                  {testResult.success ? (
+                    testResult.tableReady !== false ? (
+                      <CheckCircle2 size={16} className="text-emerald-600 shrink-0 mt-0.5" />
+                    ) : (
+                      <AlertCircle size={16} className="text-amber-600 shrink-0 mt-0.5" />
+                    )
+                  ) : (
+                    <AlertCircle size={16} className="text-rose-600 shrink-0 mt-0.5" />
+                  )}
+                  <div className="leading-relaxed">
+                    <div className="font-bold">
+                      {testResult.success
+                        ? (testResult.tableReady !== false ? 'Database Connection Successful!' : 'Connected, But Setup Needed')
+                        : 'Database Connection Failed'}
+                    </div>
+                    <div>{testResult.message}</div>
+                  </div>
+                </div>
+              )}
+            </div>
 
           </div>
 

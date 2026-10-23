@@ -5,7 +5,7 @@ import {
   Settings, UserCheck, UserPlus, Calendar, Zap, FileText, Receipt,
   QrCode, CreditCard, CheckCircle2, GitBranch, ChevronDown, ChevronUp,
   Smartphone, PenLine, PenTool, Clock, Truck, MoreHorizontal, Check, ExternalLink, Building2, Sparkles,
-  Phone, Mail, Save, Undo2
+  Phone, Mail, Save, Undo2, Pin, PinOff
 } from 'lucide-react';
 import { 
   Quotation, LineItem, QuotationStatus, TaxScheme, ClientProfile, 
@@ -199,6 +199,43 @@ export const QuotationEditor: React.FC<Props> = ({
   const statusMenuRef = useRef<HTMLDivElement>(null);
   const [autoCalc, setAutoCalc] = useState<boolean>(false);
   const [liveQrUrl, setLiveQrUrl] = useState<string>('');
+
+  // Fixed / Sticky Header Dock Preference
+  const [isHeaderFixed, setIsHeaderFixed] = useState<boolean>(() => {
+    try {
+      const saved = localStorage.getItem('tlw_sticky_header_dock');
+      return saved !== null ? saved === 'true' : true;
+    } catch {
+      return true;
+    }
+  });
+
+  const toggleHeaderFixed = () => {
+    setIsHeaderFixed((prev) => {
+      const next = !prev;
+      try {
+        localStorage.setItem('tlw_sticky_header_dock', String(next));
+        window.dispatchEvent(new Event('tlw_sticky_header_dock_changed'));
+      } catch {}
+      toast.info(next ? 'Header dock pinned to top' : 'Header dock set to scroll with page');
+      return next;
+    });
+  };
+
+  useEffect(() => {
+    const handleSync = () => {
+      try {
+        const saved = localStorage.getItem('tlw_sticky_header_dock');
+        if (saved !== null) setIsHeaderFixed(saved === 'true');
+      } catch {}
+    };
+    window.addEventListener('tlw_sticky_header_dock_changed', handleSync);
+    window.addEventListener('storage', handleSync);
+    return () => {
+      window.removeEventListener('tlw_sticky_header_dock_changed', handleSync);
+      window.removeEventListener('storage', handleSync);
+    };
+  }, []);
 
   // Close menus on click outside
   useEffect(() => {
@@ -589,7 +626,9 @@ export const QuotationEditor: React.FC<Props> = ({
     <div className="max-w-5xl mx-auto space-y-6 pb-16">
       
       {/* Top Controller Bar - Ultra-Premium Executive SaaS Command Dock */}
-      <div className="no-print bg-slate-900/95 backdrop-blur-2xl px-2.5 sm:px-4 py-2 sm:py-2.5 rounded-2xl border border-white/10 shadow-[0_12px_40px_rgba(0,0,0,0.5)] ring-1 ring-white/10 flex flex-col md:flex-row items-stretch md:items-center justify-between gap-2.5 md:gap-3 relative md:sticky md:top-3 z-40">
+      <div className={`no-print bg-slate-900/95 backdrop-blur-2xl px-2.5 sm:px-4 py-2 sm:py-2.5 rounded-2xl border border-white/10 shadow-[0_12px_40px_rgba(0,0,0,0.5)] ring-1 ring-white/10 flex flex-col md:flex-row items-stretch md:items-center justify-between gap-2.5 md:gap-3 z-40 transition-all ${
+        isHeaderFixed ? 'sticky top-[108px] md:top-[70px]' : 'relative top-0'
+      }`}>
         
         {/* Left: Navigation, Document ID, Mode Switcher & Status */}
         <div className="flex items-center justify-between md:justify-start gap-1.5 sm:gap-2.5 w-full md:w-auto">
@@ -774,7 +813,7 @@ export const QuotationEditor: React.FC<Props> = ({
               </button>
 
               {isActionsMenuOpen && (
-                <div className="absolute right-0 top-full mt-2 w-56 max-w-[calc(100vw-32px)] bg-slate-900/95 backdrop-blur-2xl rounded-2xl shadow-2xl border border-white/15 py-1.5 z-50 animate-modal-in overflow-hidden">
+                <div className="absolute left-0 top-full mt-2 w-64 max-w-[calc(100vw-32px)] bg-slate-900/95 backdrop-blur-2xl rounded-2xl shadow-2xl border border-white/15 py-1.5 z-50 animate-modal-in overflow-hidden">
                   <button
                     type="button"
                     onClick={() => {
@@ -847,6 +886,30 @@ export const QuotationEditor: React.FC<Props> = ({
                   >
                     <BookOpen size={14} className="text-emerald-400 shrink-0" />
                     <span className="truncate">Copy to Payment Ledger</span>
+                  </button>
+
+                  <div className="h-px bg-white/10 my-1" />
+
+                  {/* Header Dock Sticky/Fixed Toggle */}
+                  <button
+                    type="button"
+                    onClick={() => {
+                      toggleHeaderFixed();
+                      setIsActionsMenuOpen(false);
+                    }}
+                    className="w-full px-3.5 py-2.5 text-left text-xs font-semibold text-slate-300 hover:bg-white/10 hover:text-white flex items-center justify-between transition-colors cursor-pointer"
+                  >
+                    <div className="flex items-center gap-2.5 truncate">
+                      {isHeaderFixed ? (
+                        <Pin size={14} className="text-amber-400 shrink-0" />
+                      ) : (
+                        <PinOff size={14} className="text-slate-400 shrink-0" />
+                      )}
+                      <span className="truncate">Header: {isHeaderFixed ? 'Pinned (Fixed)' : 'Scrolling'}</span>
+                    </div>
+                    <span className={`text-[10px] font-bold px-1.5 py-0.5 rounded ${isHeaderFixed ? 'bg-amber-500/20 text-amber-300 border border-amber-500/30' : 'bg-slate-800 text-slate-400'}`}>
+                      {isHeaderFixed ? 'PINNED' : 'SCROLL'}
+                    </span>
                   </button>
                 </div>
               )}
