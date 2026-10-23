@@ -462,6 +462,15 @@ export const QuotationList: React.FC<Props> = ({
 
   const handleSyncToLedger = async (e: React.MouseEvent, quote: Quotation) => {
     e.stopPropagation();
+    const confirmed = await confirm({
+      title: 'Copy / Sync to Payment Ledger',
+      message: `Do you want to copy quotation "${quote.quotationNumber}" (${quote.client?.name || 'Unnamed Client'}) to Payment Ledger? If an entry already exists, its details and amounts will be synchronized.`,
+      confirmText: 'Sync to Ledger',
+      cancelText: 'Cancel',
+      variant: 'info',
+    });
+    if (!confirmed) return;
+
     setSyncingLedgerId(quote.id);
     try {
       const res = await storage.manualSyncToLedger(quote);

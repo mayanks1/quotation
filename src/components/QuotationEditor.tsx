@@ -859,6 +859,15 @@ export const QuotationEditor: React.FC<Props> = ({
                     type="button"
                     onClick={async () => {
                       setIsActionsMenuOpen(false);
+                      const confirmed = await confirm({
+                        title: 'Copy / Sync to Payment Ledger',
+                        message: `Do you want to copy quotation "${quotation.quotationNumber}" (${quotation.client?.name || 'Unnamed Client'}) to Payment Ledger? If an entry already exists, its details and amounts will be synchronized.`,
+                        confirmText: 'Sync to Ledger',
+                        cancelText: 'Cancel',
+                        variant: 'info',
+                      });
+                      if (!confirmed) return;
+
                       try {
                         const res = await storage.manualSyncToLedger(quotation);
                         if (res.success) {
