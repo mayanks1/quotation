@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { X, Calculator, Plus, Monitor, Zap, Box, Sliders } from 'lucide-react';
 import { LineItem } from '../types/quotation';
 import { useLockBodyScroll } from '../hooks/useLockBodyScroll';
@@ -76,16 +76,25 @@ const PITCH_SPECS: Record<'P2' | 'P3' | 'P4', PitchSpec> = {
 
 export const LedCalculatorModal: React.FC<Props> = ({ isOpen, onClose, onAddLineItem }) => {
   useLockBodyScroll(isOpen);
-  const [pitch, setPitch] = useState<'P2' | 'P3' | 'P4'>('P3');
-  const [type, setType] = useState<'Indoor' | 'Outdoor'>('Indoor');
+  const [pitch, setPitch] = useState<'P2' | 'P3' | 'P4'>('P4');
+  const [type, setType] = useState<'Indoor' | 'Outdoor'>('Outdoor');
 
   // Use number | '' to allow clean backspacing without sticking to '0' or '1'
   const [widthFt, setWidthFt] = useState<number | ''>(12);
   const [heightFt, setHeightFt] = useState<number | ''>(8);
-  const [ratePerSqFt, setRatePerSqFt] = useState<number | ''>(110);
+  const [ratePerSqFt, setRatePerSqFt] = useState<number | ''>(95);
   const [days, setDays] = useState<number | ''>(1);
   const [includeTruss, setIncludeTruss] = useState<boolean>(true);
   const [isCustomMode, setIsCustomMode] = useState<boolean>(false);
+
+  // Automatically ensure P4 and Outdoor IP65 whenever the calculator modal is opened
+  useEffect(() => {
+    if (isOpen) {
+      setPitch('P4');
+      setType('Outdoor');
+      setRatePerSqFt(95);
+    }
+  }, [isOpen]);
 
   if (!isOpen) return null;
 
@@ -205,11 +214,11 @@ export const LedCalculatorModal: React.FC<Props> = ({ isOpen, onClose, onAddLine
                   if (p === 'P3') setRatePerSqFt(110);
                   if (p === 'P4') setRatePerSqFt(95);
                 }}
-                className="w-full bg-slate-50 border border-slate-200 rounded-lg p-2.5 text-xs sm:text-sm font-semibold focus:ring-2 focus:ring-blue-500 focus:outline-none"
+                className="w-full bg-white text-slate-900 border border-slate-300 rounded-lg p-2.5 text-xs sm:text-sm font-bold shadow-2xs focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 focus:outline-none"
               >
-                <option value="P2">P2 (Indoor Conferences • 500×500mm)</option>
-                <option value="P3">P3 (Stage &amp; Concerts • 500×500mm)</option>
-                <option value="P4">P4 (Outdoor Daylight • 576×576mm)</option>
+                <option value="P2" className="text-slate-900 bg-white font-semibold py-1">P2 (Indoor Conferences • 500×500mm)</option>
+                <option value="P3" className="text-slate-900 bg-white font-semibold py-1">P3 (Stage &amp; Concerts • 500×500mm)</option>
+                <option value="P4" className="text-slate-900 bg-white font-semibold py-1">P4 (Outdoor Daylight • 576×576mm)</option>
               </select>
             </div>
             <div>

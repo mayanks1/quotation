@@ -133,13 +133,14 @@ export const HeaderNav: React.FC<Props> = ({
               <button
                 type="button"
                 onClick={handleLedgerClick}
-                className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold whitespace-nowrap transition-all cursor-pointer ${location.pathname.startsWith('/ledger')
+                className={`flex items-center gap-1.5 px-2.5 sm:px-3 py-1.5 rounded-lg text-xs font-semibold whitespace-nowrap transition-all cursor-pointer ${location.pathname.startsWith('/ledger')
                   ? 'bg-emerald-600 text-white shadow-sm shadow-emerald-500/30 font-bold'
                   : 'text-emerald-400 hover:text-white hover:bg-emerald-950/50'
                   }`}
               >
                 <CreditCard size={14} className="text-emerald-400 shrink-0" />
-                <span>Payment Ledger</span>
+                <span className="hidden xl:inline">Payment </span>
+                <span>Ledger</span>
               </button>
             )}
 
@@ -147,20 +148,21 @@ export const HeaderNav: React.FC<Props> = ({
               <NavLink
                 to="/team"
                 className={({ isActive }) =>
-                  `flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold whitespace-nowrap transition-all ${isActive
+                  `flex items-center gap-1.5 px-2.5 sm:px-3 py-1.5 rounded-lg text-xs font-semibold whitespace-nowrap transition-all ${isActive
                     ? 'bg-purple-600 text-white shadow-sm shadow-purple-500/30 font-bold'
                     : 'text-purple-300 hover:text-white hover:bg-purple-950/60'
                   }`
                 }
               >
                 <Crown size={14} className="text-purple-400 shrink-0" />
-                <span>Team &amp; Roles</span>
+                <span>Team</span>
+                <span className="hidden xl:inline"> &amp; Roles</span>
               </NavLink>
             )}
           </nav>
 
           {/* Right side CTAs */}
-          <div className="flex items-center gap-2 flex-shrink-0">
+          <div className="flex items-center gap-1.5 sm:gap-2 flex-shrink-0">
             {canManageDowntimeSync && (
               <button
                 type="button"
@@ -169,7 +171,8 @@ export const HeaderNav: React.FC<Props> = ({
                 className="flex items-center gap-1 sm:gap-1.5 text-[11px] font-medium text-cyan-400 hover:text-cyan-300 bg-cyan-950/40 hover:bg-cyan-950/60 border border-cyan-800/50 px-2 sm:px-2.5 py-1 rounded-full whitespace-nowrap shadow-inner transition-colors cursor-pointer"
               >
                 <Cloud size={13} className="text-cyan-400 shrink-0" />
-                <span className="hidden sm:inline">0% Downtime Sync</span>
+                <span className="hidden xl:inline">0% Downtime Sync</span>
+                <span className="hidden sm:inline xl:hidden">Sync</span>
                 <span className="sm:hidden text-[10px] font-bold">Cloud</span>
               </button>
             )}
@@ -178,11 +181,11 @@ export const HeaderNav: React.FC<Props> = ({
               <button
                 onClick={onCreateNew}
                 title="Create New Quote"
-                className="flex items-center gap-1.5 bg-blue-600 hover:bg-blue-500 active:scale-95 text-white px-3 py-1.5 rounded-lg text-xs font-bold transition-all shadow-sm whitespace-nowrap cursor-pointer"
+                className="flex items-center gap-1.5 bg-blue-600 hover:bg-blue-500 active:scale-95 text-white px-2.5 sm:px-3 py-1.5 rounded-lg text-xs font-bold transition-all shadow-sm whitespace-nowrap cursor-pointer"
               >
-                <Plus size={15} className="shrink-0" />
-                <span className="hidden sm:inline">New Quote</span>
-                <span className="sm:hidden">New</span>
+                {/* <Plus size={15} className="shrink-0" /> */}
+                <span className="hidden xl:inline">New Quote</span>
+                <span className="xl:hidden">New Quote</span>
               </button>
             )}
 

@@ -632,17 +632,17 @@ export const QuotationEditor: React.FC<Props> = ({
   };
 
   return (
-    <div className="max-w-5xl mx-auto space-y-6 pb-16">
+    <div className="max-w-6xl mx-auto space-y-3 sm:space-y-3.5 pb-16">
       
       {/* Top Controller Bar - Ultra-Premium Executive SaaS Command Dock */}
-      <div className={`no-print bg-slate-900/95 backdrop-blur-2xl px-2.5 sm:px-4 py-2 sm:py-2.5 rounded-2xl border border-white/10 shadow-[0_12px_40px_rgba(0,0,0,0.5)] ring-1 ring-white/10 flex flex-col md:flex-row items-stretch md:items-center justify-between gap-2.5 md:gap-3 z-40 transition-all ${
-        isHeaderFixed ? 'sticky top-[108px] md:top-[70px]' : 'relative top-0'
+      <div className={`no-print bg-slate-900/98 backdrop-blur-2xl px-2.5 sm:px-3 py-1.5 sm:py-2 rounded-2xl border border-white/10 shadow-[0_10px_35px_rgba(0,0,0,0.5)] ring-1 ring-white/10 flex flex-col md:flex-row md:items-center md:justify-between gap-2 md:gap-2 z-40 transition-all max-w-full overflow-visible ${
+        isHeaderFixed ? 'sticky top-[96px] md:top-[66px]' : 'relative top-0'
       }`}>
         
-        {/* Left: Navigation, Document ID, Mode Switcher & Status */}
-        <div className="flex items-center justify-between md:justify-start gap-1.5 sm:gap-2.5 w-full md:w-auto">
+        {/* Row 1 on Mobile / Left Group on Desktop: Back, Doc ID, Mode Switcher & Status */}
+        <div className="flex items-center justify-between gap-1.5 sm:gap-2 w-full md:w-auto shrink-0 min-w-0">
           {/* Subgroup Left: Back & Quote ID */}
-          <div className="flex items-center gap-1 sm:gap-1.5 shrink-0">
+          <div className="flex items-center gap-1 sm:gap-1.5 shrink-0 min-w-0">
             {/* Back Button */}
             <button
               onClick={onBack}
@@ -650,13 +650,13 @@ export const QuotationEditor: React.FC<Props> = ({
               title="Return to Quotation List"
             >
               <ArrowLeft size={13} className="text-slate-400 group-hover:-translate-x-0.5 transition-transform" />
-              <span className="hidden sm:inline">Quotes</span>
+              <span className="hidden xl:inline">Quotes</span>
             </button>
 
             {/* Breadcrumb slash & Quote Number */}
             <div className="flex items-center gap-1 shrink-0">
               <span className="text-slate-600 font-light text-xs hidden sm:inline">/</span>
-              <span className="font-mono text-[11px] sm:text-xs font-black text-cyan-400 tracking-tight shrink-0">
+              <span className="font-mono text-[11px] sm:text-xs font-black text-cyan-400 tracking-tight shrink-0 max-w-[125px] sm:max-w-none truncate">
                 {isInvoice ? (quotation.invoiceNumber || quotation.quotationNumber) : quotation.quotationNumber}
               </span>
               {isNewDraft ? (
@@ -666,7 +666,7 @@ export const QuotationEditor: React.FC<Props> = ({
               ) : isDirty ? (
                 <span className="text-[9px] sm:text-[10px] font-sans font-bold px-1.5 py-0.2 sm:py-0.5 bg-amber-500/20 text-amber-300 rounded-md border border-amber-500/30 flex items-center gap-1 whitespace-nowrap shrink-0">
                   <span className="w-1.5 h-1.5 rounded-full bg-amber-400 animate-pulse" />
-                  Unsaved
+                  <span className="hidden sm:inline">Unsaved</span>
                 </span>
               ) : null}
               {quotation.revisionNumber && quotation.revisionNumber > 1 && (
@@ -735,7 +735,10 @@ export const QuotationEditor: React.FC<Props> = ({
                   <>
                     <button
                       type="button"
-                      onClick={() => setIsStatusMenuOpen(!isStatusMenuOpen)}
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        setIsStatusMenuOpen((prev) => !prev);
+                      }}
                       className={`flex items-center gap-1 sm:gap-1.5 text-[11px] sm:text-xs font-bold px-2 sm:px-2.5 py-1 sm:py-1.5 rounded-xl border transition-all active:scale-95 cursor-pointer shrink-0 ${currentCfg.badgeCls}`}
                     >
                       <span className={`w-1.5 sm:w-2 h-1.5 sm:h-2 rounded-full ${currentCfg.dotColor} shrink-0`} />
@@ -744,7 +747,7 @@ export const QuotationEditor: React.FC<Props> = ({
                     </button>
 
                     {isStatusMenuOpen && (
-                      <div className="absolute right-0 sm:left-0 top-full mt-2 w-52 bg-slate-900/95 backdrop-blur-2xl rounded-2xl shadow-2xl border border-white/15 py-1.5 z-50 animate-modal-in overflow-hidden">
+                      <div className="absolute right-0 top-full mt-2 w-52 bg-slate-900/95 backdrop-blur-2xl rounded-2xl shadow-2xl border border-white/15 py-1.5 z-50 animate-modal-in overflow-hidden">
                         {(['draft', 'sent', 'approved', 'invoiced', 'rejected'] as QuotationStatus[]).map((st) => {
                           const cfg = STATUS_CONFIG[st];
                           const isCurrent = quotation.status === st;
@@ -781,17 +784,17 @@ export const QuotationEditor: React.FC<Props> = ({
           </div>
         </div>
 
-        {/* Right: Tools & Actions */}
-        <div className="flex items-center justify-between md:justify-end gap-1.5 sm:gap-2 w-full md:w-auto pt-2 md:pt-0 border-t md:border-t-0 border-white/10">
+        {/* Row 2 on Mobile / Right Actions on Desktop */}
+        <div className="flex items-center justify-between md:justify-end gap-1.5 sm:gap-2 w-full md:w-auto pt-1.5 md:pt-0 border-t border-white/10 md:border-t-0 shrink-0">
           <div className="flex items-center gap-1 sm:gap-1.5 shrink-0">
             {/* Gate Pass Button */}
             <button
               onClick={() => setIsGatePassOpen(true)}
               title="Generate Returnable Gate Pass / Equipment Delivery Challan"
-              className="flex items-center gap-1 px-2.5 py-1.5 text-xs font-bold text-slate-200 hover:text-white bg-slate-800/90 hover:bg-slate-700/90 border border-white/10 hover:border-amber-500/40 rounded-xl transition-all active:scale-95 shadow-xs cursor-pointer shrink-0"
+              className="flex items-center gap-1 px-2 sm:px-2.5 py-1 sm:py-1.5 text-[11px] sm:text-xs font-bold text-slate-200 hover:text-white bg-slate-800/90 hover:bg-slate-700/90 border border-white/10 hover:border-amber-500/40 rounded-xl transition-all active:scale-95 shadow-xs cursor-pointer shrink-0"
             >
               <Truck size={13} className="text-amber-400 shrink-0" />
-              <span className="hidden sm:inline">Challan</span>
+              <span>Challan</span>
             </button>
 
             {/* Money Receipt Button */}
@@ -800,7 +803,7 @@ export const QuotationEditor: React.FC<Props> = ({
                 type="button"
                 onClick={() => setIsReceiptModalOpen(true)}
                 title="Generate & View Official Payment Receipt"
-                className="flex items-center gap-1 px-2.5 py-1.5 text-xs font-bold text-emerald-300 bg-emerald-950/80 hover:bg-emerald-900/80 border border-emerald-500/30 rounded-xl transition-all active:scale-95 shadow-xs cursor-pointer shrink-0"
+                className="flex items-center gap-1 px-2 sm:px-2.5 py-1 sm:py-1.5 text-[11px] sm:text-xs font-bold text-emerald-300 bg-emerald-950/80 hover:bg-emerald-900/80 border border-emerald-500/30 rounded-xl transition-all active:scale-95 shadow-xs cursor-pointer shrink-0"
               >
                 <Receipt size={13} className="text-emerald-400 shrink-0" />
                 <span className="hidden sm:inline">Receipt</span>
@@ -810,9 +813,13 @@ export const QuotationEditor: React.FC<Props> = ({
             {/* More Actions Dropdown (Duplicate, Revise, Print, Copy Link) */}
             <div className="relative shrink-0" ref={actionsMenuRef}>
               <button
-                onClick={() => setIsActionsMenuOpen(!isActionsMenuOpen)}
+                type="button"
+                onClick={(e) => {
+                  e.stopPropagation();
+                  setIsActionsMenuOpen((prev) => !prev);
+                }}
                 title="More Actions"
-                className={`flex items-center justify-center w-8 h-8 rounded-xl border transition-all active:scale-95 shadow-xs cursor-pointer shrink-0 ${
+                className={`flex items-center justify-center w-7 h-7 sm:w-8 sm:h-8 rounded-xl border transition-all active:scale-95 shadow-xs cursor-pointer shrink-0 ${
                   isActionsMenuOpen 
                     ? 'bg-slate-700 text-white border-white/30' 
                     : 'bg-slate-800/90 hover:bg-slate-700/90 text-slate-300 hover:text-white border-white/10'
@@ -822,7 +829,7 @@ export const QuotationEditor: React.FC<Props> = ({
               </button>
 
               {isActionsMenuOpen && (
-                <div className="absolute left-0 top-full mt-2 w-64 max-w-[calc(100vw-32px)] bg-slate-900/95 backdrop-blur-2xl rounded-2xl shadow-2xl border border-white/15 py-1.5 z-50 animate-modal-in overflow-hidden">
+                <div className="absolute left-0 sm:left-auto right-0 top-full mt-2 w-64 max-w-[calc(100vw-32px)] bg-slate-900/95 backdrop-blur-2xl rounded-2xl shadow-2xl border border-white/15 py-1.5 z-50 animate-modal-in overflow-hidden">
                   <button
                     type="button"
                     onClick={() => {
@@ -936,7 +943,7 @@ export const QuotationEditor: React.FC<Props> = ({
 
           <div className="h-4 w-px bg-white/10 shrink-0 hidden md:block" />
 
-          <div className="flex items-center gap-1.5 shrink-0 flex-1 md:flex-initial justify-end">
+          <div className="flex items-center gap-1.5 shrink-0">
             {/* Save / Discard Action Buttons */}
             {onSave && (
               isNewDraft ? (
@@ -944,12 +951,11 @@ export const QuotationEditor: React.FC<Props> = ({
                   type="button"
                   onClick={onSave}
                   disabled={isSaving}
-                  className="flex items-center justify-center gap-1 px-3 py-1.5 text-xs font-black text-white bg-gradient-to-r from-blue-600 via-indigo-600 to-cyan-500 hover:from-blue-500 hover:to-cyan-400 active:scale-95 rounded-xl shadow-[0_0_15px_rgba(59,130,246,0.35)] hover:shadow-[0_0_25px_rgba(6,182,212,0.55)] transition-all cursor-pointer shrink-0"
+                  className="flex items-center justify-center gap-1 px-2.5 sm:px-3 py-1 sm:py-1.5 text-[11px] sm:text-xs font-black text-white bg-gradient-to-r from-blue-600 via-indigo-600 to-cyan-500 hover:from-blue-500 hover:to-cyan-400 active:scale-95 rounded-xl shadow-[0_0_15px_rgba(59,130,246,0.35)] hover:shadow-[0_0_25px_rgba(6,182,212,0.55)] transition-all cursor-pointer shrink-0"
                   title="Save new quotation to database (Ctrl+S)"
                 >
                   <Save size={13} className="shrink-0" />
-                  <span className="whitespace-nowrap sm:inline hidden">{isSaving ? 'Saving…' : 'Save Quotation'}</span>
-                  <span className="whitespace-nowrap sm:hidden">{isSaving ? 'Saving…' : 'Save'}</span>
+                  <span className="whitespace-nowrap">{isSaving ? 'Saving…' : 'Save'}</span>
                 </button>
               ) : isDirty ? (
                 <div className="flex items-center gap-1 shrink-0">
@@ -957,23 +963,22 @@ export const QuotationEditor: React.FC<Props> = ({
                     <button
                       type="button"
                       onClick={onDiscard}
-                      className="hidden sm:flex items-center gap-1 px-2 py-1.5 text-xs font-semibold text-slate-400 hover:text-rose-400 hover:bg-rose-950/30 border border-white/10 hover:border-rose-500/30 rounded-xl transition-all cursor-pointer shrink-0"
+                      className="flex items-center gap-1 px-1.5 sm:px-2 py-1 sm:py-1.5 text-[11px] sm:text-xs font-semibold text-slate-400 hover:text-rose-400 hover:bg-rose-950/30 border border-white/10 hover:border-rose-500/30 rounded-xl transition-all cursor-pointer shrink-0"
                       title="Discard unsaved edits and revert"
                     >
                       <Undo2 size={12} />
-                      <span>Discard</span>
+                      <span className="hidden xl:inline">Discard</span>
                     </button>
                   )}
                   <button
                     type="button"
                     onClick={onSave}
                     disabled={isSaving}
-                    className="flex items-center justify-center gap-1 px-3 py-1.5 text-xs font-black text-white bg-gradient-to-r from-emerald-600 via-teal-600 to-emerald-500 hover:from-emerald-500 hover:to-teal-400 active:scale-95 rounded-xl shadow-[0_0_15px_rgba(16,185,129,0.35)] hover:shadow-[0_0_25px_rgba(16,185,129,0.55)] transition-all cursor-pointer animate-pulse shrink-0"
+                    className="flex items-center justify-center gap-1 px-2.5 sm:px-3 py-1 sm:py-1.5 text-[11px] sm:text-xs font-black text-white bg-gradient-to-r from-emerald-600 via-teal-600 to-emerald-500 hover:from-emerald-500 hover:to-teal-400 active:scale-95 rounded-xl shadow-[0_0_15px_rgba(16,185,129,0.35)] hover:shadow-[0_0_25px_rgba(16,185,129,0.55)] transition-all cursor-pointer animate-pulse shrink-0"
                     title="Save changes to database (Ctrl+S)"
                   >
                     <Save size={13} className="shrink-0" />
-                    <span className="whitespace-nowrap sm:inline hidden">{isSaving ? 'Saving…' : 'Save Changes'}</span>
-                    <span className="whitespace-nowrap sm:hidden">{isSaving ? 'Saving…' : 'Save'}</span>
+                    <span className="whitespace-nowrap">{isSaving ? 'Saving…' : 'Save'}</span>
                     <span className="w-1.5 h-1.5 rounded-full bg-amber-300 shrink-0" />
                   </button>
                 </div>
@@ -981,7 +986,7 @@ export const QuotationEditor: React.FC<Props> = ({
                 <button
                   type="button"
                   disabled
-                  className="flex items-center justify-center gap-1 px-2.5 py-1.5 text-xs font-bold text-emerald-400 bg-emerald-950/60 border border-emerald-500/30 rounded-xl transition-all opacity-85 cursor-default shrink-0"
+                  className="flex items-center justify-center gap-1 px-2 sm:px-2.5 py-1 sm:py-1.5 text-[11px] sm:text-xs font-bold text-emerald-400 bg-emerald-950/60 border border-emerald-500/30 rounded-xl transition-all opacity-85 cursor-default shrink-0"
                   title="All changes are saved to database"
                 >
                   <Check size={13} className="text-emerald-400 shrink-0" />
@@ -994,7 +999,7 @@ export const QuotationEditor: React.FC<Props> = ({
             <button
               onClick={handleOpenShare}
               title="Share quotation via WhatsApp or Client Portal link"
-              className="flex items-center justify-center gap-1 px-2.5 sm:px-3 py-1.5 text-xs font-extrabold text-white bg-gradient-to-r from-emerald-600 via-teal-600 to-emerald-500 hover:from-emerald-500 hover:to-teal-400 active:scale-95 rounded-xl transition-all shadow-[0_0_12px_rgba(16,185,129,0.25)] hover:shadow-[0_0_20px_rgba(16,185,129,0.45)] cursor-pointer shrink-0"
+              className="flex items-center justify-center gap-1 px-2.5 sm:px-2.5 py-1 sm:py-1.5 text-[11px] sm:text-xs font-extrabold text-white bg-gradient-to-r from-emerald-600 via-teal-600 to-emerald-500 hover:from-emerald-500 hover:to-teal-400 active:scale-95 rounded-xl transition-all shadow-[0_0_12px_rgba(16,185,129,0.25)] hover:shadow-[0_0_20px_rgba(16,185,129,0.45)] cursor-pointer shrink-0"
             >
               <Share2 size={13} className="shrink-0" />
               <span>Share</span>
@@ -1003,10 +1008,10 @@ export const QuotationEditor: React.FC<Props> = ({
             <button
               onClick={handleExportPDF}
               disabled={exporting}
-              className="flex items-center justify-center gap-1 bg-gradient-to-r from-blue-600 via-indigo-600 to-cyan-500 hover:from-blue-500 hover:to-cyan-400 active:scale-95 disabled:opacity-50 text-white px-2.5 sm:px-3 py-1.5 rounded-xl text-xs font-black transition-all shadow-[0_0_15px_rgba(59,130,246,0.25)] hover:shadow-[0_0_25px_rgba(6,182,212,0.45)] cursor-pointer shrink-0"
+              className="flex items-center justify-center gap-1 bg-gradient-to-r from-blue-600 via-indigo-600 to-cyan-500 hover:from-blue-500 hover:to-cyan-400 active:scale-95 disabled:opacity-50 text-white px-2.5 sm:px-2.5 py-1 sm:py-1.5 rounded-xl text-[11px] sm:text-xs font-black transition-all shadow-[0_0_15px_rgba(59,130,246,0.25)] hover:shadow-[0_0_25px_rgba(6,182,212,0.45)] cursor-pointer shrink-0"
             >
               <Download size={13} className="shrink-0" />
-              <span className="truncate">{exporting ? '…' : 'PDF'}</span>
+              <span>{exporting ? '…' : 'PDF'}</span>
             </button>
           </div>
         </div>
@@ -2246,66 +2251,65 @@ export const QuotationEditor: React.FC<Props> = ({
 
                   {/* Live UPI QR Code Section (Shown only when isQrEnabled is ON) */}
                   {isQrEnabled && liveQrUrl ? (
-                    <div className="bg-white rounded-xl border border-blue-200/90 shadow-2xs p-3.5 flex flex-col sm:flex-row items-center sm:items-start gap-4">
-                      {/* QR Image Box */}
-                      <div className="p-2 bg-slate-50 rounded-xl border border-slate-200/70 flex items-center justify-center shrink-0">
-                        <img
-                          src={liveQrUrl}
-                          alt="UPI Payment QR Code"
-                          className="w-24 h-24 object-contain rounded"
-                        />
+                    <div className="bg-white rounded-xl border border-blue-200/90 shadow-2xs p-3 space-y-2.5">
+                      {/* Top Header: Scan to Pay + Supported Apps Badges */}
+                      <div className="flex items-center justify-between gap-1 pb-2 border-b border-slate-100">
+                        <div className="flex items-center gap-1.5 min-w-0">
+                          <QrCode size={13} className="text-blue-600 shrink-0" />
+                          <span className="font-bold text-slate-800 text-xs">Scan to Pay</span>
+                        </div>
+                        <div className="text-[9.5px] text-slate-400 font-semibold tracking-tight shrink-0">
+                          UPI • PhonePe • GPay • Paytm
+                        </div>
                       </div>
 
-                      {/* QR Controls & Amount Settings */}
-                      <div className="flex-1 min-w-0 space-y-2.5 w-full">
-                        <div className="flex items-center justify-between gap-2">
-                          <div className="flex items-center gap-1.5 min-w-0">
-                            <QrCode size={13} className="text-blue-600 shrink-0" />
-                            <span className="font-bold text-slate-800 text-xs">Instant Scan &amp; Pay</span>
-                          </div>
-                          <div className="text-[10px] text-slate-400 font-semibold tracking-wide flex items-center gap-1 shrink-0">
-                            <span>PhonePe</span>
-                            <span>•</span>
-                            <span>GPay</span>
-                            <span>•</span>
-                            <span>Paytm</span>
-                          </div>
+                      {/* Content Row: QR Code & Controls */}
+                      <div className="flex flex-col sm:flex-row items-center sm:items-start gap-3">
+                        {/* QR Image Box */}
+                        <div className="p-2 bg-slate-50 rounded-xl border border-slate-200/70 flex items-center justify-center shrink-0 shadow-2xs">
+                          <img
+                            src={liveQrUrl}
+                            alt="UPI Payment QR Code"
+                            className="w-28 h-28 sm:w-20 sm:h-20 object-contain rounded"
+                          />
                         </div>
 
-                        {/* Switch-Based Mode: Open Amount (Client Enters Amount) vs Fixed Amount */}
-                        <div
-                          onClick={() => {
-                            const next = !allowCustomerEditQrAmount;
-                            onChange({ ...quotation, allowCustomerEditQrAmount: next });
-                            toast.info(next ? 'Client can now enter custom amount' : 'QR payment amount is now fixed');
-                          }}
-                          className="flex items-center justify-between p-2 rounded-lg bg-slate-50 border border-slate-200/70 cursor-pointer select-none text-[11px] font-semibold text-slate-700 hover:bg-slate-100/70 transition-colors"
-                        >
-                          <span className="flex items-center gap-1.5 truncate">
-                            <Smartphone size={13} className={allowCustomerEditQrAmount ? 'text-indigo-600' : 'text-slate-400'} />
-                            <span className="text-[10.5px]">Client Enters Custom Amount</span>
-                          </span>
+                        {/* Controls & Amount Settings */}
+                        <div className="flex-1 w-full min-w-0 space-y-2">
+                          {/* Switch-Based Mode: Custom Amount (Client Enters Amount) vs Fixed Amount */}
                           <div
-                            className={`relative inline-flex h-4 w-7 shrink-0 rounded-full border-2 border-transparent transition-colors duration-200 ease-in-out ${
-                              allowCustomerEditQrAmount ? 'bg-indigo-600' : 'bg-slate-300'
-                            }`}
+                            onClick={() => {
+                              const next = !allowCustomerEditQrAmount;
+                              onChange({ ...quotation, allowCustomerEditQrAmount: next });
+                              toast.info(next ? 'Client can now enter custom amount' : 'QR payment amount is now fixed');
+                            }}
+                            className="flex items-center justify-between gap-2 px-2.5 py-1.5 rounded-lg bg-slate-50 border border-slate-200/70 cursor-pointer select-none hover:bg-slate-100/70 transition-colors"
                           >
-                            <span
-                              className={`inline-block h-3 w-3 transform rounded-full bg-white shadow-sm transition duration-200 ease-in-out ${
-                                allowCustomerEditQrAmount ? 'translate-x-3' : 'translate-x-0'
+                            <span className="flex items-center gap-1.5 min-w-0">
+                              <Smartphone size={13} className={allowCustomerEditQrAmount ? 'text-indigo-600 shrink-0' : 'text-slate-400 shrink-0'} />
+                              <span className="text-xs font-bold text-slate-700 whitespace-nowrap">Custom Amount</span>
+                            </span>
+                            <div
+                              className={`relative inline-flex h-4 w-7 shrink-0 rounded-full border border-transparent transition-colors duration-200 ease-in-out ${
+                                allowCustomerEditQrAmount ? 'bg-indigo-600' : 'bg-slate-300'
                               }`}
-                            />
+                            >
+                              <span
+                                className={`inline-block h-3 w-3 transform rounded-full bg-white shadow-xs transition duration-200 ease-in-out mt-[1px] ml-[1px] ${
+                                  allowCustomerEditQrAmount ? 'translate-x-3' : 'translate-x-0'
+                                }`}
+                              />
+                            </div>
                           </div>
-                        </div>
 
-                        {allowCustomerEditQrAmount ? (
-                          <div className="w-full text-center bg-indigo-50/80 text-indigo-700 text-[10.5px] font-bold px-3 py-1.5 rounded-lg border border-indigo-200/80">
-                            ✍️ Open Amount (Client enters payable amount on scanning)
-                          </div>
-                        ) : (
-                          <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-2">
+                          {allowCustomerEditQrAmount ? (
+                            <div className="w-full text-center bg-indigo-50/80 text-indigo-700 text-xs font-bold px-2 py-1.5 rounded-md border border-indigo-200/80 leading-snug">
+                              ✍️ Client enters amount on scan
+                            </div>
+                          ) : (
+                          <div className="space-y-2">
                             {/* Editable QR Amount Input */}
-                            <div className="flex items-center bg-slate-50 border border-slate-200 rounded-lg px-2.5 py-1 shadow-2xs focus-within:border-blue-500 focus-within:bg-white focus-within:ring-2 focus-within:ring-blue-100 transition-all flex-1">
+                            <div className="flex items-center bg-slate-50 border border-slate-200 rounded-lg px-2.5 py-1.5 shadow-2xs focus-within:border-blue-500 focus-within:bg-white focus-within:ring-2 focus-within:ring-blue-100 transition-all">
                               <span className="text-xs font-bold text-slate-500 mr-1.5">₹</span>
                               <input
                                 type="number"
@@ -2336,11 +2340,11 @@ export const QuotationEditor: React.FC<Props> = ({
                                 className="w-full font-bold text-xs sm:text-sm text-slate-900 bg-transparent focus:outline-none [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
                                 title={`Edit fixed QR payment amount (Max: ₹${grandTotal.toLocaleString('en-IN')})`}
                               />
-                              <PenLine size={11} className="text-slate-400 shrink-0 ml-1" />
+                              <PenLine size={12} className="text-slate-400 shrink-0 ml-1" />
                             </div>
 
                             {/* Preset Buttons: Auto Total vs Advance */}
-                            <div className="flex items-center gap-1.5 text-[10px] shrink-0">
+                            <div className="flex flex-wrap items-center gap-1.5 text-[10px]">
                               <button
                                 type="button"
                                 onClick={() => {
@@ -2351,7 +2355,7 @@ export const QuotationEditor: React.FC<Props> = ({
                                   });
                                   toast.info('QR amount reset to Total Payable');
                                 }}
-                                className={`py-1 px-2.5 rounded-md font-bold border transition-colors ${
+                                className={`py-1 px-2.5 rounded-md font-bold border transition-colors flex-1 text-center whitespace-nowrap ${
                                   !isCustomQr && qrAmountType === 'total'
                                     ? 'bg-blue-600 text-white border-blue-600 shadow-2xs'
                                     : 'bg-slate-50 text-slate-600 border-slate-200 hover:bg-slate-100'
@@ -2372,7 +2376,7 @@ export const QuotationEditor: React.FC<Props> = ({
                                     });
                                     toast.info('QR amount set to Advance Milestone');
                                   }}
-                                  className={`py-1 px-2.5 rounded-md font-bold border transition-colors ${
+                                  className={`py-1 px-2.5 rounded-md font-bold border transition-colors flex-1 text-center whitespace-nowrap ${
                                     !isCustomQr && qrAmountType === 'advance'
                                       ? 'bg-blue-600 text-white border-blue-600 shadow-2xs'
                                       : 'bg-slate-50 text-slate-600 border-slate-200 hover:bg-slate-100'
@@ -2387,7 +2391,8 @@ export const QuotationEditor: React.FC<Props> = ({
                         )}
                       </div>
                     </div>
-                  ) : null}
+                  </div>
+                ) : null}
                 </div>
               </div>
 
@@ -2558,14 +2563,14 @@ export const QuotationEditor: React.FC<Props> = ({
                   </div>
 
                   <div>
-                    <label className="text-[10px] uppercase font-bold text-slate-400 block mb-1">
+                    <label className="text-[10px] uppercase font-bold text-slate-500 block mb-1">
                       Milestone Terms Line
                     </label>
                     <input
                       value={quotation.paymentTerms || ''}
                       placeholder="e.g. 50% Advance with PO | 50% on event setup"
                       onChange={(e) => onChange({ ...quotation, paymentTerms: e.target.value })}
-                      className="w-full text-xs font-medium bg-white border border-slate-200 rounded-lg p-2 focus:outline-blue-500 placeholder:text-slate-400"
+                      className="w-full text-xs font-semibold text-slate-900 bg-white border border-slate-300 rounded-lg p-2 focus:border-blue-500 focus:ring-1 focus:ring-blue-500 focus:outline-none placeholder:text-slate-400"
                     />
                   </div>
 
