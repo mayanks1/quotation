@@ -24,9 +24,12 @@ export function buildQuotationHTML(quotation: Quotation, upiQrDataUrl?: string):
     paymentTerms,
     documentType = 'quotation',
     invoiceNumber,
+    invoiceTitle,
     advancePercentage = 70,
     paidAmount = 0,
   } = quotation;
+
+  const effectiveInvoiceTitle = (invoiceTitle && invoiceTitle.trim()) || 'TAX INVOICE';
 
   const displayEventDate = eventDate 
     ? (eventEndDate && !eventDate.includes('to') ? `${eventDate} to ${eventEndDate}` : eventDate)
@@ -100,7 +103,7 @@ export function buildQuotationHTML(quotation: Quotation, upiQrDataUrl?: string):
           <svg width="170" height="36" viewBox="0 0 170 36" style="display:inline-block;margin-bottom:8px;vertical-align:middle;">
             <rect width="170" height="36" rx="6" fill="${documentType === 'invoice' ? '#047857' : '#1e3a8a'}"/>
             <text x="85" y="19" text-anchor="middle" dominant-baseline="central" fill="#ffffff" font-family="-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Helvetica,Arial,sans-serif" font-size="${documentType === 'invoice' ? '14' : '15'}" font-weight="800" letter-spacing="1.2">
-              ${documentType === 'invoice' ? 'TAX INVOICE' : 'QUOTATION'}
+              ${documentType === 'invoice' ? esc(effectiveInvoiceTitle) : 'QUOTATION'}
             </text>
           </svg>
           <table style="width:100%;font-size:11.5px;margin-top:2px;border-collapse:collapse;">
@@ -304,7 +307,7 @@ export function buildQuotationHTML(quotation: Quotation, upiQrDataUrl?: string):
       return `
         <div data-pdf-block="gst-breakdown" style="margin-bottom:14px;border:1px solid #cbd5e1;border-radius:6px;overflow:hidden;font-size:9.5px;">
           <div style="background:#f1f5f9;padding:4px 8px;font-weight:700;color:#1e3a8a;font-size:9px;text-transform:uppercase;letter-spacing:0.5px;border-bottom:1px solid #cbd5e1;">
-            TAX INVOICE GST BREAKDOWN (HSN / SAC SUMMARY)
+            ${documentType === 'invoice' ? `${esc(effectiveInvoiceTitle)} GST BREAKDOWN (HSN / SAC SUMMARY)` : 'GST BREAKDOWN (HSN / SAC SUMMARY)'}
           </div>
           <table style="width:100%;border-collapse:collapse;text-align:right;">
             <thead>
@@ -425,7 +428,7 @@ export function buildQuotationHTML(quotation: Quotation, upiQrDataUrl?: string):
       <!-- Footer Note & Verification Assurance -->
       <div data-pdf-block="footer" style="display:flex;justify-content:space-between;align-items:center;border-top:1px dashed #cbd5e1;padding-top:8px;margin-top:6px;font-size:9px;color:#64748b;">
         <div>
-          ${esc(company.name)} &bull; Computer-Generated ${quotation.documentType === 'invoice' ? 'Tax Invoice' : 'Quotation'} &bull; Ref #${esc(quotation.quotationNumber)}
+          ${esc(company.name)} &bull; Computer-Generated ${quotation.documentType === 'invoice' ? esc(effectiveInvoiceTitle) : 'Quotation'} &bull; Ref #${esc(quotation.quotationNumber)}
         </div>
         <div style="font-weight:700;color:#059669;display:flex;align-items:center;gap:4px;">
           <span>&#10003; Tamper-Protected Electronic Record</span>
@@ -518,9 +521,10 @@ export async function generateQuotationPDFDoc(quotation: Quotation): Promise<{ p
 
     const pdf = new jsPDF({ orientation: 'portrait', unit: 'mm', format: 'a4' });
 
+    const docMetaTitle = quotation.documentType === 'invoice' ? ((quotation.invoiceTitle && quotation.invoiceTitle.trim()) || 'Tax Invoice') : 'Quotation';
     pdf.setProperties({
-      title: `${quotation.documentType === 'invoice' ? 'Tax Invoice' : 'Quotation'} ${quotation.quotationNumber}`,
-      subject: `Official ${quotation.documentType === 'invoice' ? 'Tax Invoice' : 'Quotation'} - ${quotation.client?.name || 'Client'}`,
+      title: `${docMetaTitle} ${quotation.quotationNumber}`,
+      subject: `Official ${docMetaTitle} - ${quotation.client?.name || 'Client'}`,
       author: 'Tisha LED Walls Cryptographic Signer',
       keywords: `Official Document, Tamper-Protected, ${quotation.quotationNumber}`,
       creator: 'Tisha Secure PDF Engine v2.0 (Digitally Signed)',

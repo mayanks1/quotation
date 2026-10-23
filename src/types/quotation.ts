@@ -83,6 +83,7 @@ export interface Quotation {
   documentType?: DocumentType;
   invoiceNumber?: string;
   invoiceDate?: string;
+  invoiceTitle?: string; // e.g. 'TAX INVOICE' or 'INVOICE' or custom title
   revisionNumber?: number; // e.g. 1, 2, 3...
   parentQuoteNumber?: string; // original quote number if revised
   isRevised?: boolean;

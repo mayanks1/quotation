@@ -1120,19 +1120,60 @@ export const QuotationEditor: React.FC<Props> = ({
 
             {/* Document Metadata Card */}
             <div className="text-left md:text-right w-full md:w-auto md:min-w-[280px] space-y-2">
-              <div className="flex items-center justify-start md:justify-end gap-2 mb-2">
-                <h1 className="text-3xl md:text-4xl font-black tracking-tight text-slate-900">
-                  {isInvoice ? 'TAX INVOICE' : 'QUOTATION'}
-                </h1>
+              <div className="flex flex-col items-start md:items-end gap-1 mb-2">
+                <div className="flex items-center justify-start md:justify-end gap-2 flex-wrap">
+                  {isInvoice ? (
+                    <div className="flex items-center gap-2">
+                      <input
+                        type="text"
+                        value={quotation.invoiceTitle ?? 'TAX INVOICE'}
+                        onChange={(e) => onChange({ ...quotation, invoiceTitle: e.target.value.toUpperCase() })}
+                        placeholder="TAX INVOICE"
+                        title="Click to edit document heading (e.g. TAX INVOICE or INVOICE)"
+                        className="text-2xl sm:text-3xl md:text-4xl font-black tracking-tight text-slate-900 bg-transparent text-left md:text-right uppercase border-b-2 border-dashed border-slate-300 hover:border-blue-500 focus:border-blue-600 focus:outline-none transition-colors w-auto min-w-[170px] max-w-[280px]"
+                      />
+                      <span className="bg-blue-600 text-white text-[10px] font-black uppercase tracking-wider px-2 py-0.5 rounded shadow-sm shrink-0">
+                        ORIGINAL
+                      </span>
+                    </div>
+                  ) : (
+                    <h1 className="text-3xl md:text-4xl font-black tracking-tight text-slate-900">
+                      QUOTATION
+                    </h1>
+                  )}
+                  {quotation.revisionNumber && quotation.revisionNumber > 1 && (
+                    <span className="bg-blue-100 text-blue-800 border border-blue-200 text-[10px] font-black uppercase tracking-wider px-2 py-0.5 rounded shadow-2xs">
+                      REV R{quotation.revisionNumber}
+                    </span>
+                  )}
+                </div>
+
                 {isInvoice && (
-                  <span className="bg-blue-600 text-white text-[10px] font-black uppercase tracking-wider px-2 py-0.5 rounded shadow-sm">
-                    ORIGINAL
-                  </span>
-                )}
-                {quotation.revisionNumber && quotation.revisionNumber > 1 && (
-                  <span className="bg-blue-100 text-blue-800 border border-blue-200 text-[10px] font-black uppercase tracking-wider px-2 py-0.5 rounded shadow-2xs">
-                    REV R{quotation.revisionNumber}
-                  </span>
+                  <div className="flex items-center gap-1.5 no-print pt-0.5">
+                    <span className="text-[10px] uppercase font-bold text-slate-400">Heading:</span>
+                    <button
+                      type="button"
+                      onClick={() => onChange({ ...quotation, invoiceTitle: 'TAX INVOICE' })}
+                      className={`px-2 py-0.5 rounded text-[10px] font-bold uppercase transition-all cursor-pointer ${
+                        (quotation.invoiceTitle || 'TAX INVOICE') === 'TAX INVOICE'
+                          ? 'bg-blue-600 text-white shadow-2xs'
+                          : 'bg-slate-100 hover:bg-slate-200 text-slate-600 border border-slate-200'
+                      }`}
+                    >
+                      Tax Invoice
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => onChange({ ...quotation, invoiceTitle: 'INVOICE' })}
+                      className={`px-2 py-0.5 rounded text-[10px] font-bold uppercase transition-all cursor-pointer ${
+                        quotation.invoiceTitle === 'INVOICE'
+                          ? 'bg-blue-600 text-white shadow-2xs'
+                          : 'bg-slate-100 hover:bg-slate-200 text-slate-600 border border-slate-200'
+                      }`}
+                    >
+                      Invoice
+                    </button>
+                  </div>
                 )}
               </div>
               

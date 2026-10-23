@@ -184,7 +184,7 @@ export const renderTemplate = (key: TemplateKey, quotation: Quotation, customTem
   const balance = Math.max(0, grandTotal - paid);
 
   const isInvoice = quotation.documentType === 'invoice';
-  const docTitle = isInvoice ? 'TAX INVOICE' : 'QUOTATION';
+  const docTitle = isInvoice ? ((quotation.invoiceTitle && quotation.invoiceTitle.trim()) || 'TAX INVOICE') : 'QUOTATION';
   const docNumber = isInvoice ? (quotation.invoiceNumber || quotation.quotationNumber) : quotation.quotationNumber;
   const clientName = quotation.client?.name || 'Sir / Madam';
   const clientCompany = quotation.client?.company ? ` (${quotation.client.company})` : '';

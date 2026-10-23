@@ -28,12 +28,12 @@ export const generateWhatsAppPdfNoticeUrl = (quotation: Quotation, filename: str
   const grandTotal = discounted + tax + (quotation.shippingCharges || 0);
 
   const isInvoice = quotation.documentType === 'invoice';
-  const docTitle = isInvoice ? 'TAX INVOICE' : 'QUOTATION';
+  const docTitle = isInvoice ? ((quotation.invoiceTitle && quotation.invoiceTitle.trim()) || 'TAX INVOICE') : 'QUOTATION';
   const docNumber = isInvoice ? (quotation.invoiceNumber || quotation.quotationNumber) : quotation.quotationNumber;
 
   let text = `*${docTitle}: ${docNumber}*\n`;
   text += `Hello ${quotation.client?.name || 'Sir/Madam'},\n\n`;
-  text += `Please find attached the official PDF ${isInvoice ? 'tax invoice' : 'quotation'} document from *${quotation.company.name}*.\n`;
+  text += `Please find attached the official PDF ${isInvoice ? docTitle.toLowerCase() : 'quotation'} document from *${quotation.company.name}*.\n`;
   if (quotation.venue) text += `*Venue:* ${quotation.venue}\n`;
   if (quotation.eventDate) text += `*Event Date:* ${quotation.eventDate}\n`;
   text += `*Total Amount:* ₹${grandTotal.toLocaleString('en-IN')}\n\n`;

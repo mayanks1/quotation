@@ -72,6 +72,7 @@ export const cloudSync = {
         client: {
           ...(quote.client || {}),
           organizationId: activeOrgId,
+          invoiceTitle: quote.invoiceTitle,
           clientSignature: quote.clientSignature,
           adjustmentAmount: quote.adjustmentAmount,
           advancePercentage: quote.advancePercentage,
@@ -283,6 +284,7 @@ export const cloudSync = {
               gstin: row.client?.gstin || '',
             },
             clientSignature: row.client?.clientSignature || localExisting?.clientSignature || undefined,
+            invoiceTitle: row.client?.invoiceTitle || localExisting?.invoiceTitle || undefined,
             adjustmentAmount: row.client?.adjustmentAmount !== undefined ? Number(row.client.adjustmentAmount) : localExisting?.adjustmentAmount,
             advancePercentage: row.client?.advancePercentage !== undefined ? Number(row.client.advancePercentage) : localExisting?.advancePercentage,
             advanceAmount: row.client?.advanceAmount !== undefined ? Number(row.client.advanceAmount) : localExisting?.advanceAmount,
