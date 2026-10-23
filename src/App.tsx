@@ -21,6 +21,7 @@ import { useIdleTimeout } from './hooks/useIdleTimeout';
 import { passcodeService } from './services/passcodeService';
 import { backupService } from './services/backupService';
 import { pingSupabaseHealth } from './services/keepAliveService';
+import { cloudSync } from './services/cloudSync';
 import { LedgerPasscodeModal } from './components/ledger/LedgerPasscodeModal';
 import { Lock } from 'lucide-react';
 
@@ -128,9 +129,27 @@ export function App() {
 
     // Daily health ping to keep Supabase free tier active and avoid 7-day pause
     pingSupabaseHealth();
+
+    // Realtime synchronization across devices (Laptop, Mobile, Tablet)
+    const unsubscribe = cloudSync.subscribeToCloudChanges(async ({ table }) => {
+      if (table === 'quotations') {
+        const cloudData = await cloudSync.pullAllFromCloud();
+        if (cloudData && Array.isArray(cloudData.quotations)) {
+          setQuotations(storage.getAllQuotations());
+        }
+      }
+      if (table === 'clients') {
+        setClients(storage.getAllClients());
+      }
+    });
+
+    return () => {
+      unsubscribe();
+    };
   }, []);
 
-  const handleRestoreBackup = () => {
+  const handleRestoreBackup = async () => {
+    await storage.reloadFromIndexedDb();
     setQuotations(storage.getAllQuotations());
     setClients(storage.getAllClients());
     setCompany(storage.getCompanyProfile());

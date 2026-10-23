@@ -178,10 +178,10 @@ export const storage = {
         try {
           const cloudData = await cloudSync.pullAllFromCloud();
           if (cloudData) {
-            if (cloudData.quotations && cloudData.quotations.length > 0) {
+            if (cloudData.quotations && Array.isArray(cloudData.quotations)) {
               memoryQuotations = cloudData.quotations;
             }
-            if (cloudData.clients && cloudData.clients.length > 0) {
+            if (cloudData.clients && Array.isArray(cloudData.clients)) {
               memoryClients = cloudData.clients;
             }
             if (cloudData.company) {
@@ -622,17 +622,22 @@ export const storage = {
   async importBackup(file: File): Promise<{ quotationsCount: number; clientsCount: number }> {
     const text = await file.text();
     const result = await idb.importFullBackup(text);
-    // Reload memory cache
-    const quotes = await idb.getAllQuotations();
-    const clients = await idb.getAllClients();
-    const comp = await idb.getSetting<CompanyProfile>('company_profile');
-    memoryQuotations = quotes;
-    memoryClients = clients;
-    if (comp) memoryCompany = comp;
+    await storage.reloadFromIndexedDb();
     if (cloudSync.isEnabled()) {
       cloudSync.pullAllFromCloud().catch(console.warn);
     }
     return result;
+  },
+
+  async reloadFromIndexedDb(): Promise<void> {
+    const [quotes, clients, comp] = await Promise.all([
+      idb.getAllQuotations(),
+      idb.getAllClients(),
+      idb.getSetting<CompanyProfile>('company_profile'),
+    ]);
+    memoryQuotations = quotes;
+    memoryClients = clients;
+    if (comp) memoryCompany = normalizeCompany(comp);
   },
 
   // Force two-way push and reconciliation with cloud

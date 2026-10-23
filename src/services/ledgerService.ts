@@ -253,10 +253,10 @@ export function fromDbRow(row: any, index: number = 0): LedgerRecord {
     transactionRef: row.transaction_ref || '',
     eventVenue: row.event_venue || '',
     organizationId: row.organization_id || 'org_tisha_main',
-    isDeleted: Boolean(row.is_deleted),
-    deletedAt: row.deleted_at || undefined,
-    createdAt: row.created_at,
-    updatedAt: row.updated_at
+    isDeleted: Boolean(row.is_deleted ?? row.isDeleted),
+    deletedAt: row.deleted_at || row.deletedAt || undefined,
+    createdAt: row.created_at || row.createdAt,
+    updatedAt: row.updated_at || row.updatedAt
   };
 }
 
@@ -310,6 +310,8 @@ export function toDbRow(entry: {
     event_venue: entry.eventVenue || null,
     linked_quotation_id: entry.linkedQuotationId || null,
     invoice_number: entry.invoiceNumber || null,
+    is_deleted: Boolean(entry.isDeleted),
+    deleted_at: entry.deletedAt || null,
     updated_at: new Date().toISOString()
   };
 }

@@ -410,7 +410,11 @@ class FailoverManager {
       if (!isFirebaseConfigured()) return [];
       try {
         const records = await firestoreGetAll('quotations');
-        return records as Quotation[];
+        return (records as any[]).map((r: any) => ({
+          ...r,
+          isDeleted: Boolean(r.isDeleted ?? r.is_deleted ?? r.client?.isDeleted),
+          deletedAt: r.deletedAt || r.deleted_at || r.client?.deletedAt || undefined,
+        })) as Quotation[];
       } catch (err) {
         console.warn('[Failover] Error fetching fallback quotations from Firebase:', err);
         return [];
@@ -460,7 +464,7 @@ class FailoverManager {
       if (!isFirebaseConfigured()) return [];
       try {
         const records = await firestoreGetAll('payment_ledger');
-        return records as LedgerRecord[];
+        return records.map((r: any, i: number) => fromDbRow(r, i));
       } catch (err) {
         console.warn('[Failover] Error fetching fallback ledger from Firebase:', err);
         return [];

@@ -264,6 +264,7 @@ export const backupService = {
 
     const jsonStr = JSON.stringify(found.data);
     const result = await idb.importFullBackup(jsonStr);
+    await storage.reloadFromIndexedDb();
 
     // If backup contains ledger, restore cache
     if (Array.isArray(found.data.ledger) && found.data.ledger.length > 0) {
