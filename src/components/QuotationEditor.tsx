@@ -293,33 +293,33 @@ export const QuotationEditor: React.FC<Props> = ({
 
   // Event Date Range Mode
   const [isEventRange, setIsEventRange] = useState<boolean>(() => {
-    return Boolean(quotation.eventEndDate || (quotation.eventDate && quotation.eventDate.includes(' to ')));
+    return Boolean(quotation?.eventEndDate || (quotation?.eventDate && quotation.eventDate.includes(' to ')));
   });
 
   // Document Type & Invoicing
-  const isInvoice = quotation.documentType === 'invoice';
+  const isInvoice = quotation?.documentType === 'invoice';
 
   // Math
-  const subtotal = quotation.lineItems.reduce((acc, i) => acc + getItemAmount(i), 0);
-  const discountedSubtotal = Math.max(0, subtotal - (quotation.discountAmount || 0));
-  const isZeroTax = quotation.taxScheme === 'none';
-  const effectiveTaxRate = isZeroTax ? 0 : (quotation.taxRate || 0);
+  const subtotal = quotation?.lineItems ? quotation.lineItems.reduce((acc, i) => acc + getItemAmount(i), 0) : 0;
+  const discountedSubtotal = Math.max(0, subtotal - (quotation?.discountAmount || 0));
+  const isZeroTax = quotation?.taxScheme === 'none';
+  const effectiveTaxRate = isZeroTax ? 0 : (quotation?.taxRate || 0);
   const taxAmount = isZeroTax ? 0 : (discountedSubtotal * effectiveTaxRate) / 100;
-  const grandTotal = Math.max(0, discountedSubtotal + taxAmount + (quotation.shippingCharges || 0) + (quotation.adjustmentAmount || 0));
+  const grandTotal = Math.max(0, discountedSubtotal + taxAmount + (quotation?.shippingCharges || 0) + (quotation?.adjustmentAmount || 0));
 
   // Feature Toggles (Optional Features)
-  const isQrEnabled = quotation.enableUpiQr ?? false;
-  const isLedgerEnabled = quotation.enablePaymentLedger ?? false;
-  const allowCustomerEditQrAmount = quotation.allowCustomerEditQrAmount ?? false;
-  const qrAmountType = quotation.qrAmountType || (quotation.customQrAmount !== undefined && quotation.customQrAmount > 0 ? 'custom' : (isLedgerEnabled ? 'advance' : 'total'));
-  const isCustomQr = qrAmountType === 'custom' && quotation.customQrAmount !== undefined && quotation.customQrAmount > 0;
+  const isQrEnabled = quotation?.enableUpiQr ?? false;
+  const isLedgerEnabled = quotation?.enablePaymentLedger ?? false;
+  const allowCustomerEditQrAmount = quotation?.allowCustomerEditQrAmount ?? false;
+  const qrAmountType = quotation?.qrAmountType || (quotation?.customQrAmount !== undefined && quotation.customQrAmount > 0 ? 'custom' : (isLedgerEnabled ? 'advance' : 'total'));
+  const isCustomQr = qrAmountType === 'custom' && quotation?.customQrAmount !== undefined && quotation.customQrAmount > 0;
 
   // Payment Milestone & Tracking Math
   // Milestone percentage is the authoritative source of truth for advance calculations
-  const advancePercentage = quotation.advancePercentage ?? (quotation.advanceAmount && grandTotal > 0 ? Math.round((quotation.advanceAmount / grandTotal) * 100) : 70);
+  const advancePercentage = quotation?.advancePercentage ?? (quotation?.advanceAmount && grandTotal > 0 ? Math.round((quotation.advanceAmount / grandTotal) * 100) : 70);
   const effectiveAdvanceAmount = Math.round((grandTotal * advancePercentage) / 100);
 
-  const paidAmount = quotation.paidAmount || 0;
+  const paidAmount = quotation?.paidAmount || 0;
   const balanceDue = Math.max(0, grandTotal - paidAmount);
 
   // Dynamic QR Code Target Amount:
@@ -330,7 +330,7 @@ export const QuotationEditor: React.FC<Props> = ({
   const targetQrAmount = allowCustomerEditQrAmount
     ? 0
     : (isCustomQr
-        ? Math.min(quotation.customQrAmount!, grandTotal > 0 ? grandTotal : quotation.customQrAmount!)
+        ? Math.min(quotation?.customQrAmount || 0, grandTotal > 0 ? grandTotal : (quotation?.customQrAmount || 0))
         : (qrAmountType === 'advance' && isLedgerEnabled && effectiveAdvanceAmount > 0
             ? effectiveAdvanceAmount
             : grandTotal));
@@ -338,15 +338,15 @@ export const QuotationEditor: React.FC<Props> = ({
   // Live UPI QR code generator effect
   useEffect(() => {
     let isMounted = true;
-    const upiId = quotation.company.bankDetails?.upiId;
-    if (!isQrEnabled || !upiId) {
+    const upiId = quotation?.company?.bankDetails?.upiId;
+    if (!isQrEnabled || !upiId || !quotation) {
       setLiveQrUrl('');
       return;
     }
 
     generateUpiQrDataUrl({
       upiId,
-      payeeName: quotation.company.bankDetails?.accountName || quotation.company.name || 'Merchant',
+      payeeName: quotation.company?.bankDetails?.accountName || quotation.company?.name || 'Merchant',
       amount: allowCustomerEditQrAmount ? undefined : (targetQrAmount > 0 ? targetQrAmount : undefined),
       transactionNote: `${isInvoice ? 'Invoice' : 'Quote'} ${isInvoice ? (quotation.invoiceNumber || quotation.quotationNumber) : quotation.quotationNumber}`,
     }).then((url) => {
@@ -360,16 +360,25 @@ export const QuotationEditor: React.FC<Props> = ({
     };
   }, [
     isQrEnabled,
-    quotation.company.bankDetails?.upiId,
-    quotation.company.bankDetails?.accountName,
-    quotation.company.name,
+    quotation?.company?.bankDetails?.upiId,
+    quotation?.company?.bankDetails?.accountName,
+    quotation?.company?.name,
     targetQrAmount,
     allowCustomerEditQrAmount,
-    quotation.customQrAmount,
+    quotation?.customQrAmount,
     isInvoice,
-    quotation.invoiceNumber,
-    quotation.quotationNumber,
+    quotation?.invoiceNumber,
+    quotation?.quotationNumber,
   ]);
+
+  if (!quotation) {
+    return (
+      <div className="flex flex-col items-center justify-center min-h-[400px] gap-3">
+        <div className="w-8 h-8 border-3 border-blue-600 border-t-transparent rounded-full animate-spin" />
+        <p className="text-xs text-slate-500 font-medium">Loading quotation...</p>
+      </div>
+    );
+  }
 
   // Line item handlers
   const handleUpdateItem = (id: string, field: keyof LineItem, val: string | number) => {

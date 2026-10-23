@@ -295,6 +295,14 @@ export const storage = {
     }
   },
 
+  isInitialized(): boolean {
+    return isInitialized;
+  },
+
+  getQuotationById(id: string, includeDeleted = true): Quotation | undefined {
+    return memoryQuotations.find((q) => q.id === id && (includeDeleted || !q.isDeleted));
+  },
+
   getAllQuotations(includeDeleted = false, organizationId?: string): Quotation[] {
     let list = includeDeleted ? memoryQuotations : memoryQuotations.filter((q) => !q.isDeleted);
     if (organizationId && organizationId !== 'all') {

@@ -37,11 +37,12 @@ const QuoteEditorPageInner: React.FC<InnerProps> = ({
 
   const isNew = id === 'new';
   const savedQuote = useMemo(() => {
-    return isNew ? null : quotations.find((q) => q.id === id);
+    if (isNew) return null;
+    return quotations.find((q) => q.id === id) || storage.getQuotationById(id) || null;
   }, [isNew, quotations, id]);
 
   // Working draft kept in local state until explicitly saved
-  const [draftQuote, setDraftQuote] = useState<Quotation>(() => {
+  const [draftQuote, setDraftQuote] = useState<Quotation | null>(() => {
     if (isNew) {
       const activeOrgId = typeof window !== 'undefined' ? localStorage.getItem('tisha_active_org_id') || 'org_tisha_main' : 'org_tisha_main';
       const blank = createBlankQuotation(company, activeOrgId);
@@ -59,8 +60,21 @@ const QuoteEditorPageInner: React.FC<InnerProps> = ({
       }
       return blank;
     }
-    return savedQuote ? { ...savedQuote } : (null as any);
+    const fromMem = storage.getQuotationById(id);
+    return savedQuote ? { ...savedQuote } : (fromMem ? { ...fromMem } : null);
   });
+
+  // Keep draft in sync if savedQuote loads asynchronously after mount (e.g. on page refresh while storage initializes)
+  useEffect(() => {
+    if (!isNew && savedQuote) {
+      setDraftQuote((current) => {
+        if (!current || current.id !== savedQuote.id) {
+          return { ...savedQuote };
+        }
+        return current;
+      });
+    }
+  }, [isNew, savedQuote]);
 
   const [hasNewDraftEdits, setHasNewDraftEdits] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
@@ -190,6 +204,14 @@ const QuoteEditorPageInner: React.FC<InnerProps> = ({
   }, [isDirty]);
 
   if (!isNew && !savedQuote) {
+    if (!storage.isInitialized()) {
+      return (
+        <div className="flex flex-col items-center justify-center min-h-[400px] gap-3">
+          <div className="w-8 h-8 border-3 border-blue-600 border-t-transparent rounded-full animate-spin" />
+          <p className="text-xs text-slate-500 font-medium">Loading quotation...</p>
+        </div>
+      );
+    }
     return (
       <div className="max-w-md mx-auto my-16 bg-white p-8 rounded-2xl border border-slate-200/80 shadow-sm text-center space-y-4">
         <div className="w-12 h-12 bg-blue-50 text-blue-600 rounded-2xl flex items-center justify-center mx-auto">
@@ -217,6 +239,15 @@ const QuoteEditorPageInner: React.FC<InnerProps> = ({
             <span>+ New Quotation</span>
           </button>
         </div>
+      </div>
+    );
+  }
+
+  if (!draftQuote) {
+    return (
+      <div className="flex flex-col items-center justify-center min-h-[400px] gap-3">
+        <div className="w-8 h-8 border-3 border-blue-600 border-t-transparent rounded-full animate-spin" />
+        <p className="text-xs text-slate-500 font-medium">Loading quotation...</p>
       </div>
     );
   }
