@@ -635,8 +635,10 @@ export const QuotationEditor: React.FC<Props> = ({
     <div className="max-w-6xl mx-auto space-y-3 sm:space-y-3.5 pb-16">
       
       {/* Top Controller Bar - Ultra-Premium Executive SaaS Command Dock */}
-      <div className={`no-print bg-slate-900/98 backdrop-blur-2xl px-2.5 sm:px-3 py-1.5 sm:py-2 rounded-2xl border border-white/10 shadow-[0_10px_35px_rgba(0,0,0,0.5)] ring-1 ring-white/10 flex flex-col md:flex-row md:items-center md:justify-between gap-2 md:gap-2 z-40 transition-all max-w-full overflow-visible ${
-        isHeaderFixed ? 'sticky top-[96px] md:top-[66px]' : 'relative top-0'
+      <div className={`no-print backdrop-blur-2xl px-2.5 sm:px-3 py-1.5 sm:py-2 border flex flex-col md:flex-row md:items-center md:justify-between gap-2 md:gap-2 z-40 transition-all max-w-full overflow-visible ${
+        isHeaderFixed 
+          ? 'sticky top-[96px] md:top-[66px] bg-slate-900 rounded-b-2xl rounded-t-none -mx-1 px-3.5 sm:px-4 border-white/10 border-t-0 shadow-[0_8px_30px_rgba(0,0,0,0.7),0_2px_8px_rgba(0,0,0,0.5)] ring-0' 
+          : 'relative top-0 bg-slate-900/98 rounded-2xl border-white/10 shadow-[0_10px_35px_rgba(0,0,0,0.5)] ring-1 ring-white/10'
       }`}>
         
         {/* Row 1 on Mobile / Left Group on Desktop: Back, Doc ID, Mode Switcher & Status */}
