@@ -5,7 +5,7 @@ import {
   Settings, UserCheck, UserPlus, Calendar, Zap, FileText, Receipt,
   QrCode, CreditCard, CheckCircle2, GitBranch, ChevronDown, ChevronUp,
   Smartphone, PenLine, PenTool, Clock, Truck, MoreHorizontal, Check, ExternalLink, Building2, Sparkles,
-  Phone, Mail
+  Phone, Mail, Save, Undo2
 } from 'lucide-react';
 import { 
   Quotation, LineItem, QuotationStatus, TaxScheme, ClientProfile, 
@@ -37,6 +37,11 @@ interface Props {
   onBack: () => void;
   onDuplicate: (q: Quotation) => void;
   onOpenSettings: () => void;
+  isNewDraft?: boolean;
+  isDirty?: boolean;
+  onSave?: () => void;
+  onDiscard?: () => void;
+  isSaving?: boolean;
 }
 
 // Auto-formats date strings into DD-MM-YYYY as user types
@@ -172,6 +177,11 @@ export const QuotationEditor: React.FC<Props> = ({
   onBack,
   onDuplicate,
   onOpenSettings,
+  isNewDraft = false,
+  isDirty = false,
+  onSave,
+  onDiscard,
+  isSaving = false,
 }) => {
   const toast = useToast();
   const { confirm } = useConfirm();
@@ -443,6 +453,9 @@ export const QuotationEditor: React.FC<Props> = ({
   };
 
   const handleOpenShare = () => {
+    if ((isNewDraft || isDirty) && onSave) {
+      onSave();
+    }
     setIsShareModalOpen(true);
   };
 
@@ -576,147 +589,161 @@ export const QuotationEditor: React.FC<Props> = ({
     <div className="max-w-5xl mx-auto space-y-6 pb-16">
       
       {/* Top Controller Bar - Ultra-Premium Executive SaaS Command Dock */}
-      <div className="no-print bg-slate-900/85 backdrop-blur-2xl p-2.5 sm:px-5 sm:py-2.5 rounded-2xl border border-white/10 shadow-[0_12px_40px_rgba(0,0,0,0.5)] ring-1 ring-white/10 flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-2.5 sm:gap-3 relative md:sticky md:top-3 z-40">
+      <div className="no-print bg-slate-900/95 backdrop-blur-2xl px-2.5 sm:px-4 py-2 sm:py-2.5 rounded-2xl border border-white/10 shadow-[0_12px_40px_rgba(0,0,0,0.5)] ring-1 ring-white/10 flex flex-col md:flex-row items-stretch md:items-center justify-between gap-2.5 md:gap-3 relative md:sticky md:top-3 z-40">
         
         {/* Left: Navigation, Document ID, Mode Switcher & Status */}
-        <div className="flex items-center justify-between sm:justify-start gap-1.5 sm:gap-2.5 min-w-0 w-full sm:w-auto">
-          {/* Back Button */}
-          <button
-            onClick={onBack}
-            className="group flex items-center gap-1.5 text-xs font-bold text-slate-300 hover:text-white bg-slate-800/90 hover:bg-slate-700/90 px-3 py-1.5 rounded-xl border border-white/10 transition-all active:scale-95 shrink-0 shadow-xs cursor-pointer"
-            title="Return to Quotation List"
-          >
-            <ArrowLeft size={13} className="text-slate-400 group-hover:-translate-x-0.5 transition-transform" />
-            <span className="hidden sm:inline">Quotes</span>
-          </button>
+        <div className="flex items-center justify-between md:justify-start gap-1.5 sm:gap-2.5 w-full md:w-auto">
+          {/* Subgroup Left: Back & Quote ID */}
+          <div className="flex items-center gap-1 sm:gap-1.5 shrink-0">
+            {/* Back Button */}
+            <button
+              onClick={onBack}
+              className="group flex items-center justify-center gap-1 text-[11px] sm:text-xs font-bold text-slate-300 hover:text-white bg-slate-800/90 hover:bg-slate-700/90 px-2 sm:px-2.5 py-1 sm:py-1.5 rounded-xl border border-white/10 transition-all active:scale-95 shrink-0 shadow-xs cursor-pointer"
+              title="Return to Quotation List"
+            >
+              <ArrowLeft size={13} className="text-slate-400 group-hover:-translate-x-0.5 transition-transform" />
+              <span className="hidden sm:inline">Quotes</span>
+            </button>
 
-          {/* Breadcrumb slash & Quote Number */}
-          <div className="hidden md:flex items-center gap-1.5 shrink-0">
-            <span className="text-slate-600 font-light text-xs">/</span>
-            <div className="flex items-center gap-1">
-              <span className="font-mono text-xs font-black text-cyan-400 tracking-tight">
+            {/* Breadcrumb slash & Quote Number */}
+            <div className="flex items-center gap-1 shrink-0">
+              <span className="text-slate-600 font-light text-xs hidden sm:inline">/</span>
+              <span className="font-mono text-[11px] sm:text-xs font-black text-cyan-400 tracking-tight shrink-0">
                 {isInvoice ? (quotation.invoiceNumber || quotation.quotationNumber) : quotation.quotationNumber}
               </span>
+              {isNewDraft ? (
+                <span className="text-[9px] sm:text-[10px] font-sans font-bold px-1.5 py-0.2 sm:py-0.5 bg-amber-500/20 text-amber-300 rounded-md border border-amber-500/30 whitespace-nowrap shrink-0">
+                  Draft
+                </span>
+              ) : isDirty ? (
+                <span className="text-[9px] sm:text-[10px] font-sans font-bold px-1.5 py-0.2 sm:py-0.5 bg-amber-500/20 text-amber-300 rounded-md border border-amber-500/30 flex items-center gap-1 whitespace-nowrap shrink-0">
+                  <span className="w-1.5 h-1.5 rounded-full bg-amber-400 animate-pulse" />
+                  Unsaved
+                </span>
+              ) : null}
               {quotation.revisionNumber && quotation.revisionNumber > 1 && (
-                <span className="text-[10px] font-mono font-bold px-1.5 py-0.2 bg-blue-950/80 text-blue-300 rounded-md border border-blue-500/30">
+                <span className="text-[9px] sm:text-[10px] font-mono font-bold px-1 py-0.2 bg-blue-950/80 text-blue-300 rounded-md border border-blue-500/30 shrink-0">
                   R{quotation.revisionNumber}
                 </span>
               )}
             </div>
           </div>
 
-          <div className="h-4 w-px bg-white/10 shrink-0 hidden sm:block" />
+          <div className="h-4 w-px bg-white/10 shrink-0 hidden md:block" />
 
-          {/* Mode Switcher: Quotation vs Tax Invoice (Apple Segmented Style) */}
-          <div className="inline-flex items-center bg-slate-950/90 p-0.5 sm:p-1 rounded-xl border border-white/10 shadow-inner shrink-0">
-            <button
-              type="button"
-              onClick={() => {
-                if (isInvoice) {
-                  onChange({ ...quotation, documentType: 'quotation' });
-                  toast.info('Switched to Quotation mode');
-                }
-              }}
-              className={`flex items-center gap-1 sm:gap-1.5 px-3 py-1 rounded-lg text-xs font-bold transition-all cursor-pointer ${
-                !isInvoice
-                  ? 'bg-gradient-to-r from-blue-600 to-indigo-600 text-white shadow-[0_0_15px_rgba(59,130,246,0.5)]'
-                  : 'text-slate-400 hover:text-white'
-              }`}
-            >
-              <FileText size={12} className={!isInvoice ? 'text-white' : 'text-slate-400'} />
-              <span>Quote</span>
-            </button>
+          {/* Subgroup Right: Mode Switcher & Status */}
+          <div className="flex items-center gap-1 sm:gap-1.5 shrink-0">
+            {/* Mode Switcher: Quotation vs Tax Invoice (Apple Segmented Style) */}
+            <div className="inline-flex items-center bg-slate-950/90 p-0.5 rounded-xl border border-white/10 shadow-inner shrink-0">
+              <button
+                type="button"
+                onClick={() => {
+                  if (isInvoice) {
+                    onChange({ ...quotation, documentType: 'quotation' });
+                    toast.info('Switched to Quotation mode');
+                  }
+                }}
+                className={`flex items-center gap-1 px-1.5 sm:px-2.5 py-0.5 sm:py-1 rounded-lg text-[11px] sm:text-xs font-bold transition-all cursor-pointer shrink-0 ${
+                  !isInvoice
+                    ? 'bg-gradient-to-r from-blue-600 to-indigo-600 text-white shadow-[0_0_12px_rgba(59,130,246,0.4)]'
+                    : 'text-slate-400 hover:text-white'
+                }`}
+              >
+                <FileText size={11} className={!isInvoice ? 'text-white' : 'text-slate-400'} />
+                <span>Quote</span>
+              </button>
 
-            <button
-              type="button"
-              onClick={() => {
-                const invoiceNum = quotation.invoiceNumber || `INV-${quotation.quotationNumber.replace(/^Q-?/, '') || Date.now()}`;
-                onChange({
-                  ...quotation,
-                  documentType: 'invoice',
-                  invoiceNumber: invoiceNum,
-                  invoiceDate: quotation.invoiceDate || quotation.quotationDate,
-                  status: quotation.status === 'draft' ? 'invoiced' : quotation.status,
-                });
-                toast.success(`Converted to Tax Invoice #${invoiceNum}`);
-              }}
-              className={`flex items-center gap-1 sm:gap-1.5 px-3 py-1 rounded-lg text-xs font-bold transition-all cursor-pointer ${
-                isInvoice
-                  ? 'bg-gradient-to-r from-purple-600 to-indigo-600 text-white shadow-[0_0_15px_rgba(168,85,247,0.5)]'
-                  : 'text-slate-400 hover:text-white'
-              }`}
-            >
-              <Receipt size={12} className={isInvoice ? 'text-white' : 'text-slate-400'} />
-              <span>Invoice</span>
-            </button>
-          </div>
+              <button
+                type="button"
+                onClick={() => {
+                  const invoiceNum = quotation.invoiceNumber || `INV-${quotation.quotationNumber.replace(/^Q-?/, '') || Date.now()}`;
+                  onChange({
+                    ...quotation,
+                    documentType: 'invoice',
+                    invoiceNumber: invoiceNum,
+                    invoiceDate: quotation.invoiceDate || quotation.quotationDate,
+                    status: quotation.status === 'draft' ? 'invoiced' : quotation.status,
+                  });
+                  toast.success(`Converted to Tax Invoice #${invoiceNum}`);
+                }}
+                className={`flex items-center gap-1 px-1.5 sm:px-2.5 py-0.5 sm:py-1 rounded-lg text-[11px] sm:text-xs font-bold transition-all cursor-pointer shrink-0 ${
+                  isInvoice
+                    ? 'bg-gradient-to-r from-purple-600 to-indigo-600 text-white shadow-[0_0_12px_rgba(168,85,247,0.4)]'
+                    : 'text-slate-400 hover:text-white'
+                }`}
+              >
+                <Receipt size={11} className={isInvoice ? 'text-white' : 'text-slate-400'} />
+                <span>Invoice</span>
+              </button>
+            </div>
 
-          <div className="h-4 w-px bg-white/10 shrink-0 hidden sm:block" />
+            <div className="h-4 w-px bg-white/10 shrink-0 hidden md:block" />
 
-          {/* Interactive Custom Status Dropdown Badge */}
-          <div className="relative shrink-0" ref={statusMenuRef}>
-            {(() => {
-              const currentCfg = STATUS_CONFIG[quotation.status] || STATUS_CONFIG.draft;
-              return (
-                <>
-                  <button
-                    type="button"
-                    onClick={() => setIsStatusMenuOpen(!isStatusMenuOpen)}
-                    className={`flex items-center gap-1.5 text-xs font-bold px-3 py-1.5 rounded-xl border transition-all active:scale-95 cursor-pointer ${currentCfg.badgeCls}`}
-                  >
-                    <span className={`w-2 h-2 rounded-full ${currentCfg.dotColor} shrink-0`} />
-                    <span>{currentCfg.label}</span>
-                    <ChevronDown size={11} className={`text-slate-400 transition-transform ${isStatusMenuOpen ? 'rotate-180' : ''}`} />
-                  </button>
+            {/* Interactive Custom Status Dropdown Badge */}
+            <div className="relative shrink-0" ref={statusMenuRef}>
+              {(() => {
+                const currentCfg = STATUS_CONFIG[quotation.status] || STATUS_CONFIG.draft;
+                return (
+                  <>
+                    <button
+                      type="button"
+                      onClick={() => setIsStatusMenuOpen(!isStatusMenuOpen)}
+                      className={`flex items-center gap-1 sm:gap-1.5 text-[11px] sm:text-xs font-bold px-2 sm:px-2.5 py-1 sm:py-1.5 rounded-xl border transition-all active:scale-95 cursor-pointer shrink-0 ${currentCfg.badgeCls}`}
+                    >
+                      <span className={`w-1.5 sm:w-2 h-1.5 sm:h-2 rounded-full ${currentCfg.dotColor} shrink-0`} />
+                      <span>{currentCfg.label}</span>
+                      <ChevronDown size={10} className={`text-slate-400 transition-transform ${isStatusMenuOpen ? 'rotate-180' : ''}`} />
+                    </button>
 
-                  {isStatusMenuOpen && (
-                    <div className="absolute right-0 sm:left-0 top-full mt-2 w-52 bg-slate-900/95 backdrop-blur-2xl rounded-2xl shadow-2xl border border-white/15 py-1.5 z-50 animate-modal-in overflow-hidden">
-                      {(['draft', 'sent', 'approved', 'invoiced', 'rejected'] as QuotationStatus[]).map((st) => {
-                        const cfg = STATUS_CONFIG[st];
-                        const isCurrent = quotation.status === st;
-                        return (
-                          <button
-                            key={st}
-                            type="button"
-                            onClick={() => {
-                              onChange({ ...quotation, status: st });
-                              setIsStatusMenuOpen(false);
-                              toast.success(`Status updated to ${cfg.label}`);
-                            }}
-                            className={`w-full px-3.5 py-2.5 text-left flex items-center justify-between text-xs transition-colors cursor-pointer ${
-                              isCurrent ? 'bg-white/10 font-bold text-white' : 'text-slate-300 hover:bg-white/5 hover:text-white'
-                            }`}
-                          >
-                            <div className="flex items-center gap-2.5">
-                              <span className={`w-2 h-2 rounded-full ${cfg.dotColor} shrink-0`} />
-                              <div>
-                                <div className="text-white font-bold">{cfg.label}</div>
-                                <div className="text-[10px] text-slate-400 font-normal leading-tight">{cfg.description}</div>
+                    {isStatusMenuOpen && (
+                      <div className="absolute right-0 sm:left-0 top-full mt-2 w-52 bg-slate-900/95 backdrop-blur-2xl rounded-2xl shadow-2xl border border-white/15 py-1.5 z-50 animate-modal-in overflow-hidden">
+                        {(['draft', 'sent', 'approved', 'invoiced', 'rejected'] as QuotationStatus[]).map((st) => {
+                          const cfg = STATUS_CONFIG[st];
+                          const isCurrent = quotation.status === st;
+                          return (
+                            <button
+                              key={st}
+                              type="button"
+                              onClick={() => {
+                                onChange({ ...quotation, status: st });
+                                setIsStatusMenuOpen(false);
+                                toast.success(`Status updated to ${cfg.label}`);
+                              }}
+                              className={`w-full px-3.5 py-2.5 text-left flex items-center justify-between text-xs transition-colors cursor-pointer ${
+                                isCurrent ? 'bg-white/10 font-bold text-white' : 'text-slate-300 hover:bg-white/5 hover:text-white'
+                              }`}
+                            >
+                              <div className="flex items-center gap-2.5">
+                                <span className={`w-2 h-2 rounded-full ${cfg.dotColor} shrink-0`} />
+                                <div>
+                                  <div className="text-white font-bold">{cfg.label}</div>
+                                  <div className="text-[10px] text-slate-400 font-normal leading-tight">{cfg.description}</div>
+                                </div>
                               </div>
-                            </div>
-                            {isCurrent && <Check size={13} className="text-cyan-400 shrink-0 ml-2" />}
-                          </button>
-                        );
-                      })}
-                    </div>
-                  )}
-                </>
-              );
-            })()}
+                              {isCurrent && <Check size={13} className="text-cyan-400 shrink-0 ml-2" />}
+                            </button>
+                          );
+                        })}
+                      </div>
+                    )}
+                  </>
+                );
+              })()}
+            </div>
           </div>
         </div>
 
         {/* Right: Tools & Actions */}
-        <div className="flex items-center justify-between sm:justify-end gap-2 w-full sm:w-auto pt-2 sm:pt-0 border-t sm:border-t-0 border-white/10">
-          <div className="flex items-center gap-1.5">
+        <div className="flex items-center justify-between md:justify-end gap-1.5 sm:gap-2 w-full md:w-auto pt-2 md:pt-0 border-t md:border-t-0 border-white/10">
+          <div className="flex items-center gap-1 sm:gap-1.5 shrink-0">
             {/* Gate Pass Button */}
             <button
               onClick={() => setIsGatePassOpen(true)}
               title="Generate Returnable Gate Pass / Equipment Delivery Challan"
-              className="flex items-center gap-1.5 px-3 py-2 text-xs font-bold text-slate-200 hover:text-white bg-slate-800/90 hover:bg-slate-700/90 border border-white/10 hover:border-amber-500/40 rounded-xl transition-all active:scale-95 shadow-xs cursor-pointer"
+              className="flex items-center gap-1 px-2.5 py-1.5 text-xs font-bold text-slate-200 hover:text-white bg-slate-800/90 hover:bg-slate-700/90 border border-white/10 hover:border-amber-500/40 rounded-xl transition-all active:scale-95 shadow-xs cursor-pointer shrink-0"
             >
-              <Truck size={13} className="text-amber-400" />
-              <span>Challan</span>
+              <Truck size={13} className="text-amber-400 shrink-0" />
+              <span className="hidden sm:inline">Challan</span>
             </button>
 
             {/* Money Receipt Button */}
@@ -725,29 +752,29 @@ export const QuotationEditor: React.FC<Props> = ({
                 type="button"
                 onClick={() => setIsReceiptModalOpen(true)}
                 title="Generate & View Official Payment Receipt"
-                className="flex items-center gap-1.5 px-3 py-2 text-xs font-bold text-emerald-300 bg-emerald-950/80 hover:bg-emerald-900/80 border border-emerald-500/30 rounded-xl transition-all active:scale-95 shadow-xs cursor-pointer"
+                className="flex items-center gap-1 px-2.5 py-1.5 text-xs font-bold text-emerald-300 bg-emerald-950/80 hover:bg-emerald-900/80 border border-emerald-500/30 rounded-xl transition-all active:scale-95 shadow-xs cursor-pointer shrink-0"
               >
-                <Receipt size={13} className="text-emerald-400" />
-                <span>Receipt</span>
+                <Receipt size={13} className="text-emerald-400 shrink-0" />
+                <span className="hidden sm:inline">Receipt</span>
               </button>
             )}
 
             {/* More Actions Dropdown (Duplicate, Revise, Print, Copy Link) */}
-            <div className="relative" ref={actionsMenuRef}>
+            <div className="relative shrink-0" ref={actionsMenuRef}>
               <button
                 onClick={() => setIsActionsMenuOpen(!isActionsMenuOpen)}
                 title="More Actions"
-                className={`flex items-center justify-center w-9 h-9 rounded-xl border transition-all active:scale-95 shadow-xs cursor-pointer ${
+                className={`flex items-center justify-center w-8 h-8 rounded-xl border transition-all active:scale-95 shadow-xs cursor-pointer shrink-0 ${
                   isActionsMenuOpen 
                     ? 'bg-slate-700 text-white border-white/30' 
                     : 'bg-slate-800/90 hover:bg-slate-700/90 text-slate-300 hover:text-white border-white/10'
                 }`}
               >
-                <MoreHorizontal size={15} className="text-slate-300" />
+                <MoreHorizontal size={14} className="text-slate-300" />
               </button>
 
               {isActionsMenuOpen && (
-                <div className="absolute left-0 sm:left-auto sm:right-0 top-full mt-2 w-56 max-w-[calc(100vw-32px)] bg-slate-900/95 backdrop-blur-2xl rounded-2xl shadow-2xl border border-white/15 py-1.5 z-50 animate-modal-in overflow-hidden">
+                <div className="absolute right-0 top-full mt-2 w-56 max-w-[calc(100vw-32px)] bg-slate-900/95 backdrop-blur-2xl rounded-2xl shadow-2xl border border-white/15 py-1.5 z-50 animate-modal-in overflow-hidden">
                   <button
                     type="button"
                     onClick={() => {
@@ -826,24 +853,79 @@ export const QuotationEditor: React.FC<Props> = ({
             </div>
           </div>
 
-          <div className="flex items-center gap-2 flex-1 sm:flex-initial justify-end">
+          <div className="h-4 w-px bg-white/10 shrink-0 hidden md:block" />
+
+          <div className="flex items-center gap-1.5 shrink-0 flex-1 md:flex-initial justify-end">
+            {/* Save / Discard Action Buttons */}
+            {onSave && (
+              isNewDraft ? (
+                <button
+                  type="button"
+                  onClick={onSave}
+                  disabled={isSaving}
+                  className="flex items-center justify-center gap-1 px-3 py-1.5 text-xs font-black text-white bg-gradient-to-r from-blue-600 via-indigo-600 to-cyan-500 hover:from-blue-500 hover:to-cyan-400 active:scale-95 rounded-xl shadow-[0_0_15px_rgba(59,130,246,0.35)] hover:shadow-[0_0_25px_rgba(6,182,212,0.55)] transition-all cursor-pointer shrink-0"
+                  title="Save new quotation to database (Ctrl+S)"
+                >
+                  <Save size={13} className="shrink-0" />
+                  <span className="whitespace-nowrap sm:inline hidden">{isSaving ? 'Saving…' : 'Save Quotation'}</span>
+                  <span className="whitespace-nowrap sm:hidden">{isSaving ? 'Saving…' : 'Save'}</span>
+                </button>
+              ) : isDirty ? (
+                <div className="flex items-center gap-1 shrink-0">
+                  {onDiscard && (
+                    <button
+                      type="button"
+                      onClick={onDiscard}
+                      className="hidden sm:flex items-center gap-1 px-2 py-1.5 text-xs font-semibold text-slate-400 hover:text-rose-400 hover:bg-rose-950/30 border border-white/10 hover:border-rose-500/30 rounded-xl transition-all cursor-pointer shrink-0"
+                      title="Discard unsaved edits and revert"
+                    >
+                      <Undo2 size={12} />
+                      <span>Discard</span>
+                    </button>
+                  )}
+                  <button
+                    type="button"
+                    onClick={onSave}
+                    disabled={isSaving}
+                    className="flex items-center justify-center gap-1 px-3 py-1.5 text-xs font-black text-white bg-gradient-to-r from-emerald-600 via-teal-600 to-emerald-500 hover:from-emerald-500 hover:to-teal-400 active:scale-95 rounded-xl shadow-[0_0_15px_rgba(16,185,129,0.35)] hover:shadow-[0_0_25px_rgba(16,185,129,0.55)] transition-all cursor-pointer animate-pulse shrink-0"
+                    title="Save changes to database (Ctrl+S)"
+                  >
+                    <Save size={13} className="shrink-0" />
+                    <span className="whitespace-nowrap sm:inline hidden">{isSaving ? 'Saving…' : 'Save Changes'}</span>
+                    <span className="whitespace-nowrap sm:hidden">{isSaving ? 'Saving…' : 'Save'}</span>
+                    <span className="w-1.5 h-1.5 rounded-full bg-amber-300 shrink-0" />
+                  </button>
+                </div>
+              ) : (
+                <button
+                  type="button"
+                  disabled
+                  className="flex items-center justify-center gap-1 px-2.5 py-1.5 text-xs font-bold text-emerald-400 bg-emerald-950/60 border border-emerald-500/30 rounded-xl transition-all opacity-85 cursor-default shrink-0"
+                  title="All changes are saved to database"
+                >
+                  <Check size={13} className="text-emerald-400 shrink-0" />
+                  <span className="whitespace-nowrap">Saved</span>
+                </button>
+              )
+            )}
+
             {/* Primary Action Buttons */}
             <button
               onClick={handleOpenShare}
               title="Share quotation via WhatsApp or Client Portal link"
-              className="flex-1 sm:flex-initial flex items-center justify-center gap-1.5 px-4 py-2 text-xs font-extrabold text-white bg-gradient-to-r from-emerald-600 via-teal-600 to-emerald-500 hover:from-emerald-500 hover:to-teal-400 active:scale-95 rounded-xl transition-all shadow-[0_0_15px_rgba(16,185,129,0.3)] hover:shadow-[0_0_25px_rgba(16,185,129,0.5)] cursor-pointer"
+              className="flex items-center justify-center gap-1 px-2.5 sm:px-3 py-1.5 text-xs font-extrabold text-white bg-gradient-to-r from-emerald-600 via-teal-600 to-emerald-500 hover:from-emerald-500 hover:to-teal-400 active:scale-95 rounded-xl transition-all shadow-[0_0_12px_rgba(16,185,129,0.25)] hover:shadow-[0_0_20px_rgba(16,185,129,0.45)] cursor-pointer shrink-0"
             >
-              <Share2 size={13} />
+              <Share2 size={13} className="shrink-0" />
               <span>Share</span>
             </button>
 
             <button
               onClick={handleExportPDF}
               disabled={exporting}
-              className="flex-1 sm:flex-initial flex items-center justify-center gap-1.5 bg-gradient-to-r from-blue-600 via-indigo-600 to-cyan-500 hover:from-blue-500 hover:to-cyan-400 active:scale-95 disabled:opacity-50 text-white px-4 py-2 rounded-xl text-xs font-black transition-all shadow-[0_0_20px_rgba(59,130,246,0.35)] hover:shadow-[0_0_30px_rgba(6,182,212,0.55)] cursor-pointer"
+              className="flex items-center justify-center gap-1 bg-gradient-to-r from-blue-600 via-indigo-600 to-cyan-500 hover:from-blue-500 hover:to-cyan-400 active:scale-95 disabled:opacity-50 text-white px-2.5 sm:px-3 py-1.5 rounded-xl text-xs font-black transition-all shadow-[0_0_15px_rgba(59,130,246,0.25)] hover:shadow-[0_0_25px_rgba(6,182,212,0.45)] cursor-pointer shrink-0"
             >
-              <Download size={13} />
-              <span className="truncate">{exporting ? 'Generating…' : 'PDF'}</span>
+              <Download size={13} className="shrink-0" />
+              <span className="truncate">{exporting ? '…' : 'PDF'}</span>
             </button>
           </div>
         </div>

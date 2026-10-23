@@ -74,6 +74,14 @@ html.modal-open {
   overscroll-behavior: contain !important;
 }
 
+.no-scrollbar::-webkit-scrollbar {
+  display: none;
+}
+.no-scrollbar {
+  -ms-overflow-style: none;
+  scrollbar-width: none;
+}
+
 /* Print Stylesheet for native PDF / Paper Printing */
 @media print {
   body {

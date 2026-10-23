@@ -395,12 +395,6 @@ export const HeaderNav: React.FC<Props> = ({
                 )}
               </div>
             )}
-
-
-            <div className="hidden xl:flex items-center gap-1.5 text-[11px] font-medium text-emerald-400 bg-emerald-950/50 border border-emerald-800/50 px-2.5 py-1 rounded-full whitespace-nowrap shadow-inner">
-              <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse" />
-              <span>Auto-saved</span>
-            </div>
           </div>
 
         </div>

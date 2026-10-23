@@ -162,13 +162,7 @@ export function App() {
 
   // Handlers
   const handleCreateNew = () => {
-    const newQuote = createBlankQuotation(company, activeOrgId);
-    storage.saveQuotation(newQuote);
-    storage.setActiveQuotationId(newQuote.id);
-    setQuotations((prev) => [newQuote, ...prev]);
-    setActiveQuoteId(newQuote.id);
-    toast.success(`Created new quotation ${newQuote.quotationNumber}`);
-    navigate(`/quotes/${newQuote.id}`);
+    navigate('/quotes/new');
   };
 
   const handleSelectQuotation = (id: string) => {
@@ -264,22 +258,7 @@ export function App() {
   };
 
   const handleCreateQuoteForClient = (client: ClientProfile) => {
-    const newQuote = createBlankQuotation(company, activeOrgId);
-    newQuote.client = {
-      name: client.name,
-      company: client.company || '',
-      address: client.address || '',
-      phone: client.phone || '',
-      email: client.email || '',
-      gstin: client.gstin || '',
-      organizationId: activeOrgId,
-    };
-    storage.saveQuotation(newQuote);
-    storage.setActiveQuotationId(newQuote.id);
-    setQuotations((prev) => [newQuote, ...prev]);
-    setActiveQuoteId(newQuote.id);
-    toast.success(`Created quotation for ${client.name}`);
-    navigate(`/quotes/${newQuote.id}`);
+    navigate('/quotes/new', { state: { prefilledClient: client } });
   };
 
   return (
