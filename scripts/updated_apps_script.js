@@ -249,7 +249,7 @@ function sendWeeklyEmailSummary() {
 
           <!-- BUTTON -->
           <div style="text-align:center;margin-top:20px;">
-            <a href="https://tishaledger.pages.dev" target="_blank" style="display:inline-block;background:linear-gradient(135deg,#6366f1 0%,#4f46e5 100%);color:#ffffff;text-decoration:none;font-weight:700;font-size:13.5px;padding:11px 24px;border-radius:8px;box-shadow:0 4px 14px rgba(99,102,241,0.35);">
+            <a href="https://tisha-invoice.pages.dev/ledger" target="_blank" style="display:inline-block;background:linear-gradient(135deg,#6366f1 0%,#4f46e5 100%);color:#ffffff;text-decoration:none;font-weight:700;font-size:13.5px;padding:11px 24px;border-radius:8px;box-shadow:0 4px 14px rgba(99,102,241,0.35);">
               Open Live Payment Dashboard &rarr;
             </a>
           </div>
@@ -272,7 +272,7 @@ function sendWeeklyEmailSummary() {
   </html>
   `;
 
-  const subject = pendingCount > 0 
+  const subject = pendingCount > 0
     ? `[Tisha LED Walls] Weekly Report: ₹${formatINR(totalBalanceDue)} Pending (${pendingCount} Events)`
     : `[Tisha LED Walls] Weekly Report: All Payments Cleared (₹0 Due)`;
 
