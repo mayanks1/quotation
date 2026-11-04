@@ -14,6 +14,7 @@ import {
   ExternalLink,
   Loader2,
   ShieldCheck,
+  SlidersHorizontal,
 } from 'lucide-react';
 import {
   exportReceiptPDF,
@@ -227,91 +228,103 @@ export const PaymentReceiptModal: React.FC<Props> = ({
     <div className="fixed inset-0 z-[1050] flex items-center justify-center bg-slate-900/60 backdrop-blur-xs p-2 sm:p-4 overflow-y-auto">
       <div className="bg-white text-slate-900 rounded-2xl shadow-2xl w-full max-w-4xl max-h-[96vh] sm:max-h-[92vh] flex flex-col overflow-hidden border border-slate-200">
 
-        {/* Modal Header */}
-        <div className="px-4 py-3 sm:px-6 sm:py-4 bg-slate-900 text-white shrink-0 space-y-2.5 sm:space-y-0">
-          <div className="flex items-center justify-between gap-2">
-            <div className="flex items-center gap-2.5 sm:gap-3 min-w-0">
-              <div className="w-9 h-9 sm:w-10 sm:h-10 rounded-xl bg-blue-600 flex items-center justify-center text-white shadow-md shrink-0">
-                <Receipt size={18} className="sm:w-5 sm:h-5" />
+        {/* Modal Header - Premium Executive Dark Theme */}
+        <div className="px-4 py-3 sm:px-6 sm:py-3.5 bg-gradient-to-r from-slate-950 via-slate-900 to-slate-950 text-white shrink-0 border-b border-slate-800 shadow-md space-y-2.5 sm:space-y-0">
+          <div className="flex items-center justify-between gap-3">
+            <div className="flex items-center gap-3 min-w-0">
+              <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-blue-500 via-blue-600 to-indigo-600 flex items-center justify-center text-white shadow-lg shadow-blue-500/20 ring-1 ring-white/15 shrink-0">
+                <Receipt size={19} className="stroke-[2.2]" />
               </div>
               <div className="min-w-0">
-                <div className="flex flex-wrap items-center gap-1.5 sm:gap-2">
-                  <h3 className="font-bold text-sm sm:text-base tracking-tight text-white truncate">
+                <div className="flex flex-wrap items-center gap-2">
+                  <h3 className="font-extrabold text-sm sm:text-base tracking-tight text-white truncate">
                     Payment Receipt
                   </h3>
-                  <span className="font-mono text-[11px] sm:text-xs px-2 py-0.5 rounded bg-blue-950 text-blue-300 border border-blue-800 shrink-0">
+                  <span className="font-mono text-[11px] font-semibold px-2.5 py-0.5 rounded-md bg-slate-800/90 text-blue-300 border border-slate-700/80 shadow-inner shrink-0">
                     {receipt.receiptNumber}
                   </span>
                   {receipt.amountPaid > 0 ? (
-                    <span className="text-[9px] sm:text-[10px] font-bold px-2 py-0.5 rounded-full bg-emerald-500/20 text-emerald-300 border border-emerald-500/30 uppercase tracking-wider shrink-0">
+                    <span className="inline-flex items-center gap-1.5 text-[9px] sm:text-[10px] font-bold px-2.5 py-0.5 rounded-full bg-emerald-500/15 text-emerald-300 border border-emerald-500/30 uppercase tracking-wider shrink-0 shadow-2xs">
+                      <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse"></span>
                       {receipt.remainingBalance <= 0 ? 'Payment Confirmed' : 'Partial Payment'}
                     </span>
                   ) : (
-                    <span className="text-[9px] sm:text-[10px] font-bold px-2 py-0.5 rounded-full bg-amber-500/20 text-amber-300 border border-amber-500/30 uppercase tracking-wider shrink-0">
-                      Payment Due (₹{receipt.totalPayable.toLocaleString('en-IN')})
+                    <span className="inline-flex items-center gap-1.5 text-[9px] sm:text-[10px] font-bold px-2.5 py-0.5 rounded-full bg-amber-500/15 text-amber-300 border border-amber-500/30 uppercase tracking-wider shrink-0 shadow-2xs">
+                      <span className="w-1.5 h-1.5 rounded-full bg-amber-400"></span>
+                      Payment Due ({fmt(receipt.totalPayable)})
                     </span>
                   )}
                 </div>
-                <p className="text-[11px] sm:text-xs text-slate-400 mt-0.5 truncate">
-                  {receipt.invoiceNumber
-                    ? `For Invoice #${receipt.invoiceNumber}`
-                    : receipt.quotationNumber
-                    ? `For Quotation #${receipt.quotationNumber}`
-                    : `Direct Ledger Record`} &bull; {receipt.client?.name}
+                <p className="text-[11px] sm:text-xs text-slate-400 mt-0.5 flex items-center gap-1.5 truncate">
+                  <span className="text-slate-300 font-medium truncate">
+                    {receipt.invoiceNumber
+                      ? `Tax Invoice #${receipt.invoiceNumber}`
+                      : receipt.quotationNumber
+                      ? `Quotation #${receipt.quotationNumber}`
+                      : `Direct Ledger Record`}
+                  </span>
+                  <span className="text-slate-600">&bull;</span>
+                  <span className="text-white font-semibold truncate">{receipt.client?.name}</span>
                 </p>
               </div>
             </div>
 
-            {/* Desktop Tabs & Close Button */}
-            <div className="hidden sm:flex items-center gap-2">
+            {/* Desktop Tabs & Action Controls */}
+            <div className="hidden sm:flex items-center gap-2.5 shrink-0">
               {securityData?.verifyUrl && (
                 <a
                   href={securityData.verifyUrl}
                   target="_blank"
                   rel="noreferrer"
-                  className="inline-flex items-center gap-1 text-[11px] text-emerald-400 hover:text-emerald-300 font-bold px-2.5 py-1 rounded-lg bg-emerald-950/70 border border-emerald-800/80 transition-colors shadow-xs"
-                  title="Open Public Verification Portal in New Tab"
+                  className="inline-flex items-center gap-1.5 text-[11px] font-bold text-emerald-300 hover:text-emerald-200 px-3 py-1.5 rounded-xl bg-emerald-950/60 hover:bg-emerald-900/60 border border-emerald-500/30 transition-all shadow-xs active:scale-95 cursor-pointer"
+                  title="Open Tamper-Protected Public Verification Portal in New Tab"
                 >
-                  <ShieldCheck size={13} className="text-emerald-400" />
+                  <ShieldCheck size={14} className="text-emerald-400" />
                   <span>Public Verification Link</span>
-                  <ExternalLink size={11} />
+                  <ExternalLink size={11} className="opacity-70" />
                 </a>
               )}
 
-              <div className="flex bg-slate-800 p-0.5 rounded-lg border border-slate-700 text-xs font-semibold">
+              <div className="flex bg-slate-950/80 p-1 rounded-xl border border-slate-800 shadow-inner text-xs font-semibold">
                 <button
                   type="button"
                   onClick={() => setActiveTab('preview')}
-                  className={`px-3 py-1 rounded-md transition-colors ${
-                    activeTab === 'preview' ? 'bg-blue-600 text-white shadow-xs' : 'text-slate-300 hover:text-white'
+                  className={`px-3 py-1.5 rounded-lg transition-all cursor-pointer flex items-center gap-1.5 ${
+                    activeTab === 'preview'
+                      ? 'bg-blue-600 text-white shadow-md shadow-blue-600/30 font-bold'
+                      : 'text-slate-400 hover:text-white hover:bg-slate-800/60'
                   }`}
                 >
-                  Preview Document
+                  <Receipt size={13} />
+                  <span>Preview Document</span>
                 </button>
                 <button
                   type="button"
                   onClick={() => setActiveTab('edit')}
-                  className={`px-3 py-1 rounded-md transition-colors ${
-                    activeTab === 'edit' ? 'bg-blue-600 text-white shadow-xs' : 'text-slate-300 hover:text-white'
+                  className={`px-3 py-1.5 rounded-lg transition-all cursor-pointer flex items-center gap-1.5 ${
+                    activeTab === 'edit'
+                      ? 'bg-blue-600 text-white shadow-md shadow-blue-600/30 font-bold'
+                      : 'text-slate-400 hover:text-white hover:bg-slate-800/60'
                   }`}
                 >
-                  Edit Particulars
+                  <SlidersHorizontal size={13} />
+                  <span>Edit Particulars</span>
                 </button>
               </div>
 
               <button
                 onClick={onClose}
-                className="p-1.5 rounded-lg text-slate-400 hover:text-white hover:bg-slate-800 transition-colors ml-2"
+                className="p-1.5 rounded-xl text-slate-400 hover:text-white hover:bg-slate-800/80 transition-all border border-transparent hover:border-slate-700 ml-1 cursor-pointer"
                 title="Close modal"
               >
                 <X size={18} />
               </button>
             </div>
 
-            {/* Mobile Close Button (Pinned top-right on mobile, never cut off!) */}
+            {/* Mobile Close Button */}
             <button
               onClick={onClose}
-              className="sm:hidden p-1.5 rounded-lg text-slate-400 hover:text-white hover:bg-slate-800 transition-colors shrink-0"
+              className="sm:hidden p-1.5 rounded-xl text-slate-400 hover:text-white hover:bg-slate-800 transition-colors shrink-0 cursor-pointer"
               title="Close modal"
             >
               <X size={20} />
@@ -319,24 +332,26 @@ export const PaymentReceiptModal: React.FC<Props> = ({
           </div>
 
           {/* Mobile Tab Switcher */}
-          <div className="sm:hidden flex bg-slate-800 p-1 rounded-lg border border-slate-700 text-xs font-semibold w-full">
+          <div className="sm:hidden flex bg-slate-950/80 p-1 rounded-xl border border-slate-800 text-xs font-semibold w-full mt-2.5">
             <button
               type="button"
               onClick={() => setActiveTab('preview')}
-              className={`flex-1 py-1.5 text-center rounded-md transition-colors ${
-                activeTab === 'preview' ? 'bg-blue-600 text-white shadow-xs' : 'text-slate-300 hover:text-white'
+              className={`flex-1 py-1.5 text-center rounded-lg transition-all flex items-center justify-center gap-1.5 ${
+                activeTab === 'preview' ? 'bg-blue-600 text-white shadow-xs font-bold' : 'text-slate-400 hover:text-white'
               }`}
             >
-              Preview Document
+              <Receipt size={13} />
+              <span>Preview</span>
             </button>
             <button
               type="button"
               onClick={() => setActiveTab('edit')}
-              className={`flex-1 py-1.5 text-center rounded-md transition-colors ${
-                activeTab === 'edit' ? 'bg-blue-600 text-white shadow-xs' : 'text-slate-300 hover:text-white'
+              className={`flex-1 py-1.5 text-center rounded-lg transition-all flex items-center justify-center gap-1.5 ${
+                activeTab === 'edit' ? 'bg-blue-600 text-white shadow-xs font-bold' : 'text-slate-400 hover:text-white'
               }`}
             >
-              Edit Particulars
+              <SlidersHorizontal size={13} />
+              <span>Edit Particulars</span>
             </button>
           </div>
         </div>
@@ -345,81 +360,153 @@ export const PaymentReceiptModal: React.FC<Props> = ({
         <div className="flex-1 overflow-y-auto p-3 sm:p-6 bg-slate-100/60">
 
           {activeTab === 'edit' ? (
-            /* Quick Edit Form */
-            <div className="bg-white rounded-xl p-4 sm:p-5 border border-slate-200 shadow-2xs space-y-4 max-w-2xl mx-auto">
-              <h4 className="text-xs font-bold uppercase tracking-wider text-slate-500 pb-2 border-b border-slate-100">
-                Receipt Particulars &amp; Details
-              </h4>
+            /* Quick Edit Form - Premium Modern UI */
+            <div className="bg-white rounded-2xl p-5 sm:p-7 border border-slate-200/90 shadow-xl space-y-5 max-w-2xl mx-auto">
+              {/* Form Header */}
+              <div className="flex items-center justify-between pb-3.5 border-b border-slate-100">
+                <div className="flex items-center gap-2.5">
+                  <div className="w-8 h-8 rounded-lg bg-blue-50 text-blue-600 flex items-center justify-center font-bold">
+                    <SlidersHorizontal size={16} />
+                  </div>
+                  <div>
+                    <h4 className="text-sm font-extrabold text-slate-900 tracking-tight">
+                      Receipt Particulars &amp; Details
+                    </h4>
+                    <p className="text-[11px] text-slate-500">
+                      Customize amounts, dates, payment mode, and terms before generating PDF
+                    </p>
+                  </div>
+                </div>
+                <span className="text-[10px] font-bold uppercase tracking-wider px-2 py-0.5 rounded-full bg-blue-50 text-blue-700 border border-blue-200/60 hidden sm:inline-block">
+                  Direct Edit
+                </span>
+              </div>
 
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 text-xs">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 text-xs">
                 <div>
-                  <label className="font-bold text-slate-600 block mb-1">Receipt Number</label>
+                  <label className="font-bold text-slate-700 block mb-1">Receipt Number</label>
                   <input
                     type="text"
                     value={receipt.receiptNumber}
                     onChange={(e) => setReceipt({ ...receipt, receiptNumber: e.target.value })}
-                    className="w-full font-mono font-bold bg-slate-50 border border-slate-200 rounded-lg p-2 text-slate-800 focus:outline-blue-500"
+                    className="w-full font-mono font-bold bg-slate-50 border border-slate-200 rounded-lg p-2.5 text-slate-800 focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-xs transition-all"
                   />
                 </div>
 
                 <div>
-                  <label className="font-bold text-slate-600 block mb-1">Receipt Date</label>
+                  <label className="font-bold text-slate-700 block mb-1">Receipt Date</label>
                   <input
                     type="date"
                     value={receipt.receiptDate ? (receipt.receiptDate.includes('/') ? receipt.receiptDate.split('/').reverse().join('-') : receipt.receiptDate) : ''}
                     onChange={(e) => setReceipt({ ...receipt, receiptDate: e.target.value })}
-                    className="w-full bg-slate-50 border border-slate-200 rounded-lg p-2 text-slate-800 focus:outline-blue-500"
+                    className="w-full bg-slate-50 border border-slate-200 rounded-lg p-2.5 text-slate-800 focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-xs transition-all"
                   />
                 </div>
 
                 <div>
-                  <label className="font-bold text-slate-600 block mb-1">Event Date (dd/mm/yyyy or Range)</label>
+                  <label className="font-bold text-slate-700 block mb-1">Event Date (dd/mm/yyyy or Range)</label>
                   <input
                     type="text"
                     value={receipt.eventDate || ''}
                     placeholder="e.g. 30/10/2026 or 24-25/10/2026"
                     onChange={(e) => setReceipt({ ...receipt, eventDate: e.target.value })}
-                    className="w-full bg-slate-50 border border-slate-200 rounded-lg p-2 text-slate-800 focus:outline-blue-500"
+                    className="w-full bg-slate-50 border border-slate-200 rounded-lg p-2.5 text-slate-800 focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-xs transition-all"
                   />
                 </div>
 
                 <div>
-                  <label className="font-bold text-slate-600 block mb-1">Venue / Event Location</label>
+                  <label className="font-bold text-slate-700 block mb-1">Venue / Event Location</label>
                   <input
                     type="text"
                     value={receipt.venue || ''}
                     placeholder="e.g. Sector 49, Gurugram"
                     onChange={(e) => setReceipt({ ...receipt, venue: e.target.value })}
-                    className="w-full bg-slate-50 border border-slate-200 rounded-lg p-2 text-slate-800 focus:outline-blue-500"
+                    className="w-full bg-slate-50 border border-slate-200 rounded-lg p-2.5 text-slate-800 focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-xs transition-all"
                   />
                 </div>
 
+                {/* Total Agreed Booking Value (Inclusive of Taxes) */}
                 <div>
-                  <label className="font-bold text-slate-600 block mb-1">Amount Received (₹)</label>
-                  <input
-                    type="number"
-                    min={0}
-                    value={receipt.amountPaid === 0 ? '' : receipt.amountPaid}
-                    placeholder="0"
-                    onChange={(e) => {
-                      const val = parseFloat(e.target.value) || 0;
-                      const rem = Math.max(0, receipt.totalPayable - val);
-                      setReceipt({
-                        ...receipt,
-                        amountPaid: val,
-                        remainingBalance: rem,
-                      });
-                    }}
-                    className="w-full font-bold text-emerald-700 bg-emerald-50/40 border border-emerald-300 rounded-lg p-2 focus:outline-emerald-500"
-                  />
+                  <label className="font-bold text-slate-800 block mb-1">
+                    Total Agreed Booking Value (₹)
+                    <span className="text-[10px] font-normal text-slate-500 ml-1">(Inclusive of Taxes)</span>
+                  </label>
+                  <div className="relative">
+                    <span className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 font-bold text-xs">₹</span>
+                    <input
+                      type="number"
+                      min={0}
+                      value={receipt.totalPayable === 0 ? '' : receipt.totalPayable}
+                      placeholder="0"
+                      onChange={(e) => {
+                        const val = parseFloat(e.target.value) || 0;
+                        const rem = Math.max(0, val - receipt.amountPaid);
+                        setReceipt({
+                          ...receipt,
+                          totalPayable: val,
+                          remainingBalance: rem,
+                        });
+                      }}
+                      className="w-full pl-7 pr-3 py-2.5 bg-slate-50/70 border border-slate-200 rounded-lg text-slate-900 font-bold focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-xs transition-all"
+                    />
+                  </div>
+                </div>
+
+                {/* Amount Received (₹) */}
+                <div>
+                  <label className="font-bold text-emerald-800 block mb-1">
+                    Amount Received (₹)
+                    <span className="text-[10px] font-normal text-emerald-600/80 ml-1">(Acknowledged)</span>
+                  </label>
+                  <div className="relative">
+                    <span className="absolute left-3 top-1/2 -translate-y-1/2 text-emerald-600 font-bold text-xs">₹</span>
+                    <input
+                      type="number"
+                      min={0}
+                      value={receipt.amountPaid === 0 ? '' : receipt.amountPaid}
+                      placeholder="0"
+                      onChange={(e) => {
+                        const val = parseFloat(e.target.value) || 0;
+                        const rem = Math.max(0, receipt.totalPayable - val);
+                        setReceipt({
+                          ...receipt,
+                          amountPaid: val,
+                          remainingBalance: rem,
+                        });
+                      }}
+                      className="w-full pl-7 pr-3 py-2.5 bg-emerald-50/50 border border-emerald-300 rounded-lg text-emerald-800 font-bold focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500 text-xs transition-all"
+                    />
+                  </div>
+                </div>
+
+                {/* Live Real-time Balance Calculation Strip */}
+                <div className="sm:col-span-2 bg-gradient-to-r from-slate-50 via-blue-50/30 to-emerald-50/30 rounded-xl p-3 border border-slate-200/90 flex items-center justify-between text-xs">
+                  <div className="flex flex-wrap items-center gap-3 sm:gap-6">
+                    <div>
+                      <span className="text-[10px] text-slate-500 uppercase font-bold tracking-wider block">Total Agreed</span>
+                      <span className="font-bold text-slate-900 font-mono text-sm">{fmt(receipt.totalPayable)}</span>
+                    </div>
+                    <span className="text-slate-300 font-bold">&minus;</span>
+                    <div>
+                      <span className="text-[10px] text-emerald-700 uppercase font-bold tracking-wider block">Acknowledged</span>
+                      <span className="font-bold text-emerald-700 font-mono text-sm">{fmt(receipt.amountPaid)}</span>
+                    </div>
+                    <span className="text-slate-300 font-bold">=</span>
+                    <div>
+                      <span className="text-[10px] text-slate-500 uppercase font-bold tracking-wider block">Net Balance Due</span>
+                      <span className={`font-black font-mono text-sm ${receipt.remainingBalance <= 0 ? 'text-emerald-700' : 'text-rose-600'}`}>
+                        {receipt.remainingBalance <= 0 ? '₹0.00 (Fully Paid)' : fmt(receipt.remainingBalance)}
+                      </span>
+                    </div>
+                  </div>
                 </div>
 
                 <div>
-                  <label className="font-bold text-slate-600 block mb-1">Payment Milestone</label>
+                  <label className="font-bold text-slate-700 block mb-1">Payment Milestone</label>
                   <select
                     value={receipt.paymentMilestone}
                     onChange={(e) => setReceipt({ ...receipt, paymentMilestone: e.target.value as ReceiptMilestone })}
-                    className="w-full bg-slate-50 border border-slate-200 rounded-lg p-2 text-slate-800 font-semibold focus:outline-blue-500"
+                    className="w-full bg-slate-50 border border-slate-200 rounded-lg p-2.5 text-slate-800 font-semibold focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-xs transition-all"
                   >
                     <option value="advance">Advance Milestone</option>
                     <option value="balance">Final Balance Settlement</option>
@@ -429,11 +516,11 @@ export const PaymentReceiptModal: React.FC<Props> = ({
                 </div>
 
                 <div>
-                  <label className="font-bold text-slate-600 block mb-1">Payment Mode</label>
+                  <label className="font-bold text-slate-700 block mb-1">Payment Mode</label>
                   <select
                     value={receipt.paymentMode}
                     onChange={(e) => setReceipt({ ...receipt, paymentMode: e.target.value as PaymentMode })}
-                    className="w-full bg-slate-50 border border-slate-200 rounded-lg p-2 text-slate-800 font-semibold focus:outline-blue-500"
+                    className="w-full bg-slate-50 border border-slate-200 rounded-lg p-2.5 text-slate-800 font-semibold focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-xs transition-all"
                   >
                     <option value="upi">UPI / QR Code</option>
                     <option value="bank_transfer">Bank Transfer (NEFT/RTGS)</option>
@@ -443,57 +530,61 @@ export const PaymentReceiptModal: React.FC<Props> = ({
                 </div>
 
                 <div>
-                  <label className="font-bold text-slate-600 block mb-1">Transaction Ref / UTR / Cheque #</label>
+                  <label className="font-bold text-slate-700 block mb-1">Transaction Ref / UTR / Cheque #</label>
                   <input
                     type="text"
                     value={receipt.transactionRef || ''}
                     placeholder="e.g. UTR 428910283 or Cheque 00412"
                     onChange={(e) => setReceipt({ ...receipt, transactionRef: e.target.value })}
-                    className="w-full bg-slate-50 border border-slate-200 rounded-lg p-2 text-slate-800 focus:outline-blue-500"
+                    className="w-full bg-slate-50 border border-slate-200 rounded-lg p-2.5 text-slate-800 focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-xs transition-all"
                   />
                 </div>
 
                 <div className="sm:col-span-2">
-                  <label className="font-bold text-slate-600 block mb-1">Notes / Terms on Receipt</label>
+                  <label className="font-bold text-slate-700 block mb-1">Notes / Terms on Receipt</label>
                   <input
                     type="text"
                     value={receipt.notes || ''}
                     placeholder="e.g. Advance acknowledged. Balance payable on venue delivery."
                     onChange={(e) => setReceipt({ ...receipt, notes: e.target.value })}
-                    className="w-full bg-slate-50 border border-slate-200 rounded-lg p-2 text-slate-800 focus:outline-blue-500"
+                    className="w-full bg-slate-50 border border-slate-200 rounded-lg p-2.5 text-slate-800 focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-xs transition-all"
                   />
                 </div>
               </div>
 
-              <div className="pt-2 flex justify-end">
+              <div className="pt-3 flex flex-col sm:flex-row items-center justify-between gap-3 border-t border-slate-100">
+                <span className="text-[11px] text-slate-400 italic text-center sm:text-left">
+                  * Edits persist across downloads, prints, and public links
+                </span>
                 <button
                   type="button"
                   onClick={handleApplyChanges}
-                  className="px-4 py-2 bg-blue-600 text-white font-bold text-xs rounded-lg hover:bg-blue-700 transition-colors shadow-xs cursor-pointer active:scale-95"
+                  className="w-full sm:w-auto px-5 py-2.5 bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 text-white font-bold text-xs rounded-xl shadow-md shadow-blue-500/20 active:scale-95 transition-all cursor-pointer flex items-center justify-center gap-1.5"
                 >
-                  Apply &amp; View Preview
+                  <Check size={14} className="stroke-[3]" />
+                  <span>Apply &amp; View Preview</span>
                 </button>
               </div>
             </div>
           ) : (
             /* Document Preview Sheet */
-            <div className="bg-white rounded-xl shadow-lg border border-slate-200/90 max-w-2xl mx-auto p-4 sm:p-8 text-slate-900 relative">
+            <div className="bg-white rounded-2xl shadow-xl border border-slate-200/90 max-w-2xl mx-auto p-5 sm:p-8 text-slate-900 relative">
 
               {/* Decorative Header Bar */}
-              <div className="h-1.5 w-full bg-gradient-to-r from-blue-600 via-indigo-600 to-emerald-600 rounded-full mb-5 sm:mb-6" />
+              <div className="h-1.5 w-full bg-gradient-to-r from-blue-600 via-indigo-600 to-emerald-500 rounded-full mb-5 sm:mb-6" />
 
               {/* Header */}
-              <div className="flex flex-col sm:flex-row justify-between items-start gap-4 pb-4 sm:pb-5 border-b border-slate-200">
+              <div className="flex flex-col sm:flex-row justify-between items-start gap-4 pb-4 sm:pb-5 border-b border-slate-200/80">
                 <div className="max-w-full sm:max-w-[58%]">
                   <h2 className="text-lg sm:text-xl font-black text-slate-900 tracking-tight">
                     {receipt.company.name || 'TISHA LED WALLS'}
                   </h2>
-                  <p className="text-[10px] font-bold uppercase tracking-wider text-blue-600 mb-1">
+                  <p className="text-[10px] font-extrabold uppercase tracking-wider text-blue-600 mb-1">
                     Professional Audio-Visual &amp; LED Display Systems
                   </p>
                   <div className="text-[11px] text-slate-500 leading-relaxed">
                     {receipt.company.address && <div>{receipt.company.address}</div>}
-                    <div>
+                    <div className="mt-0.5">
                       {receipt.company.phone && <span>Ph: <strong className="text-slate-700">{receipt.company.phone}</strong> </span>}
                       {receipt.company.email && <span>&bull; {receipt.company.email}</span>}
                     </div>
@@ -506,26 +597,26 @@ export const PaymentReceiptModal: React.FC<Props> = ({
                 </div>
 
                 <div className="w-full sm:w-auto text-left sm:text-right flex flex-row sm:flex-col justify-between sm:justify-start items-center sm:items-end flex-wrap gap-2">
-                  <div className="inline-block bg-slate-900 text-white text-[10px] sm:text-[11px] font-black uppercase tracking-wider h-[24px] sm:h-[26px] leading-[24px] sm:leading-[26px] px-3 sm:px-4 rounded-lg shadow-2xs text-center align-middle">
+                  <div className="inline-block bg-slate-900 text-white text-[10px] sm:text-[11px] font-black uppercase tracking-widest h-[25px] sm:h-[27px] leading-[25px] sm:leading-[27px] px-3 sm:px-4 rounded-lg shadow-sm text-center align-middle border border-slate-800">
                     Official Money Receipt
                   </div>
                   <div className="text-xs space-y-1">
                     <div className="text-slate-500 flex items-center sm:justify-end gap-2">
-                      <span className="text-[11px]">Receipt No:</span>
+                      <span className="text-[11px] font-medium">Receipt No:</span>
                       <span className="font-mono font-bold text-slate-900">{receipt.receiptNumber}</span>
                     </div>
                     <div className="text-slate-500 flex items-center sm:justify-end gap-2">
-                      <span className="text-[11px]">Receipt Date:</span>
-                      <span className="font-semibold text-slate-800">{formatDisplayDate(receipt.receiptDate)}</span>
+                      <span className="text-[11px] font-medium">Receipt Date:</span>
+                      <span className="font-bold text-slate-800">{formatDisplayDate(receipt.receiptDate)}</span>
                     </div>
                     <div className="flex items-center sm:justify-end gap-2 pt-0.5">
                       <span className="text-slate-500 font-medium text-[11px]">Status:</span>
                       {receipt.amountPaid > 0 ? (
-                        <span className="inline-block bg-emerald-100 text-emerald-800 text-[9px] sm:text-[9.5px] font-bold h-[20px] leading-[20px] px-2.5 rounded-full uppercase tracking-wider text-center align-middle">
+                        <span className="inline-flex items-center gap-1 bg-emerald-100/90 text-emerald-800 text-[9px] sm:text-[9.5px] font-extrabold h-[21px] leading-[21px] px-2.5 rounded-full uppercase tracking-wider text-center align-middle border border-emerald-300/60">
                           &#10003; Payment Received
                         </span>
                       ) : (
-                        <span className="inline-block bg-amber-100 text-amber-800 text-[9px] sm:text-[9.5px] font-bold h-[20px] leading-[20px] px-2.5 rounded-full uppercase tracking-wider text-center align-middle">
+                        <span className="inline-flex items-center gap-1 bg-amber-100 text-amber-800 text-[9px] sm:text-[9.5px] font-extrabold h-[21px] leading-[21px] px-2.5 rounded-full uppercase tracking-wider text-center align-middle border border-amber-300/60">
                           Payment Due / Pending
                         </span>
                       )}

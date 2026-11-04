@@ -630,12 +630,14 @@ export const PaymentLedgerPage: React.FC = () => {
     );
 
     if (currentRecord) {
+      const totalAmt = Number(savedReceipt.totalPayable) || currentRecord.amount;
       const paidAmt = Number(savedReceipt.amountPaid) || 0;
-      const pendingAmt = Number(savedReceipt.remainingBalance);
+      const pendingAmt = Math.max(0, totalAmt - paidAmt);
       const isSettled = pendingAmt <= 0;
 
       const updatedRecord: LedgerRecord = {
         ...currentRecord,
+        amount: totalAmt,
         paidAmount: paidAmt,
         pendingAmount: pendingAmt,
         status: isSettled ? 'Received' : (paidAmt > 0 ? 'Partial' : 'Pending'),
