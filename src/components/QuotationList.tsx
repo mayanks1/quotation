@@ -1753,7 +1753,24 @@ export const QuotationList: React.FC<Props> = ({
         <PaymentReceiptModal
           isOpen={!!receiptModalQuote}
           onClose={() => setReceiptModalQuote(null)}
-          initialReceipt={createReceiptFromQuotation(receiptModalQuote)}
+          initialReceipt={
+            storage.getReceipt(receiptModalQuote.id) ||
+            storage.getReceipt(receiptModalQuote.quotationNumber) ||
+            createReceiptFromQuotation(receiptModalQuote)
+          }
+          onSaveReceipt={(updatedReceipt) => {
+            storage.saveReceipt(updatedReceipt);
+            const isSettled = updatedReceipt.remainingBalance <= 0;
+            const updated = {
+              ...receiptModalQuote,
+              paidAmount: updatedReceipt.amountPaid,
+              transactionRef: updatedReceipt.transactionRef,
+              paymentMode: updatedReceipt.paymentMode,
+              paymentDate: updatedReceipt.receiptDate,
+              paymentStatus: isSettled ? 'paid' : (updatedReceipt.amountPaid > 0 ? 'partial' : receiptModalQuote.paymentStatus),
+            };
+            storage.saveQuotation(updated);
+          }}
         />
       )}
 

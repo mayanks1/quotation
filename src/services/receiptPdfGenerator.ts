@@ -5,6 +5,7 @@ import { PaymentReceipt } from '../types/receipt';
 import { amountToWordsIndian } from '../utils/numberToWords';
 import { OFFICIAL_TISHA_STAMP } from '../config/officialStamp';
 import { getPublicReceiptUrl } from '../utils/appUrl';
+import { formatDisplayDate } from '../utils/receiptHelper';
 
 export interface ReceiptSecurityData {
   qrDataUrl: string;
@@ -137,7 +138,7 @@ export function buildReceiptHTML(receipt: PaymentReceipt, security?: ReceiptSecu
             </tr>
             <tr>
               <td style="color: #64748b; font-weight: 600; padding: 2.5px 8px; text-align: right; vertical-align: middle;">Receipt Date:</td>
-              <td style="font-weight: 700; color: #0f172a; padding: 2.5px 0; vertical-align: middle; text-align: right;">${esc(receiptDate)}</td>
+              <td style="font-weight: 700; color: #0f172a; padding: 2.5px 0; vertical-align: middle; text-align: right;">${esc(formatDisplayDate(receiptDate))}</td>
             </tr>
             <tr>
               <td style="color: #64748b; font-weight: 600; padding: 2.5px 8px; text-align: right; vertical-align: middle;">Status:</td>
@@ -181,7 +182,7 @@ export function buildReceiptHTML(receipt: PaymentReceipt, security?: ReceiptSecu
           </div>
           ${venue || eventDate ? `
             <div style="margin-top: 8px; padding-top: 6px; border-top: 1px dashed #cbd5e1; font-size: 11px; color: #334155;">
-              ${eventDate ? `<strong>Event Date:</strong> ${esc(eventDate)} ` : ''}
+              ${eventDate ? `<strong>Event Date:</strong> ${esc(formatDisplayDate(eventDate))} ` : ''}
               ${venue ? `&bull; <strong>Venue:</strong> ${esc(venue)}` : ''}
             </div>
           ` : ''}

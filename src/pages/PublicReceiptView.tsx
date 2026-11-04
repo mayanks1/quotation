@@ -28,6 +28,7 @@ import { storage } from '../services/storage';
 import { generateWhatsAppReceiptPdfNoticeUrl, formatPaymentReceiptWhatsAppText } from '../services/whatsapp';
 import { useToast } from '../context/ToastContext';
 import { getPublicQuoteUrl } from '../utils/appUrl';
+import { formatDisplayDate } from '../utils/receiptHelper';
 
 export const PublicReceiptView: React.FC = () => {
   const { id } = useParams<{ id: string }>();
@@ -420,7 +421,7 @@ export const PublicReceiptView: React.FC = () => {
                 </div>
                 <div>
                   Receipt Date:{' '}
-                  <strong className="text-slate-900 font-bold">{receipt.receiptDate}</strong>
+                  <strong className="text-slate-900 font-bold">{formatDisplayDate(receipt.receiptDate)}</strong>
                 </div>
               </div>
             </div>
@@ -488,7 +489,7 @@ export const PublicReceiptView: React.FC = () => {
                 {receipt.eventDate && (
                   <div className="flex items-center justify-between">
                     <span className="text-slate-500">Event Date:</span>
-                    <span className="font-bold text-slate-900">{receipt.eventDate}</span>
+                    <span className="font-bold text-slate-900">{formatDisplayDate(receipt.eventDate)}</span>
                   </div>
                 )}
               </div>

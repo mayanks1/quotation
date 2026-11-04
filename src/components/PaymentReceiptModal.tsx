@@ -35,6 +35,8 @@ import { PaymentReceipt, ReceiptMilestone } from '../types/receipt';
 import { useToast } from '../context/ToastContext';
 import { useLockBodyScroll } from '../hooks/useLockBodyScroll';
 import { PdfGeneratingOverlay } from './PdfGeneratingOverlay';
+import { storage } from '../services/storage';
+import { formatDisplayDate } from '../utils/receiptHelper';
 
 interface Props {
   isOpen: boolean;
@@ -82,6 +84,15 @@ export const PaymentReceiptModal: React.FC<Props> = ({
 
   if (!isOpen) return null;
 
+  const handleApplyChanges = () => {
+    setActiveTab('preview');
+    storage.saveReceipt(receipt);
+    if (onSaveReceipt) {
+      onSaveReceipt(receipt);
+    }
+    toast.success('Receipt particulars applied & saved!');
+  };
+
   const handleCancelPdfGeneration = () => {
     cancelPdfRef.current = true;
     setIsExporting(false);
@@ -104,6 +115,7 @@ export const PaymentReceiptModal: React.FC<Props> = ({
       if (cancelPdfRef.current) return;
       pdf.save(filename);
       toast.success(`Downloaded receipt ${receipt.receiptNumber}`);
+      storage.saveReceipt(receipt);
       if (onSaveReceipt) onSaveReceipt(receipt);
     } catch (err) {
       if (!cancelPdfRef.current) {
@@ -117,6 +129,7 @@ export const PaymentReceiptModal: React.FC<Props> = ({
   };
 
   const handlePrint = () => {
+    storage.saveReceipt(receipt);
     printReceipt(receipt);
     if (onSaveReceipt) onSaveReceipt(receipt);
   };
@@ -353,8 +366,30 @@ export const PaymentReceiptModal: React.FC<Props> = ({
                   <label className="font-bold text-slate-600 block mb-1">Receipt Date</label>
                   <input
                     type="date"
-                    value={receipt.receiptDate}
+                    value={receipt.receiptDate ? (receipt.receiptDate.includes('/') ? receipt.receiptDate.split('/').reverse().join('-') : receipt.receiptDate) : ''}
                     onChange={(e) => setReceipt({ ...receipt, receiptDate: e.target.value })}
+                    className="w-full bg-slate-50 border border-slate-200 rounded-lg p-2 text-slate-800 focus:outline-blue-500"
+                  />
+                </div>
+
+                <div>
+                  <label className="font-bold text-slate-600 block mb-1">Event Date (dd/mm/yyyy or Range)</label>
+                  <input
+                    type="text"
+                    value={receipt.eventDate || ''}
+                    placeholder="e.g. 30/10/2026 or 24-25/10/2026"
+                    onChange={(e) => setReceipt({ ...receipt, eventDate: e.target.value })}
+                    className="w-full bg-slate-50 border border-slate-200 rounded-lg p-2 text-slate-800 focus:outline-blue-500"
+                  />
+                </div>
+
+                <div>
+                  <label className="font-bold text-slate-600 block mb-1">Venue / Event Location</label>
+                  <input
+                    type="text"
+                    value={receipt.venue || ''}
+                    placeholder="e.g. Sector 49, Gurugram"
+                    onChange={(e) => setReceipt({ ...receipt, venue: e.target.value })}
                     className="w-full bg-slate-50 border border-slate-200 rounded-lg p-2 text-slate-800 focus:outline-blue-500"
                   />
                 </div>
@@ -433,8 +468,8 @@ export const PaymentReceiptModal: React.FC<Props> = ({
               <div className="pt-2 flex justify-end">
                 <button
                   type="button"
-                  onClick={() => setActiveTab('preview')}
-                  className="px-4 py-2 bg-blue-600 text-white font-bold text-xs rounded-lg hover:bg-blue-700 transition-colors shadow-xs"
+                  onClick={handleApplyChanges}
+                  className="px-4 py-2 bg-blue-600 text-white font-bold text-xs rounded-lg hover:bg-blue-700 transition-colors shadow-xs cursor-pointer active:scale-95"
                 >
                   Apply &amp; View Preview
                 </button>
@@ -481,7 +516,7 @@ export const PaymentReceiptModal: React.FC<Props> = ({
                     </div>
                     <div className="text-slate-500 flex items-center sm:justify-end gap-2">
                       <span className="text-[11px]">Receipt Date:</span>
-                      <span className="font-semibold text-slate-800">{receipt.receiptDate}</span>
+                      <span className="font-semibold text-slate-800">{formatDisplayDate(receipt.receiptDate)}</span>
                     </div>
                     <div className="flex items-center sm:justify-end gap-2 pt-0.5">
                       <span className="text-slate-500 font-medium text-[11px]">Status:</span>
@@ -518,7 +553,7 @@ export const PaymentReceiptModal: React.FC<Props> = ({
                   </div>
                   {(receipt.venue || receipt.eventDate) && (
                     <div className="mt-2 pt-1.5 border-t border-dashed border-slate-200 text-[10px] text-slate-600">
-                      {receipt.eventDate && <span><strong>Event:</strong> {receipt.eventDate} </span>}
+                      {receipt.eventDate && <span><strong>Event:</strong> {formatDisplayDate(receipt.eventDate)} </span>}
                       {receipt.venue && <span>&bull; {receipt.venue}</span>}
                     </div>
                   )}

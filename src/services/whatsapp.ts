@@ -1,5 +1,6 @@
 import { Quotation, getItemAmount } from '../types/quotation';
 import { renderTemplate } from './templateService';
+import { formatDisplayDate } from '../utils/receiptHelper';
 
 export const formatQuotationWhatsAppText = (quotation: Quotation): string => {
   return renderTemplate('simpleTextBreakdown', quotation);
@@ -69,21 +70,23 @@ export const formatPaymentReceiptWhatsAppText = (receipt: import('../types/recei
 
   let text = `*OFFICIAL PAYMENT RECEIPT: ${receipt.receiptNumber}*\n`;
   text += `*From:* ${receipt.company.name}\n`;
-  text += `*To:* ${receipt.client.name}${receipt.client.company ? ` (${receipt.client.company})` : ''}\n`;
-  text += `*Receipt Date:* ${receipt.receiptDate}\n\n`;
+  text += `*To:* ${receipt.client.name}${receipt.client.company && receipt.client.company.toLowerCase() !== receipt.client.name.toLowerCase() ? ` (${receipt.client.company})` : ''}\n`;
+  text += `*Receipt Date:* ${formatDisplayDate(receipt.receiptDate)}\n\n`;
 
   text += `Dear ${receipt.client.name || 'Valued Client'},\n`;
   text += `We have successfully received and acknowledged your payment of *₹${receipt.amountPaid.toLocaleString('en-IN')}*.\n\n`;
 
   text += `*Payment Particulars:*\n`;
-  text += `• Reference: ${receipt.invoiceNumber ? `Invoice #${receipt.invoiceNumber}` : `Quotation #${receipt.quotationNumber}`}\n`;
+  if (receipt.invoiceNumber || receipt.quotationNumber) {
+    text += `• Reference: ${receipt.invoiceNumber ? `Invoice #${receipt.invoiceNumber}` : `Quotation #${receipt.quotationNumber}`}\n`;
+  }
   text += `• Milestone: ${milestoneMap[receipt.paymentMilestone] || receipt.paymentMilestone}\n`;
   text += `• Payment Mode: ${modeMap[receipt.paymentMode] || receipt.paymentMode}\n`;
   if (receipt.transactionRef) {
     text += `• Ref / UTR: ${receipt.transactionRef}\n`;
   }
   if (receipt.eventDate) {
-    text += `• Event Date: ${receipt.eventDate}\n`;
+    text += `• Event Date: ${formatDisplayDate(receipt.eventDate)}\n`;
   }
   if (receipt.venue) {
     text += `• Venue: ${receipt.venue}\n`;

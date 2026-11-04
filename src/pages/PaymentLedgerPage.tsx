@@ -510,9 +510,17 @@ export const PaymentLedgerPage: React.FC = () => {
   };
 
   const handleGenerateReceiptFromRecord = (record: LedgerRecord) => {
-    const company = storage.getCompanyProfile();
     const cleanId = (record.id || 'REC').replace(/[^a-zA-Z0-9]/g, '').slice(-4).toUpperCase();
     const receiptNum = `REC-${getYear(record.date) || new Date().getFullYear()}-${cleanId || '001'}`;
+
+    // 1. Check if a previously customized and saved receipt exists in storage
+    const savedReceipt = storage.getReceipt(record.id) || storage.getReceipt(receiptNum) || storage.getReceipt(`rec-${record.id}`);
+    if (savedReceipt) {
+      setReceiptModalData(savedReceipt);
+      return;
+    }
+
+    const company = storage.getCompanyProfile();
     const amountPaid = record.status === 'Received' ? (record.amount || 0) : (record.paidAmount || 0);
     const totalPayable = record.amount || 0;
     const balanceDue = record.status === 'Received' ? 0 : (record.pendingAmount || Math.max(0, totalPayable - amountPaid));
@@ -580,14 +588,14 @@ export const PaymentLedgerPage: React.FC = () => {
     };
 
     const rec: PaymentReceipt = {
-      id: `rec-${Date.now()}`,
+      id: `rec-${record.id}`,
       receiptNumber: receiptNum,
       receiptDate: record.date ? (parseDate(record.date).toISOString().split('T')[0] || new Date().toISOString().split('T')[0]) : new Date().toISOString().split('T')[0],
       quotationId: matchedQuoteId || record.id,
       quotationNumber: matchedQuoteNumber,
       invoiceNumber: matchedInvoiceNumber || undefined,
       venue: record.eventVenue || matchedVenue || undefined,
-      eventDate: record.date ? (parseDate(record.date).toISOString().split('T')[0] || undefined) : undefined,
+      eventDate: record.date || undefined,
       client: {
         name: record.client,
         company: clientCompany || '',
@@ -608,6 +616,41 @@ export const PaymentLedgerPage: React.FC = () => {
     };
 
     setReceiptModalData(rec);
+  };
+
+  const handleSaveReceiptFromLedger = (savedReceipt: PaymentReceipt) => {
+    // 1. Persist the receipt in storage so it survives page reloads
+    storage.saveReceipt(savedReceipt);
+    setReceiptModalData(savedReceipt);
+
+    // 2. Locate and sync the parent LedgerRecord
+    const targetRecordId = savedReceipt.quotationId || savedReceipt.id?.replace(/^rec-/, '');
+    const currentRecord = records.find(
+      r => r.id === targetRecordId || (receiptModalData && (r.id === receiptModalData.quotationId || r.id === receiptModalData.id))
+    );
+
+    if (currentRecord) {
+      const paidAmt = Number(savedReceipt.amountPaid) || 0;
+      const pendingAmt = Number(savedReceipt.remainingBalance);
+      const isSettled = pendingAmt <= 0;
+
+      const updatedRecord: LedgerRecord = {
+        ...currentRecord,
+        paidAmount: paidAmt,
+        pendingAmount: pendingAmt,
+        status: isSettled ? 'Received' : (paidAmt > 0 ? 'Partial' : 'Pending'),
+        paymentMode: savedReceipt.paymentMode || currentRecord.paymentMode,
+        transactionRef: savedReceipt.transactionRef || currentRecord.transactionRef,
+        invoiceNumber: savedReceipt.invoiceNumber || currentRecord.invoiceNumber,
+        note: savedReceipt.notes || currentRecord.note,
+      };
+
+      // Optimistic in-memory update so table immediately shows updated amounts and status
+      setRecords(prev => prev.map(r => r.id === currentRecord.id ? updatedRecord : r));
+
+      // Persist to Supabase and cache
+      updateRecord(updatedRecord, currentRecord.id).catch(console.error);
+    }
   };
 
   return (
@@ -919,6 +962,7 @@ export const PaymentLedgerPage: React.FC = () => {
             isOpen={Boolean(receiptModalData)}
             onClose={() => setReceiptModalData(null)}
             initialReceipt={receiptModalData}
+            onSaveReceipt={handleSaveReceiptFromLedger}
           />
         )}
 

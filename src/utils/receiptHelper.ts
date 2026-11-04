@@ -78,3 +78,54 @@ export function createReceiptFromQuotation(
 
   return receipt;
 }
+
+/**
+ * Formats any date string (ISO YYYY-MM-DD, DD-MM-YYYY, Date, or range) into dd/mm/yyyy
+ */
+export function formatDisplayDate(dateStr?: string | null): string {
+  if (!dateStr) return '';
+  const str = String(dateStr).trim();
+  if (!str) return '';
+
+  // Already dd/mm/yyyy
+  if (/^\d{2}\/\d{2}\/\d{4}$/.test(str)) {
+    return str;
+  }
+
+  // Already dd-mm-yyyy -> convert to dd/mm/yyyy
+  if (/^\d{2}-\d{2}-\d{4}$/.test(str)) {
+    return str.replace(/-/g, '/');
+  }
+
+  // Single digit day/month like 1/11/2026 or 1-11-2026
+  if (/^\d{1,2}[\/\-]\d{1,2}[\/\-]\d{4}$/.test(str)) {
+    const parts = str.split(/[\/\-]/);
+    const day = parts[0].padStart(2, '0');
+    const month = parts[1].padStart(2, '0');
+    const year = parts[2];
+    return `${day}/${month}/${year}`;
+  }
+
+  // ISO yyyy-mm-dd or yyyy/mm/dd
+  if (/^\d{4}[\-\/]\d{2}[\-\/]\d{2}/.test(str)) {
+    const parts = str.substring(0, 10).split(/[\-\/]/);
+    if (parts.length === 3) {
+      return `${parts[2]}/${parts[1]}/${parts[0]}`;
+    }
+  }
+
+  // Check multi-day ranges like 24-25/10/2026 or text ranges
+  if (str.includes('/') || str.toLowerCase().includes(' to ')) {
+    return str;
+  }
+
+  const d = new Date(str);
+  if (!isNaN(d.getTime())) {
+    const day = String(d.getDate()).padStart(2, '0');
+    const month = String(d.getMonth() + 1).padStart(2, '0');
+    const year = d.getFullYear();
+    return `${day}/${month}/${year}`;
+  }
+
+  return str;
+}

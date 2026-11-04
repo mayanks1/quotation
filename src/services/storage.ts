@@ -1,4 +1,5 @@
 import { Quotation, CompanyProfile, ClientProfile, LineItem, CatalogItem } from '../types/quotation';
+import { PaymentReceipt } from '../types/receipt';
 import { DEFAULT_COMPANY, DEFAULT_TERMS_AND_CONDITIONS, DEFAULT_PAYMENT_TERMS, CATALOG_PRESETS } from '../config/defaults';
 import { idb } from './indexedDb';
 import { cloudSync } from './cloudSync';
@@ -11,6 +12,7 @@ const STORAGE_KEYS = {
   LEGACY_COMPANY: 'tisha_company_profile_v2',
   LEGACY_CLIENTS: 'tisha_clients_v2',
   AUTO_LEDGER_SYNC: 'tisha_auto_ledger_sync_v1',
+  SAVED_RECEIPTS: 'tisha_saved_receipts_v2',
 };
 
 export const normalizeCompany = (raw: any): CompanyProfile => {
@@ -717,5 +719,33 @@ export const storage = {
   },
   getClients(organizationId?: string): ClientProfile[] {
     return storage.getAllClients(organizationId);
+  },
+
+  // Saved Payment Receipts Persistence
+  saveReceipt(receipt: PaymentReceipt): void {
+    if (!receipt) return;
+    try {
+      const raw = localStorage.getItem(STORAGE_KEYS.SAVED_RECEIPTS);
+      const map: Record<string, PaymentReceipt> = raw ? JSON.parse(raw) : {};
+      if (receipt.id) map[receipt.id] = receipt;
+      if (receipt.receiptNumber) map[receipt.receiptNumber] = receipt;
+      if (receipt.quotationId) map[receipt.quotationId] = receipt;
+      if (receipt.quotationNumber) map[receipt.quotationNumber] = receipt;
+      localStorage.setItem(STORAGE_KEYS.SAVED_RECEIPTS, JSON.stringify(map));
+    } catch (e) {
+      console.warn('Failed to save receipt to storage:', e);
+    }
+  },
+
+  getReceipt(key: string): PaymentReceipt | null {
+    if (!key) return null;
+    try {
+      const raw = localStorage.getItem(STORAGE_KEYS.SAVED_RECEIPTS);
+      if (!raw) return null;
+      const map: Record<string, PaymentReceipt> = JSON.parse(raw);
+      return map[key] || map[key.trim()] || map[key.toUpperCase()] || null;
+    } catch {
+      return null;
+    }
   },
 };
