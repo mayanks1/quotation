@@ -12,6 +12,7 @@ import { LoginPage } from './pages/LoginPage';
 import { RegisterPage } from './pages/RegisterPage';
 import { ForgotPasswordPage } from './pages/ForgotPasswordPage';
 import { PublicQuoteView } from './pages/PublicQuoteView';
+import { PublicReceiptView } from './pages/PublicReceiptView';
 import { QuoteEditorPage } from './pages/QuoteEditorPage';
 import { UsersPage } from './pages/UsersPage';
 import { PaymentLedgerPage } from './pages/PaymentLedgerPage';
@@ -270,6 +271,11 @@ export function App() {
 
       {/* Public Client Online Review & Sign-Off Portal */}
       <Route path="/quote/:id/view" element={<PublicQuoteView />} />
+
+      {/* Public Official Receipt Verification Portal */}
+      <Route path="/receipt/:id/view" element={<PublicReceiptView />} />
+      <Route path="/receipt/:id" element={<PublicReceiptView />} />
+      <Route path="/verify/receipt/:id" element={<PublicReceiptView />} />
 
       {/* Protected SaaS Workspace Routes */}
       <Route

@@ -9,7 +9,7 @@ export const DEFAULT_COMPANY: CompanyProfile = {
   phone: '+91 7703948857',
   phoneAlt: '+91 9716681122',
   email: 'tishaledwalls@gmail.com',
-  website: 'https://tishaledwalls.pages.dev/',
+  website: 'https://tisha-invoice.pages.dev/',
   gstin: '',
   pan: '',
   bankDetails: {

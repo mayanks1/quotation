@@ -15,6 +15,7 @@ import {
 import { generateQuotationPDFFile, exportQuotationPDF, generateQuotationPDFDoc } from '../services/pdfGenerator';
 import { getQuotationExpiryStatus, formatQuotationReminderText, generateWhatsAppReminderUrl } from '../utils/quotationExpiry';
 import { createReceiptFromQuotation } from '../utils/receiptHelper';
+import { getPublicQuoteUrl } from '../utils/appUrl';
 import { DeliveryChallanModal } from './DeliveryChallanModal';
 import { MessageTemplatesModal } from './MessageTemplatesModal';
 import { TemplateKey } from '../services/templateService';
@@ -487,7 +488,7 @@ export const ShareQuotationModal: React.FC<Props> = ({
               <button
                 type="button"
                 onClick={() => {
-                  const url = `${window.location.origin}/quote/${quotation.id}/view`;
+                  const url = getPublicQuoteUrl(quotation.id);
                   navigator.clipboard.writeText(url);
                   toast.success('Copied Client Portal URL to clipboard!');
                 }}

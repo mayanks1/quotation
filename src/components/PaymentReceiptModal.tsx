@@ -13,6 +13,7 @@ import {
   Sparkles,
   ExternalLink,
   Loader2,
+  ShieldCheck,
 } from 'lucide-react';
 import {
   exportReceiptPDF,
@@ -239,13 +240,31 @@ export const PaymentReceiptModal: React.FC<Props> = ({
                   )}
                 </div>
                 <p className="text-[11px] sm:text-xs text-slate-400 mt-0.5 truncate">
-                  For Quotation #{receipt.quotationNumber} &bull; {receipt.client?.name}
+                  {receipt.invoiceNumber
+                    ? `For Invoice #${receipt.invoiceNumber}`
+                    : receipt.quotationNumber
+                    ? `For Quotation #${receipt.quotationNumber}`
+                    : `Direct Ledger Record`} &bull; {receipt.client?.name}
                 </p>
               </div>
             </div>
 
             {/* Desktop Tabs & Close Button */}
             <div className="hidden sm:flex items-center gap-2">
+              {securityData?.verifyUrl && (
+                <a
+                  href={securityData.verifyUrl}
+                  target="_blank"
+                  rel="noreferrer"
+                  className="inline-flex items-center gap-1 text-[11px] text-emerald-400 hover:text-emerald-300 font-bold px-2.5 py-1 rounded-lg bg-emerald-950/70 border border-emerald-800/80 transition-colors shadow-xs"
+                  title="Open Public Verification Portal in New Tab"
+                >
+                  <ShieldCheck size={13} className="text-emerald-400" />
+                  <span>Public Verification Link</span>
+                  <ExternalLink size={11} />
+                </a>
+              )}
+
               <div className="flex bg-slate-800 p-0.5 rounded-lg border border-slate-700 text-xs font-semibold">
                 <button
                   type="button"
@@ -489,7 +508,7 @@ export const PaymentReceiptModal: React.FC<Props> = ({
                   <div className="font-bold text-slate-900 text-sm">
                     {receipt.client.name}
                   </div>
-                  {receipt.client.company && (
+                  {receipt.client.company && receipt.client.company.trim().toLowerCase() !== (receipt.client.name || '').trim().toLowerCase() && (
                     <div className="text-blue-600 font-semibold">{receipt.client.company}</div>
                   )}
                   <div className="text-slate-500 text-[11px] mt-1 space-y-0.5">
@@ -510,16 +529,18 @@ export const PaymentReceiptModal: React.FC<Props> = ({
                     Payment &amp; Booking Particulars
                   </div>
                   <div className="space-y-1 text-[11px]">
-                    <div className="flex justify-between">
-                      <span className="text-slate-500">Related Quotation:</span>
-                      <span className="font-mono font-bold text-slate-800">#{receipt.quotationNumber}</span>
-                    </div>
-                    {receipt.invoiceNumber && (
+                    {receipt.quotationNumber ? (
+                      <div className="flex justify-between">
+                        <span className="text-slate-500">Related Quotation:</span>
+                        <span className="font-mono font-bold text-slate-800">#{receipt.quotationNumber}</span>
+                      </div>
+                    ) : null}
+                    {receipt.invoiceNumber ? (
                       <div className="flex justify-between">
                         <span className="text-slate-500">Tax Invoice:</span>
                         <span className="font-mono font-bold text-slate-800">#{receipt.invoiceNumber}</span>
                       </div>
-                    )}
+                    ) : null}
                     <div className="flex justify-between">
                       <span className="text-slate-500">Payment Mode:</span>
                       <span className="font-bold text-slate-800 uppercase">{receipt.paymentMode.replace('_', ' ')}</span>

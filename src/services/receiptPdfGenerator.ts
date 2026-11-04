@@ -4,6 +4,7 @@ import QRCode from 'qrcode';
 import { PaymentReceipt } from '../types/receipt';
 import { amountToWordsIndian } from '../utils/numberToWords';
 import { OFFICIAL_TISHA_STAMP } from '../config/officialStamp';
+import { getPublicReceiptUrl } from '../utils/appUrl';
 
 export interface ReceiptSecurityData {
   qrDataUrl: string;
@@ -16,13 +17,25 @@ export async function generateReceiptSecurityData(receipt: PaymentReceipt): Prom
   const timestamp = new Date().toISOString().replace('T', ' ').substring(0, 19) + ' IST';
   const voucherRef = receipt.receiptNumber || 'REC';
 
-  const origin = typeof window !== 'undefined' && window.location?.origin
-    ? window.location.origin
-    : 'https://tishaledwalls.pages.dev';
-
-  const verifyUrl = receipt.quotationNumber
-    ? `${origin}/quote/${encodeURIComponent(receipt.quotationNumber)}/view`
-    : `${origin}/quotes`;
+  // Always use the live production verification portal URL with tamper-evident parameters
+  // so scanning from any phone or paper voucher works 100% of the time.
+  const verifyUrl = getPublicReceiptUrl(voucherRef, {
+    rec: receipt.receiptNumber,
+    client: receipt.client?.name,
+    amt: receipt.amountPaid,
+    due: receipt.remainingBalance,
+    date: receipt.receiptDate,
+    mode: receipt.paymentMode,
+    milestone: receipt.paymentMilestone,
+    ref: receipt.transactionRef,
+    q: receipt.quotationNumber,
+    inv: receipt.invoiceNumber,
+    phone: receipt.client?.phone,
+    email: receipt.client?.email,
+    venue: receipt.venue,
+    eventDate: receipt.eventDate,
+    notes: receipt.notes,
+  });
 
   let qrDataUrl = '';
   try {
@@ -160,7 +173,7 @@ export function buildReceiptHTML(receipt: PaymentReceipt, security?: ReceiptSecu
           <div style="font-size: 14px; font-weight: 800; color: #0f172a; margin-bottom: 2px;">
             ${esc(client.name)}
           </div>
-          ${client.company ? `<div style="font-size: 12px; font-weight: 600; color: #2563eb; margin-bottom: 4px;">${esc(client.company)}</div>` : ''}
+          ${client.company && client.company.trim().toLowerCase() !== (client.name || '').trim().toLowerCase() ? `<div style="font-size: 12px; font-weight: 600; color: #2563eb; margin-bottom: 4px;">${esc(client.company)}</div>` : ''}
           <div style="font-size: 11px; color: #475569; line-height: 1.5;">
             ${client.phone ? `Phone: <strong>${esc(client.phone)}</strong><br/>` : ''}
             ${client.email ? `Email: ${esc(client.email)}<br/>` : ''}
@@ -180,12 +193,14 @@ export function buildReceiptHTML(receipt: PaymentReceipt, security?: ReceiptSecu
             Payment &amp; Booking Particulars
           </div>
           <table style="width: 100%; font-size: 11px; border-collapse: collapse; line-height: 1.7;">
-            <tr>
-              <td style="color: #64748b; font-weight: 600; width: 45%;">Related Quotation / Ref:</td>
-              <td style="font-weight: 700; color: #0f172a; font-family: monospace;">
-                ${esc(invoiceNumber ? `Invoice #${invoiceNumber}` : `Quotation #${quotationNumber}`)}
-              </td>
-            </tr>
+            ${invoiceNumber || quotationNumber ? `
+              <tr>
+                <td style="color: #64748b; font-weight: 600; width: 45%;">${invoiceNumber ? 'Related Invoice / Ref:' : 'Related Quotation:'}</td>
+                <td style="font-weight: 700; color: #0f172a; font-family: monospace;">
+                  ${esc(invoiceNumber ? `Invoice #${invoiceNumber}` : `Quotation #${quotationNumber}`)}
+                </td>
+              </tr>
+            ` : ''}
             <tr>
               <td style="color: #64748b; font-weight: 600;">Payment Mode:</td>
               <td style="font-weight: 700; color: #0f172a;">${modeLabels[paymentMode] || paymentMode}</td>

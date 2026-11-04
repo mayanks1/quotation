@@ -517,11 +517,14 @@ export const PaymentLedgerPage: React.FC = () => {
     const totalPayable = record.amount || 0;
     const balanceDue = record.status === 'Received' ? 0 : (record.pendingAmount || Math.max(0, totalPayable - amountPaid));
 
+    let clientCompany = '';
     let clientPhone = '';
     let clientEmail = '';
     let clientAddress = '';
     let matchedQuoteNumber = '';
     let matchedQuoteId = '';
+    let matchedInvoiceNumber = '';
+    let matchedVenue = '';
 
     try {
       const allClients = storage.getClients?.() || [];
@@ -529,6 +532,7 @@ export const PaymentLedgerPage: React.FC = () => {
         (c: any) => c.name?.toLowerCase() === record.client.toLowerCase() || c.company?.toLowerCase() === record.client.toLowerCase()
       );
       if (foundClient) {
+        clientCompany = (foundClient.company && foundClient.company.toLowerCase() !== record.client.toLowerCase()) ? foundClient.company : '';
         clientPhone = foundClient.phone || '';
         clientEmail = foundClient.email || '';
         clientAddress = foundClient.address || '';
@@ -536,15 +540,30 @@ export const PaymentLedgerPage: React.FC = () => {
 
       const quotes = storage.getAllQuotations?.() || [];
       const foundQuote = quotes.find(
-        (q: any) => q.client?.name?.toLowerCase() === record.client.toLowerCase() || q.client?.company?.toLowerCase() === record.client.toLowerCase()
+        (q: any) =>
+          (record.linkedQuotationId && q.id === record.linkedQuotationId) ||
+          (record.invoiceNumber && (q.invoiceNumber === record.invoiceNumber || q.quotationNumber === record.invoiceNumber)) ||
+          q.client?.name?.toLowerCase() === record.client.toLowerCase() ||
+          q.client?.company?.toLowerCase() === record.client.toLowerCase()
       );
       if (foundQuote) {
+        if (!clientCompany && foundQuote.client?.company && foundQuote.client.company.toLowerCase() !== record.client.toLowerCase()) {
+          clientCompany = foundQuote.client.company;
+        }
         if (!clientPhone && foundQuote.client?.phone) clientPhone = foundQuote.client.phone;
         if (!clientEmail && foundQuote.client?.email) clientEmail = foundQuote.client.email || '';
         if (!clientAddress && foundQuote.client?.address) clientAddress = foundQuote.client.address || '';
         matchedQuoteNumber = foundQuote.quotationNumber || '';
         matchedQuoteId = foundQuote.id || '';
+        matchedVenue = foundQuote.venue || '';
       }
+
+      if (!matchedQuoteNumber && record.note) {
+        const qMatch = record.note.match(/TLW-[A-Za-z0-9-]+/i);
+        if (qMatch) matchedQuoteNumber = qMatch[0];
+      }
+      const invMatch = record.note?.match(/INV-[A-Za-z0-9-]+/i);
+      matchedInvoiceNumber = record.invoiceNumber || (invMatch ? invMatch[0] : (foundQuote?.invoiceNumber || ''));
     } catch (e) { }
 
     const effectiveCompany = company ? {
@@ -566,16 +585,20 @@ export const PaymentLedgerPage: React.FC = () => {
       receiptDate: record.date ? (parseDate(record.date).toISOString().split('T')[0] || new Date().toISOString().split('T')[0]) : new Date().toISOString().split('T')[0],
       quotationId: matchedQuoteId || record.id,
       quotationNumber: matchedQuoteNumber,
+      invoiceNumber: matchedInvoiceNumber || undefined,
+      venue: record.eventVenue || matchedVenue || undefined,
+      eventDate: record.date ? (parseDate(record.date).toISOString().split('T')[0] || undefined) : undefined,
       client: {
         name: record.client,
-        company: record.client,
+        company: clientCompany || '',
         phone: clientPhone,
         email: clientEmail,
         address: clientAddress,
       },
       company: effectiveCompany as any,
       amountPaid,
-      paymentMode: 'bank_transfer',
+      paymentMode: (record.paymentMode as any) || 'bank_transfer',
+      transactionRef: record.transactionRef || undefined,
       paymentMilestone: record.status === 'Received' ? 'full' : (amountPaid > 0 ? 'partial' : 'advance'),
       totalPayable,
       previousPaid: 0,

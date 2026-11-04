@@ -27,6 +27,7 @@ import { CompanyStampModal } from './CompanyStampModal';
 import { DeliveryChallanModal } from './DeliveryChallanModal';
 import { PaymentReceiptModal } from './PaymentReceiptModal';
 import { createReceiptFromQuotation } from '../utils/receiptHelper';
+import { getPublicQuoteUrl } from '../utils/appUrl';
 import { OFFICIAL_TISHA_STAMP } from '../config/officialStamp';
 import { useToast, useConfirm } from '../context/ToastContext';
 
@@ -861,7 +862,7 @@ export const QuotationEditor: React.FC<Props> = ({
                     type="button"
                     onClick={() => {
                       setIsActionsMenuOpen(false);
-                      const link = `${window.location.origin}/quote/${quotation.id}/view`;
+                      const link = getPublicQuoteUrl(quotation.id);
                       navigator.clipboard.writeText(link);
                       toast.success('Public review link copied to clipboard!');
                     }}

@@ -17,6 +17,11 @@ export const ProtectedRoute: React.FC<{ children: React.ReactNode }> = ({ childr
   }
 
   if (!isAuthenticated) {
+    const params = new URLSearchParams(location.search);
+    const recParam = params.get('rec') || params.get('receipt');
+    if (recParam) {
+      return <Navigate to={`/receipt/${encodeURIComponent(recParam)}/view${location.search}`} replace />;
+    }
     return <Navigate to="/login" state={{ from: location }} replace />;
   }
 

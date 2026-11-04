@@ -30,6 +30,12 @@ export const PublicQuoteView: React.FC = () => {
       return;
     }
 
+    // Seamlessly redirect if this is an official payment receipt reference
+    if (id.toUpperCase().startsWith('REC-')) {
+      window.location.replace(`/receipt/${encodeURIComponent(id)}/view${window.location.search}`);
+      return;
+    }
+
     const loadProposal = async () => {
       try {
         await storage.initialize();
